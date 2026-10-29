@@ -140,28 +140,51 @@ npm run dev
 │   ├── crop-adjust.js  # Post-Crop Zoom (output ratio)
 │   ├── mask-editor.js  # Erase Content (rectangle + brush)
 │   └── utils.js        # Rotation / Erasure Drawing Helpers
+├── deploy/
+│   └── pages-workflow.yml # 可选：Actions 自动发布模板
+├── scripts/
+│   └── publish-pages.sh# 一键把 docs/ 发布到 gh-pages 分支
 └── DEPLOY.md           # Deployment Guide
 ```
 
 ## 🚢 Deployment / 部署
 
+### 🌐 在线地址（已启用）
+
+**https://yaoyuandejuli.github.io/PaperSplit/**
+
 仓库内已包含**可直接托管的构建产物**，无需本地构建即可部署：
 
 ```
 ├── dist/       # 构建产物（Vite 输出）
-└── docs/       # 与 dist/ 相同的副本，供 GitHub Pages 直接使用
+├── docs/       # 与 dist/ 相同的副本，供 GitHub Pages 直接使用
+├── gh-pages    # 线上实际发布分支（内容 = docs/）
+├── deploy/     # 可选的 Actions 自动部署工作流模板
+└── scripts/    # 一键发布脚本
 ```
 
-### 方式一：GitHub Pages（零配置）
-仓库 **Settings → Pages → Source** 选择 **Deploy from a branch**，分支选 `master`，目录选 **`/docs`**，保存后即可访问。
+### 方式一：一键发布（推荐）
 
-### 方式二：任意静态服务器
+代码有改动后，在仓库根目录执行：
+
+```bash
+npm run build
+rm -rf docs && cp -r dist docs     # 同步构建产物到 docs/
+bash scripts/publish-pages.sh       # 把 docs/ 推到 gh-pages 分支，1-2 分钟生效
+```
+
+### 方式二：GitHub Actions 自动发布（可选）
+
+把 `deploy/pages-workflow.yml` 复制为 `.github/workflows/deploy.yml` 并推送，
+之后每次改动 `docs/` 都会自动发布（需要令牌勾选 `workflow` 权限）。
+
+### 方式三：任意静态服务器
 ```bash
 npx serve dist          # 或
 python -m http.server -d dist
 ```
 
-### 方式三：本地开发 / 重新构建
+### 方式四：本地开发 / 重新构建
 ```bash
 npm install
 npm run dev             # 开发服务器（热更新）
