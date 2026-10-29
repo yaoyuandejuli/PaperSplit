@@ -67,7 +67,7 @@
                     <div class="empty-state" id="emptyState">
                         <span class="material-icons">cloud_upload</span>
                         <h3>点击上传或拖拽文件</h3>
-                        <p class="sub-text">支持 A3 PDF 或图片文件</p>
+                        <p class="sub-text">支持 PDF 或图片文件</p>
                         <button id="uploadBtn" class="btn primary large-btn">
                             选择文件
                         </button>
@@ -78,14 +78,19 @@
             <!-- 右侧：控制面板 -->
             <aside class="right-panel custom-scrollbar">
 
-                <div class="panel-section" id="guideSection">
-                    <h3>📋 操作指南</h3>
-                    <div class="guide-steps">
+                <div class="panel-section guide-section" id="guideSection">
+                    <button type="button" class="guide-toggle" id="guideToggle"
+                        aria-expanded="false" aria-controls="guideContent">
+                        <span class="guide-toggle-title">📋 操作指南</span>
+                        <span class="guide-toggle-hint" id="guideHint">点击展开</span>
+                        <span class="material-icons guide-chevron" aria-hidden="true">expand_more</span>
+                    </button>
+                    <div class="guide-steps" id="guideContent" hidden>
                         <div class="step-item">
                             <div class="step-num">1</div>
                             <div class="step-text">
                                 <strong>导入试卷</strong>
-                                <p>上传 A3 PDF 或图片，自动显示第一页</p>
+                                <p>上传 PDF 或图片，自动显示第一页</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -106,7 +111,7 @@
                             <div class="step-num">4</div>
                             <div class="step-text">
                                 <strong>去除分割线</strong>
-                                <p>点「去除分割线」后，直接点击画布上要删的分割线即可删除；误删可点「撤销删除」还原</p>
+                                <p>点「去除分割线」后，直接点击画布上要删的分割线即可删除</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -126,8 +131,8 @@
                         <div class="step-item">
                             <div class="step-num">7</div>
                             <div class="step-text">
-                                <strong>裁剪后调整</strong>
-                                <p>裁好的每栏太小？用「放大/缩小/重置」调整大小，点「应用到当前页」后再导出</p>
+                                <strong>裁剪后调整（可选）</strong>
+                                <p>裁好的每栏太小，用「放大/缩小/重置」调整大小，点「应用到当前页」后再导出</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -199,13 +204,6 @@
                             </button>
                         </div>
 
-                        <div class="status-line">
-                            <span id="splitCount" class="status-chip">共 1 条</span>
-                            <button id="undoSplitBtn" class="btn link-btn" disabled title="撤销上一次删除的分割线">
-                                撤销删除
-                            </button>
-                        </div>
-
                         <div class="batch-apply-block">
                             <span class="sub-label">批量应用</span>
                             <div class="btn-group batch-apply-row">
@@ -261,7 +259,7 @@
                 </div>
 
                 <div class="panel-section">
-                    <h3>📐 裁剪后调整</h3>
+                    <h3>📐 裁剪后调整（可选）</h3>
                     <div class="tools-grid">
                         <div class="btn-group crop-zoom-group">
                             <button id="cropZoomOutBtn" class="btn secondary" disabled title="调小裁剪结果">

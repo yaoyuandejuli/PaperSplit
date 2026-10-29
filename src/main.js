@@ -2,7 +2,7 @@ import { elements } from './dom.js';
 import { state } from './state.js';
 import { handleFileUpload } from './file-handler.js';
 import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation } from './viewer.js';
-import { toggleSealLine, applySplitToType, applySplitToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, undoSplitRemoval, exitRemoveSplitMode, resetToDefaults } from './editor.js';
+import { toggleSealLine, applySplitToType, applySplitToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
 import {
@@ -11,9 +11,36 @@ import {
 } from './crop-adjust.js';
 
 /**
+ * 操作指南：点击展开 / 收起（可访问的 disclosure 控件）
+ * - 默认收起：内容带 hidden 属性，仅显示标题与「点击展开」提示
+ * - 点击后展开：同步 aria-expanded，并更新提示文案与箭头方向
+ * - 使用原生 button，天然支持键盘 Enter / Space 及屏幕阅读器
+ */
+function initGuideToggle() {
+    const toggle = document.getElementById('guideToggle');
+    const content = document.getElementById('guideContent');
+    const hint = document.getElementById('guideHint');
+    if (!toggle || !content) return;
+
+    const setExpanded = (expanded) => {
+        toggle.setAttribute('aria-expanded', String(expanded));
+        content.hidden = !expanded;
+        if (hint) hint.textContent = expanded ? '点击收起' : '点击展开';
+    };
+
+    toggle.addEventListener('click', () => {
+        setExpanded(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+
+    // 初始状态与 HTML 保持一致（收起）
+    setExpanded(false);
+}
+
+/**
  * 初始化所有事件监听器
  */
 function initEventListeners() {
+    initGuideToggle();
     elements.uploadBtn.addEventListener('click', () => elements.fileInput.click());
     if (elements.changeFileBtn) {
         elements.changeFileBtn.addEventListener('click', () => elements.fileInput.click());
@@ -32,7 +59,6 @@ function initEventListeners() {
         if (!state.removeSplitMode) exitMaskMode();
         toggleRemoveSplitMode();
     });
-    elements.undoSplitBtn.addEventListener('click', undoSplitRemoval);
 
     // 「恢复默认」：把当前页分割线恢复两栏、取消密封线、清除撤销记录
     elements.resetDefaultsBtn.addEventListener('click', resetToDefaults);

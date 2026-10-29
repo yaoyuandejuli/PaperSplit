@@ -68,18 +68,18 @@ Open the local URL shown in the terminal (usually `http://localhost:5173`).
 
 ### ✨ 核心功能
 
-*   **智能导入**：支持拖拽上传 A3 PDF 文件或图片（JPG/PNG）。
+*   **智能导入**：支持拖拽上传 PDF 文件或图片（JPG/PNG）。
 *   **多栏分割**：一页可切成 **N 栏**，不再局限于一分为二。
     *   **两栏 / 三栏**：一键套用常见版式。
     *   **增加分割线**：在最大间隙处插入新的分割线，一分为多。
-    *   **去除分割线**：点击分割线即直接删除，误删可用「撤销删除」还原。
+    *   **去除分割线**：点击分割线即直接删除。
 *   **方向校正**：**左转 / 右转 90°** 快速摆正，再用 **±15° 滑块**微调，角度实时显示，每页独立生效。
 *   **密封线处理**：
     *   支持“去除密封线”模式。
     *   **智能识别**：奇数页默认在左侧，偶数页默认在右侧。
     *   可拖动调整密封线范围，导出时自动裁切该区域。
 *   **去除内容**：支持 **框选矩形** 与 **涂抹笔刷** 两种方式擦除多余内容，点「应用」后画布直接显示去除效果，**导出 PDF 时真实擦除**。
-*   **裁剪后调整**：裁好的某栏太小看不清时，用 **放大 / 缩小 / 重置** 调整大小，点「应用到当前页」后比例在导出时真实生效。
+*   **裁剪后调整（可选）**：裁好的某栏太小看不清时，用 **放大 / 缩小 / 重置** 调整大小，点「应用到当前页」后比例在导出时真实生效。
 *   **批量应用**：
     *   **同类页**：一键应用当前配置到所有奇数页或所有偶数页。
     *   **所有页**：一键应用到文档所有页面。
@@ -178,6 +178,13 @@ npm run build           # 构建到 dist/
 MIT License
 
 ## 📅 Changelog / 更新日志
+
+### 2026-10-29 (Guide Collapse & UI Polish / 操作指南折叠与界面微调)
+
+- **Collapsible Operation Guide**: The "操作指南" is now an **accessible disclosure control** — collapsed by default (only the title + a "点击展开" hint are shown), expanded on click to reveal all 8 steps. Implemented as a native `<button>` with `aria-expanded` / `aria-controls`, a rotating chevron, and full keyboard (Enter/Space) + screen-reader support. 操作指南改为点击展开/收起：默认仅显示标题与提示，点击展开全部内容，可键盘操作、兼容读屏。
+- **Upload wording**: Removed the "A3" label from the upload hints (empty state & guide step 1) — the tool accepts general PDF / image files. 上传提示去掉「A3」字样。
+- **Post-Crop Adjustment marked optional**: Added "（可选）" to the "裁剪后调整" panel title and its guide step, and changed "裁好的每栏太小？" to "裁好的每栏太小，". 「裁剪后调整」增加（可选）标注，问号改逗号。
+- **Simplified Editing Tools**: Removed the bottom "共 N 条" counter and the "撤销删除" button from the Editing Tools panel; split-line deletion still works (click to delete, "恢复默认" to restore). 去除编辑工具底部的分割线计数与「撤销删除」选项。
 
 ### 2026-10-29 (Multi-Column Splitting & Editing Suite / 多栏分割与编辑增强)
 

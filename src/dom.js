@@ -33,10 +33,8 @@ export const elements = {
     exportBtn: document.getElementById('exportBtn'),
     exportFitSelect: document.getElementById('exportFitSelect'),
     addSplitBtn: document.getElementById('addSplitBtn'),
-    // 去除分割线（点击即删 + 撤销删除）
+    // 去除分割线（点击即删）
     removeSplitBtn: document.getElementById('removeSplitBtn'),
-    undoSplitBtn: document.getElementById('undoSplitBtn'),
-    splitCount: document.getElementById('splitCount'),
     // 恢复当前页默认编辑状态
     resetDefaultsBtn: document.getElementById('resetDefaultsBtn'),
     // 分栏预设：两栏 / 三栏

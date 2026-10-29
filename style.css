@@ -531,6 +531,81 @@ body {
     margin: 0;
 }
 
+/* ==========================================================================
+   操作指南：点击展开 / 收起（可访问的 disclosure 控件）
+   ========================================================================== */
+.guide-section {
+    gap: 0;
+}
+
+.guide-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 11px 12px;
+    background-color: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    color: var(--text-main);
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.guide-toggle:hover {
+    background-color: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.guide-toggle:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.guide-toggle-title {
+    flex: 1 1 auto;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.guide-toggle-hint {
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.guide-chevron {
+    flex: 0 0 auto;
+    font-size: 20px;
+    color: var(--text-secondary);
+    transition: transform .2s ease;
+}
+
+.guide-toggle[aria-expanded="true"] {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-color: transparent;
+}
+
+.guide-toggle[aria-expanded="true"] .guide-chevron {
+    transform: rotate(180deg);
+}
+
+/* 展开后内容紧贴标题；hidden 时必须真正隐藏（覆盖 .guide-steps 的 display:flex） */
+.guide-steps {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.guide-steps[hidden] {
+    display: none;
+}
+
 .sub-label {
     display: block;
     font-size: 0.75rem;

@@ -43,7 +43,6 @@ export async function handleFileUpload(e) {
     elements.exportBtn.disabled = false;
     elements.addSplitBtn.disabled = false;
     elements.removeSplitBtn.disabled = false;   // 去除分割线（进入选择模式）
-    elements.undoSplitBtn.disabled = true;     // 尚无删除记录可撤销
     elements.resetDefaultsBtn.disabled = false; // 恢复当前页默认
     elements.splitHalfBtn.disabled = false;
     elements.splitThirdBtn.disabled = false;
