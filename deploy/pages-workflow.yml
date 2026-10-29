@@ -1,0 +1,48 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy docs to Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+# ---------------------------------------------------------------------------
+# 使用说明（当前因令牌权限限制未自动启用）：
+#   1. 把本文件复制到仓库的 .github/workflows/deploy.yml
+#   2. 推送到 master 后，GitHub Actions 会自动把 docs/ 发布到 Pages
+# 需要令牌勾选 workflow scope；没有的话直接用 scripts/publish-pages.sh 手动发布。
+# ---------------------------------------------------------------------------
