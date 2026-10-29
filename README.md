@@ -143,6 +143,34 @@ npm run dev
 └── DEPLOY.md           # Deployment Guide
 ```
 
+## 🚢 Deployment / 部署
+
+仓库内已包含**可直接托管的构建产物**，无需本地构建即可部署：
+
+```
+├── dist/       # 构建产物（Vite 输出）
+└── docs/       # 与 dist/ 相同的副本，供 GitHub Pages 直接使用
+```
+
+### 方式一：GitHub Pages（零配置）
+仓库 **Settings → Pages → Source** 选择 **Deploy from a branch**，分支选 `master`，目录选 **`/docs`**，保存后即可访问。
+
+### 方式二：任意静态服务器
+```bash
+npx serve dist          # 或
+python -m http.server -d dist
+```
+
+### 方式三：本地开发 / 重新构建
+```bash
+npm install
+npm run dev             # 开发服务器（热更新）
+npm run build           # 构建到 dist/
+```
+
+> ⚠️ 请勿直接把仓库根目录当静态站点托管：`src/` 中的 `jspdf` / `pdfjs-dist` 是裸模块标识符，
+> 浏览器无法解析，应用不会初始化。请始终使用 `dist/` 或 `docs/`。
+
 ## 📄 License
 
 
