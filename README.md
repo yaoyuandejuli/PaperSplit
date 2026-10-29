@@ -1,6 +1,15 @@
 <div align="center">
   <img src="public/favicon.png" alt="PaperSplit Logo" width="120" height="120">
   <h1>PaperSplit</h1>
+
+  <p>
+    <a href="https://yaoyuandejuli.github.io/PaperSplit/">
+      <img alt="在线体验 Live Demo" src="https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E4%BD%93%E9%AA%8C%20%7C%20Live%20Demo-6366f1?style=for-the-badge&logo=github&logoColor=white">
+    </a>
+    &nbsp;&nbsp;
+    <a href="https://yaoyuandejuli.github.io/PaperSplit/"><b>https://yaoyuandejuli.github.io/PaperSplit/</b></a>
+  </p>
+  <p><sub>🚀 在线体验，无需安装，打开即用 &nbsp;·&nbsp; <i>Live demo — no install, runs in your browser</i></sub></p>
 </div>
 
 **[English](#english) | [中文指南](#中文)**
@@ -17,7 +26,7 @@
 *   **Multi-Column Splitting**: Split a page into **N columns**, not just two.
     *   **Two Columns / Three Columns**: One-click presets for the common layouts.
     *   **Add Split Line**: Inserts another cut line at the widest gap, so one page can become many.
-    *   **Remove Split Line**: Click a cut line to delete it immediately; "Undo" restores it.
+    *   **Remove Split Line**: Enter "Remove Split Line" mode and click a cut line to delete it immediately, or double-click any cut line to remove it. "Reset Defaults" restores the page. 去除分割线模式下点击即删，也可双击删除，「恢复默认」可一键还原。
 *   **Orientation Correction**: Rotate content **90° left / right**, fine-tune with a **±15° slider**, and reset back to 0°. Each page is adjusted independently. 方向可 90° 旋转 + 滑动微调，实时显示角度。
 *   **Seal Line Removal**:
     *   Dedicated "Remove Seal Line" mode.
