@@ -96,7 +96,7 @@
                             <div class="step-num">2</div>
                             <div class="step-text">
                                 <strong>方向校正</strong>
-                                <p>扫描歪斜时，用「左转/右转 90°」把内容转正（每页独立，角度实时显示）</p>
+                                <p>文件斜歪时，用「左转/右转 90°」把内容转正（每页独立，角度实时显示）</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -109,36 +109,29 @@
                         <div class="step-item">
                             <div class="step-num">4</div>
                             <div class="step-text">
-                                <strong>去除分割线</strong>
-                                <p>点「去除分割线」后，直接点击画布上要删的分割线即可删除</p>
+                                <strong>密封线调整（可选）</strong>
+                                <p>点「去除密封线」可设置密封区域 (奇左偶右)，拖动虚线调整；「恢复默认」可一键还原本页编辑</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">5</div>
                             <div class="step-text">
-                                <strong>密封线(可选)</strong>
-                                <p>点击“添加”可设置密封区域 (奇左偶右)，拖动虚线调整；「恢复默认」可一键还原本页编辑</p>
+                                <strong>擦除内容（可选）</strong>
+                                <p>框选或涂抹要去除的内容，点「应用」后画布直接显示去除后的效果</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">6</div>
                             <div class="step-text">
-                                <strong>去除内容(可选)</strong>
-                                <p>框选或涂抹要去掉的内容，点「应用」后画布直接显示去除后的效果</p>
+                                <strong>裁剪后调整（可选）</strong>
+                                <p>裁剪后的文字过小，使用「放大/缩小/重置」调整大小。</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">7</div>
                             <div class="step-text">
-                                <strong>裁剪后调整（可选）</strong>
-                                <p>裁好的每栏太小，用「放大/缩小/重置」调整大小，点「应用到当前页」后再导出</p>
-                            </div>
-                        </div>
-                        <div class="step-item">
-                            <div class="step-num">8</div>
-                            <div class="step-text">
-                                <strong>批量与导出</strong>
-                                <p>用「同类页 / 所有页」把当前配置批量套用到其他页，最后在「文件导出」中导出标准 A4 的 PDF</p>
+                                <strong>文件导出</strong>
+                                <p>文件调整完成之后，点击「文件导出」导出标准 A4 的 PDF</p>
                             </div>
                         </div>
                     </div>
@@ -218,7 +211,7 @@
                 </div>
 
                 <div class="panel-section">
-                    <h3>🧽 去除内容</h3>
+                    <h3>🧽 擦除内容（可选）</h3>
                     <div class="tools-grid">
                         <div class="btn-group erase-mode-group">
                             <button id="maskToggleBtn" class="btn secondary" disabled
@@ -287,7 +280,7 @@
                             <span class="material-icons">check_circle</span> 应用到当前页
                         </button>
                         <div class="crop-preview-box">
-                            <div class="crop-preview-title">裁剪结果预览（按待应用比例）</div>
+                            <div class="crop-preview-title">裁剪结果预览</div>
                             <canvas id="cropPreview" class="crop-preview-canvas"></canvas>
                         </div>
                     </div>

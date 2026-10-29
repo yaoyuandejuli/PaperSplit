@@ -23,7 +23,7 @@
     *   Dedicated "Remove Seal Line" mode.
     *   **Smart Detection**: Odd pages default to left, even pages default to right.
     *   Adjustable seal area that is automatically cropped during export.
-*   **Erase Content**: Remove unwanted marks by **drag-selecting a rectangle** or **painting with a brush**. "Apply" bakes the erasure into the page, and the erasure is really applied on export. 框选 / 涂抹两种方式去除内容，去除效果真实写入导出 PDF。
+*   **Erase Content**: Remove unwanted marks by **drag-selecting a rectangle** or **painting with a brush**. "Apply" bakes the erasure into the page, and the erasure is really applied on export. 框选 / 涂抹两种方式擦除内容，擦除效果真实写入导出 PDF。
 *   **Post-Crop Zoom**: If a cropped column comes out too small to read, **zoom in / out / reset** the slice and apply it to the current page — the ratio is honoured on export. 裁剪后调整显示大小，比例真实影响导出。
 *   **Batch Application**:
     *   **Apply to Same Type**: One-click apply settings to all Odd or all Even pages.
@@ -78,7 +78,7 @@ Open the local URL shown in the terminal (usually `http://localhost:5173`).
     *   支持“去除密封线”模式。
     *   **智能识别**：奇数页默认在左侧，偶数页默认在右侧。
     *   可拖动调整密封线范围，导出时自动裁切该区域。
-*   **去除内容**：支持 **框选矩形** 与 **涂抹笔刷** 两种方式擦除多余内容，点「应用」后画布直接显示去除效果，**导出 PDF 时真实擦除**。
+*   **擦除内容（可选）**：支持 **框选矩形** 与 **涂抹笔刷** 两种方式擦除多余内容，点「应用」后画布直接显示擦除效果，**导出 PDF 时真实擦除**。
 *   **裁剪后调整（可选）**：裁好的某栏太小看不清时，用 **放大 / 缩小 / 重置** 调整大小，点「应用到当前页」后比例在导出时真实生效。
 *   **批量应用**：
     *   **同类页**：一键应用当前配置到所有奇数页或所有偶数页。
@@ -107,7 +107,7 @@ npm run dev
     *   若有密封线需要去除，点击“去除密封线”，调整灰色虚线区域。
     *   用“两栏 / 三栏”或“增加分割线”切成更多栏；用“去除分割线”删掉不要的线。
     *   扫描歪斜时用“左转 / 右转 90°”摆正，再用滑块微调角度。
-    *   用“去除内容”框选或涂抹掉多余的内容。
+    *   用“擦除内容”框选或涂抹掉多余的内容。
     *   裁剪后太小就用“裁剪后调整”放大，调好后点“应用到当前页”。
 3.  **批量**：调整好一页后，点击“同类页”或“所有页”将配置应用到其他页面。
 4.  **导出**：点击底部的“导出为 PDF (A4)”，文件将自动下载。
@@ -178,6 +178,13 @@ npm run build           # 构建到 dist/
 MIT License
 
 ## 📅 Changelog / 更新日志
+
+### 2026-10-30 (Guide Copy Polish / 操作指南文案打磨)
+
+- **Guide trimmed to 7 steps**: Removed the "去除分割线" step (the action itself still exists in Editing Tools) and renumbered the guide from 8 steps to 7. 删除指南中「去除分割线」介绍，步骤由 8 步精简为 7 步并重新编号。
+- **Term unified**: The Erase Content panel and its guide step are both called **「擦除内容（可选）」** (was「去除内容」), matching the UI. 术语统一为「擦除内容（可选）」，面板与指南一致。
+- **Accurate button names**: The seal-line step now references the real button **「去除密封线」** instead of the long-gone "添加"; it is titled「密封线调整（可选）」. 密封线步骤改为「密封线调整（可选）」，正文按钮名修正为实际存在的「去除密封线」（原“添加”按钮已不存在）。
+- **Copy tweaks**: Step 2 "扫描歪斜时" → "文件斜歪时"; step 6 reworded to "裁剪后的文字过小，使用「放大/缩小/重置」调整大小。"; step 7 retitled「文件导出」with the new description "文件调整完成之后，点击「文件导出」导出标准 A4 的 PDF"; the crop preview title dropped its "(按待应用比例)" note. 指南文案逐项打磨：文件斜歪、裁剪后文字过小、文件导出，裁剪结果预览去掉括号内小字。
 
 ### 2026-10-30 (Offline Ready & Slimmer Load / 离线可用与首屏瘦身)
 
