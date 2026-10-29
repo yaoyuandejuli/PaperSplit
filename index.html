@@ -91,22 +91,50 @@
                         <div class="step-item">
                             <div class="step-num">2</div>
                             <div class="step-text">
-                                <strong>调整分割</strong>
-                                <p>拖动红色实线确定 A4 分割位置</p>
+                                <strong>方向校正</strong>
+                                <p>扫描歪斜时，用「左转/右转 90°」把内容转正（每页独立，角度实时显示）</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">3</div>
                             <div class="step-text">
-                                <strong>密封线(可选)</strong>
-                                <p>点击“添加”可设置密封区域 (奇左偶右)，拖动虚线调整</p>
+                                <strong>调整分割</strong>
+                                <p>点「两栏」一分为二、点「三栏」一分为三；也可拖动红色实线微调，双击某条线删除</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">4</div>
                             <div class="step-text">
+                                <strong>去除分割线</strong>
+                                <p>点「去除分割线」后，直接点击画布上要删的分割线即可删除；误删可点「撤销删除」还原</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">5</div>
+                            <div class="step-text">
+                                <strong>密封线(可选)</strong>
+                                <p>点击“添加”可设置密封区域 (奇左偶右)，拖动虚线调整；「恢复默认」可一键还原本页编辑</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">6</div>
+                            <div class="step-text">
+                                <strong>去除内容(可选)</strong>
+                                <p>框选或涂抹要去掉的内容，点「应用」后画布直接显示去除后的效果</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">7</div>
+                            <div class="step-text">
+                                <strong>裁剪后调整</strong>
+                                <p>裁好的每栏太小？用「放大/缩小/重置」调整大小，点「应用到当前页」后再导出</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">8</div>
+                            <div class="step-text">
                                 <strong>批量与导出</strong>
-                                <p>使用“同类页”快速应用配置，最后导出 A4 PDF</p>
+                                <p>用「同类页 / 所有页」把当前配置批量套用到其他页，最后在「文件导出」中导出标准 A4 的 PDF</p>
                             </div>
                         </div>
                     </div>
@@ -115,23 +143,155 @@
                 <div class="panel-divider"></div>
 
                 <div class="panel-section">
+                    <h3>🔄 方向调整</h3>
+                    <div class="tools-grid">
+                        <div class="btn-group rotate-group">
+                            <button id="rotateLeftBtn" class="btn secondary" disabled title="逆时针旋转 90°">
+                                <span class="material-icons">rotate_left</span> 左转 90°
+                            </button>
+                            <button id="rotateRightBtn" class="btn secondary" disabled title="顺时针旋转 90°">
+                                <span class="material-icons">rotate_right</span> 右转 90°
+                            </button>
+                        </div>
+                        <div class="rotate-slider">
+                            <div class="rotate-fine-label">
+                                <span>微调纠偏（±15°）</span>
+                                <span class="status-chip" id="rotateAngle">0°</span>
+                            </div>
+                            <input type="range" id="rotateFineSlider" min="-15" max="15" step="0.5" value="0" disabled />
+                            <span class="rotate-slider-val"><span id="rotateFineVal">0</span>°</span>
+                        </div>
+                        <button id="resetRotationBtn" class="btn secondary reset-rotation-btn" disabled title="将当前页旋转角度重置为 0°">
+                            <span class="material-icons">restart_alt</span> 重置角度
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
                     <h3>🛠️ 编辑工具</h3>
                     <div class="tools-grid">
-                        <button id="toggleSealLineBtn" class="btn secondary" disabled>
-                            <span class="material-icons">format_shapes</span> 去除密封线
-                        </button>
+                        <div class="btn-group">
+                            <button id="splitHalfBtn" class="btn secondary" disabled title="把文档平均分成两栏（一分为二）">
+                                <span class="material-icons">vertical_split</span> 两栏
+                            </button>
+                            <button id="splitThirdBtn" class="btn secondary" disabled title="把文档平均分成三栏（一分为三）">
+                                <span class="material-icons">view_column</span> 三栏
+                            </button>
+                        </div>
 
-                        <div class="application-group">
+                        <div class="btn-group">
+                            <button id="addSplitBtn" class="btn secondary" disabled title="在最大间隙处新增一条分割线，可分成多份">
+                                <span class="material-icons">add</span> 增加分割线
+                            </button>
+                            <button id="removeSplitBtn" class="btn secondary" disabled
+                                title="开启后点击画布上的分割线标记为待去除，点「应用」后真正删除">
+                                <span class="material-icons">remove_circle_outline</span> 去除分割线
+                            </button>
+                        </div>
+
+                        <div class="btn-group">
+                            <button id="toggleSealLineBtn" class="btn secondary" disabled title="开启/取消密封线（奇数页左侧、偶数页右侧）">
+                                <span class="material-icons">format_shapes</span> 去除密封线
+                            </button>
+                            <button id="resetDefaultsBtn" class="btn secondary" disabled
+                                title="恢复当前页默认：分割线一分为二、取消密封线、清除待去除标记">
+                                <span class="material-icons">restart_alt</span> 恢复默认
+                            </button>
+                        </div>
+
+                        <div class="status-line">
+                            <span id="splitCount" class="status-chip">共 1 条</span>
+                            <button id="undoSplitBtn" class="btn link-btn" disabled title="撤销上一次删除的分割线">
+                                撤销删除
+                            </button>
+                        </div>
+
+                        <div class="batch-apply-block">
                             <span class="sub-label">批量应用</span>
-                            <div class="btn-group">
-                                <button id="applyToTypeBtn" class="btn secondary" disabled title="应用到同类页">
+                            <div class="btn-group batch-apply-row">
+                                <button id="applyToTypeBtn" class="btn secondary" disabled title="应用到同类页（奇数页或偶数页）">
                                     同类页
                                 </button>
                                 <button id="applyToAllBtn" class="btn secondary" disabled title="应用到所有页">
                                     所有页
                                 </button>
                             </div>
-                            <p class="helper-text">* 同类页指所有奇数页或所有偶数页</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🧽 去除内容</h3>
+                    <div class="tools-grid">
+                        <div class="btn-group erase-mode-group">
+                            <button id="maskToggleBtn" class="btn secondary" disabled
+                                title="开启后可在图上拖拽框选要去除的矩形区域，导出时该区域被覆盖为白色">
+                                <span class="material-icons">crop_square</span> 框选去除
+                            </button>
+                            <button id="maskBrushBtn" class="btn secondary" disabled
+                                title="开启后按住鼠标涂抹，笔迹经过的内容在导出时被擦除">
+                                <span class="material-icons">brush</span> 涂抹去除
+                            </button>
+                        </div>
+
+                        <div class="rotate-slider">
+                            <div class="rotate-fine-label">笔刷大小（相对页宽）</div>
+                            <input type="range" id="maskBrushSlider" min="1" max="20" step="1" value="6" disabled />
+                            <span class="rotate-slider-val"><span id="maskBrushVal">6</span>%</span>
+                        </div>
+
+                        <div class="status-line">
+                            <span class="status-chip" id="maskCount">尚未去除</span>
+                        </div>
+
+                        <div class="btn-group">
+                            <button id="maskUndoBtn" class="btn secondary" disabled title="撤销上一次去除操作">
+                                <span class="material-icons">undo</span> 撤销
+                            </button>
+                            <button id="clearMasksBtn" class="btn secondary" disabled title="清除当前页所有去除标记，并恢复已擦除区域">
+                                <span class="material-icons">layers_clear</span> 去除
+                            </button>
+                        </div>
+
+                        <button id="maskApplyBtn" class="btn primary full-width" disabled
+                            title="把标记的去除区域真正应用到页面：画布直接显示去除后的内容">
+                            <span class="material-icons">done_all</span> 应用
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>📐 裁剪后调整</h3>
+                    <div class="tools-grid">
+                        <div class="btn-group crop-zoom-group">
+                            <button id="cropZoomOutBtn" class="btn secondary" disabled title="调小裁剪结果">
+                                <span class="material-icons">remove</span> 缩小
+                            </button>
+                            <button id="cropZoomResetBtn" class="btn secondary" disabled title="恢复 100%">
+                                <span class="material-icons">restart_alt</span> 重置
+                            </button>
+                            <button id="cropZoomInBtn" class="btn secondary" disabled title="放大裁剪结果">
+                                <span class="material-icons">add</span> 放大
+                            </button>
+                        </div>
+                        <div class="rotate-slider">
+                            <div class="rotate-fine-label">
+                                <span>输出比例（成品页大小）</span>
+                                <span class="status-chip" id="cropZoomApplied">100%</span>
+                            </div>
+                            <input type="range" id="cropZoomSlider" min="50" max="200" step="5" value="100" disabled />
+                            <span class="rotate-slider-val"><span id="cropZoomVal">100</span>%</span>
+                        </div>
+                        <div class="status-line">
+                            <span class="status-chip" id="cropZoomState" class="crop-zoom-state">已应用</span>
+                        </div>
+                        <button id="applyCropZoomBtn" class="btn primary reset-rotation-btn" disabled
+                            title="把当前比例应用到本页，之后导出时生效">
+                            <span class="material-icons">check_circle</span> 应用到当前页
+                        </button>
+                        <div class="crop-preview-box">
+                            <div class="crop-preview-title">裁剪结果预览（按待应用比例）</div>
+                            <canvas id="cropPreview" class="crop-preview-canvas"></canvas>
                         </div>
                     </div>
                 </div>
@@ -143,11 +303,11 @@
                     <input type="file" id="fileInput" accept="application/pdf,image/*" hidden>
 
                     <div class="export-options">
-                        <label class="sub-label" for="exportFitSelect">导出尺寸</label>
+                        <label class="sub-label export-title" for="exportFitSelect">文件导出</label>
                         <select id="exportFitSelect" class="select-input">
-                            <option value="a4-fit" selected>标准 A4（等比留白）</option>
-                            <option value="a4-fill">标准 A4（拉伸填满）</option>
-                            <option value="wysiwyg">原始裁剪尺寸（所见即所得）</option>
+                            <option value="a4-fit" selected>标准 A4 · 等比留白（不变形）</option>
+                            <option value="a4-fill">标准 A4 · 拉伸填满</option>
+                            <option value="a4-cover">标准 A4 · 等比填满（超出裁切）</option>
                         </select>
                     </div>
 

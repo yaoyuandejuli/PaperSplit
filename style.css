@@ -197,7 +197,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 20px;
-    overflow: hidden;
+    overflow: auto;
 }
 
 /* Right Panel: Tools & Settings */
@@ -366,10 +366,103 @@ body {
     gap: 8px;
 }
 
+/* 独占一行的按钮 */
+.btn.full-width {
+    width: 100%;
+}
+
 .btn-group .btn {
     flex: 1;
     font-size: 0.85rem;
     padding: 8px;
+}
+
+/* 自定义角度滑块 */
+.rotate-slider {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.rotate-fine-label {
+    flex: 0 0 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.reset-rotation-btn {
+    width: 100%;
+    justify-content: center;
+    margin-top: 4px;
+}
+
+/* 裁剪后调整 */
+.crop-zoom-group .btn {
+    flex: 1;
+    font-size: 0.85rem;
+    padding: 8px;
+}
+
+.crop-zoom-state {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.crop-zoom-state.pending {
+    color: #d97706;
+}
+
+#applyCropZoomBtn.applied-state {
+    background-color: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+.crop-preview-box {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background-color: #eef2f7;
+    padding: 8px;
+    margin-top: 4px;
+}
+
+.crop-preview-title {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.crop-preview-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    /* 画布底色用浅石板灰，让白色 A4 纸张从背景中凸显出来 */
+    background-color: #e2e8f0;
+    border-radius: 4px;
+}
+
+.rotate-slider input[type="range"] {
+    flex: 1;
+    width: 100%;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+.rotate-slider-val {
+    flex: 0 0 auto;
+    min-width: 48px;
+    text-align: right;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+    font-variant-numeric: tabular-nums;
 }
 
 /* ==========================================================================
@@ -447,6 +540,35 @@ body {
     letter-spacing: 0.5px;
 }
 
+/* 行内子标签：用于按钮组内的行首说明 */
+.sub-label.inline {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 0;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* 「批量应用」块：标题独占一行并放大居中，两个按钮排在下一行 */
+.batch-apply-block {
+    display: block;
+}
+
+.batch-apply-block .sub-label {
+    display: block;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+}
+
+/* 「批量应用」行：两个按钮同处一行 */
+.batch-apply-row .btn {
+    flex: 1 1 0;
+}
+
 .helper-text {
     font-size: 0.7rem;
     color: var(--text-secondary);
@@ -455,15 +577,94 @@ body {
     opacity: 0.8;
 }
 
+/* ==========================================================================
+   紧凑状态行 / 状态徽标（替代冗长的底部说明小字）
+   ========================================================================== */
+.status-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 22px;
+}
+
+.status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: #eef2ff;
+    border: 1px solid #e0e7ff;
+    color: #4f46e5;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.status-chip.crop-zoom-state {
+    background: #eef2ff;
+    border-color: #e0e7ff;
+    color: #4f46e5;
+}
+
+.status-chip.crop-zoom-state.pending {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #b45309;
+}
+
+/* 轻量文字按钮（用于「取消标记」这类次级操作） */
+.btn.link-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 2px 4px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+}
+
+.btn.link-btn:hover:not(:disabled) {
+    background: transparent;
+    color: var(--primary-color);
+    border: none;
+}
+
+.btn.link-btn:disabled {
+    background: transparent !important;
+    border: none !important;
+    color: #cbd5e1 !important;
+    opacity: 0.7;
+    filter: none;
+}
+
 /* Export fit-mode selector */
 .export-options {
     margin-bottom: 12px;
 }
 
+/* 「文件导出」标题：放大居中，作为导出区的分区标题 */
+.export-title {
+    display: block;
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+}
+
 .select-input {
     width: 100%;
-    padding: 9px 12px;
-    font-size: 0.875rem;
+    padding: 11px 12px;
+    font-size: 0.95rem;
     font-family: inherit;
     color: var(--text-main);
     background-color: #fff;
@@ -562,6 +763,7 @@ body {
 .canvas-wrapper {
     position: relative;
     display: inline-block;
+    margin: auto;
 }
 
 .canvas-wrapper canvas {
@@ -645,6 +847,143 @@ body {
     transform: translate(-50%, -50%) scale(1.1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     cursor: grabbing;
+}
+
+/* ==========================================================================
+   去除分割线：点击即删 + 选择模式
+   ========================================================================== */
+
+/* 选择模式：分割线可点击，改为指针光标 */
+.canvas-wrapper.remove-split-mode .split-line.split {
+    cursor: pointer;
+    background-color: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+}
+
+.canvas-wrapper.remove-split-mode .split-line.split::after {
+    color: #f59e0b;
+    content: '⊗';
+}
+
+.canvas-wrapper.remove-split-mode .split-line.split:hover {
+    background-color: #fbbf24;
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.8);
+}
+
+/* 「去除分割线」点击删除后的短暂成功反馈 */
+#removeSplitBtn.applied-state {
+    background-color: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+/* ==========================================================================
+   去除内容（框选 + 涂抹）区域
+   ========================================================================== */
+.mask-rect {
+    position: absolute;
+    background: rgba(239, 68, 68, 0.30);
+    border: 2px dashed rgba(220, 38, 38, 0.95);
+    border-radius: 3px;
+    box-sizing: border-box;
+    z-index: 150;
+    cursor: pointer;
+    touch-action: none;
+}
+
+.mask-rect:hover {
+    background: rgba(239, 68, 68, 0.45);
+}
+
+.mask-rect.mask-draft {
+    background: rgba(239, 68, 68, 0.20);
+    border-style: solid;
+    pointer-events: none;
+}
+
+/* 已应用的框选：内容已被真正擦除，仅保留浅色虚线轮廓提示位置 */
+.mask-rect.applied {
+    background: transparent;
+    border: 1px dashed rgba(100, 116, 139, 0.75);
+    pointer-events: none;
+    cursor: default;
+}
+
+/* 「应用」按钮的已应用反馈 */
+#maskApplyBtn.applied-state {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+/* 涂抹笔迹图层：与页面画布同尺寸，pointer-events:none 以便事件穿透 */
+.mask-overlay-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 140;
+    pointer-events: none;
+}
+
+/* 涂抹模式的圆形光标（跟随鼠标，直径 = 笔刷大小） */
+.brush-cursor {
+    position: absolute;
+    display: none;
+    border: 2px dashed rgba(220, 38, 38, 0.95);
+    background: rgba(239, 68, 68, 0.12);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 170;
+    box-sizing: border-box;
+}
+
+/* 非框选模式下，遮盖仅作标识展示（不可交互） */
+.canvas-wrapper:not(.masking-mode) .mask-rect {
+    cursor: default;
+}
+
+/* 框选模式下：十字光标，且分割线不可拖动 */
+.canvas-wrapper.masking-mode {
+    cursor: crosshair;
+}
+
+.canvas-wrapper.masking-mode .split-line {
+    pointer-events: none;
+}
+
+/* 涂抹模式：隐藏系统光标，改用圆形笔刷光标 */
+.canvas-wrapper.brushing-mode {
+    cursor: none;
+    touch-action: none;
+}
+
+/* 涂抹模式下，已框选的遮盖不再拦截鼠标事件（避免误触删除） */
+.canvas-wrapper.brushing-mode .mask-rect {
+    pointer-events: none;
+}
+
+body.mask-dragging {
+    user-select: none;
+}
+
+/* 框选拖拽期间：全局十字光标 */
+body.mask-rect-dragging {
+    cursor: crosshair;
+}
+
+/* ==========================================================================
+   按钮激活态（分栏预设 / 去除模式）
+   ========================================================================== */
+.btn.secondary.active-state {
+    background: #eef2ff;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.25);
+}
+
+.btn.secondary.active-state:hover:not(:disabled) {
+    background: #e0e7ff;
+    color: var(--primary-color);
 }
 
 /* ==========================================================================

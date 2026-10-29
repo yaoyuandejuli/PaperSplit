@@ -2,10 +2,12 @@ import { jsPDF } from 'jspdf';
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { getPageConfig } from './editor.js';
+import { rotateCanvas, rotatedBounds, buildEraseOverlay } from './utils.js';
+import { getSliceRanges, computePlacement, getMaskRectsInSlice, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
 
 /**
  * 导出处理后的 PDF
- * 遍历每一页，根据切割线和密封线裁剪，每页生成贴合裁剪区域的页面 (高度对齐 A4)
+ * 遍历每一页，根据切割线和密封线裁剪，每一栏生成一页标准 A4 (210×297mm)
  */
 export async function exportPdf() {
     if (!state.pdfDoc && !state.fileData) return;
@@ -13,53 +15,42 @@ export async function exportPdf() {
     elements.exportBtn.disabled = true;
     elements.exportBtn.textContent = '生成中...';
 
-    // 导出适配模式：'a4-fit'(等比留白) | 'a4-fill'(拉伸填满) | 'wysiwyg'(原始裁剪尺寸)
-    const fit = elements.exportFitSelect ? elements.exportFitSelect.value : 'a4-fit';
+    // 内容在 A4 页面上的摆放方式：
+    // 'a4-fit'(等比留白，默认) | 'a4-fill'(拉伸填满) | 'a4-cover'(等比填满·超出裁切)
+    // 注：所有导出页的纸张尺寸统一为标准 A4 (210×297mm)
+    const mode = elements.exportFitSelect ? elements.exportFitSelect.value : 'a4-fit';
 
     try {
-        // 延迟创建：首页尺寸需贴合第一片裁剪区域 (所见即所得)
+        // 延迟创建：统一使用标准 A4 纵向
         let doc = null;
 
         // 遍历所有原始页面
         for (let i = 1; i <= state.totalPages; i++) {
             const config = getPageConfig(i);
+            const rotation = config.rotation || 0;
 
-            // 准备切割区间
-            // 基础区间: [0, split, 1]
-            let ranges = [];
+            // 准备切割区间：基于分割线数组（可多条 => 分栏），叠加密封线
+            const ranges = getSliceRanges(config);
 
-            // 逻辑:
-            // 1. 根据密封线确定有效区域
-            // 2. 在有效区域内进行左右分割
+            // 裁剪后调整比例：调整裁剪结果在成品页面上的大小（每页独立，可批量应用）
+            const outputScale = config.outputScale || 1;
 
-            const splitX = config.splitX;
-            const seal = config.sealLine;
-
-            if (seal) {
-                // 密封方向由 seal.type 决定（与线的语义一致），不受其相对分割线的位置影响。
-                // 分割点钳制到保留区域内，避免密封线被拖过分割线时产生反向切片或漏出密封区。
-                if (seal.type === 'left') {
-                    // 左侧密封：丢弃 [0, Seal]，保留 [Seal, 1] 再按分割线切分
-                    const split = Math.min(Math.max(splitX, seal.x), 1);
-                    ranges.push([seal.x, split]);
-                    ranges.push([split, 1]);
-                } else {
-                    // 右侧密封：丢弃 [Seal, 1]，保留 [0, Seal] 再按分割线切分
-                    const split = Math.max(Math.min(splitX, seal.x), 0);
-                    ranges.push([0, split]);
-                    ranges.push([split, seal.x]);
-                }
-            } else {
-                // 无密封: [0 -> Split], [Split -> 1]
-                ranges.push([0, splitX]);
-                ranges.push([splitX, 1]);
+            // 高清导出：按目标 DPI 动态计算渲染倍率，保证“裁剪 + 拉伸填满”后依然清晰
+            const TARGET_DPI = 200;
+            // 找出本页所有切片中最窄的宽度比例，确保最窄切片拉伸到 A4 宽度也达标
+            let minRatio = 1;
+            for (const rng of ranges) {
+                const w = rng[1] - rng[0];
+                if (w > 0.01 && w < minRatio) minRatio = w;
             }
-
-            // 渲染高清 Canvas (2倍缩放以保证清晰度)
+            const targetSlicePx = (TARGET_DPI / 25.4) * 210; // A4 宽 210mm 在目标 DPI 下的像素宽
             let sourceCanvas;
             if (state.isPdf) {
                 const page = await state.pdfDoc.getPage(i);
-                const viewport = page.getViewport({ scale: 2 });
+                const base = page.getViewport({ scale: 1 });
+                const rotBaseW = rotatedBounds(base.width, base.height, rotation).width; // 旋转后切片基准宽度
+                const scale = Math.min(4, Math.max(2, targetSlicePx / (minRatio * rotBaseW)));
+                const viewport = page.getViewport({ scale });
                 sourceCanvas = document.createElement('canvas');
                 sourceCanvas.width = viewport.width;
                 sourceCanvas.height = viewport.height;
@@ -68,11 +59,23 @@ export async function exportPdf() {
                 const img = new Image();
                 img.src = state.fileData;
                 await new Promise(r => img.onload = r);
+                const rotBaseW = rotatedBounds(img.width, img.height, rotation).width;
+                const scale = Math.min(4, Math.max(1, targetSlicePx / (minRatio * rotBaseW)));
                 sourceCanvas = document.createElement('canvas');
-                sourceCanvas.width = img.width;
-                sourceCanvas.height = img.height;
-                sourceCanvas.getContext('2d').drawImage(img, 0, 0);
+                sourceCanvas.width = Math.round(img.width * scale);
+                sourceCanvas.height = Math.round(img.height * scale);
+                sourceCanvas.getContext('2d').drawImage(img, 0, 0, sourceCanvas.width, sourceCanvas.height);
             }
+
+            // 应用方向旋转：后续切片坐标均基于旋转后的坐标系（所见即所得）
+            const workCanvas = rotateCanvas(sourceCanvas, rotation);
+
+            // 「涂抹去除」：把【已应用】的笔迹渲染成白色擦除层，导出时叠加到切片上，真正擦除内容
+            // 未应用的笔迹属于草稿标记，不参与导出
+            const appliedStrokes = (config.strokes || []).filter(s => s.applied);
+            const eraseOverlay = buildEraseOverlay(
+                appliedStrokes, workCanvas.width, workCanvas.height, { fillStyle: '#ffffff' }
+            );
 
             // 执行切割
             for (let rng of ranges) {
@@ -83,54 +86,45 @@ export async function exportPdf() {
                 // 忽略过小的切片
                 if (widthRatio <= 0.01) continue;
 
-                const sx = sourceCanvas.width * startXRatio;
+                const sx = workCanvas.width * startXRatio;
                 const sy = 0;
-                const sWidth = sourceCanvas.width * widthRatio;
-                const sHeight = sourceCanvas.height;
+                const sWidth = workCanvas.width * widthRatio;
+                const sHeight = workCanvas.height;
 
                 // 创建切片 Canvas
                 const sliceCanvas = document.createElement('canvas');
                 sliceCanvas.width = sWidth;
                 sliceCanvas.height = sHeight;
-                sliceCanvas.getContext('2d').drawImage(sourceCanvas, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+                const sliceCtx = sliceCanvas.getContext('2d');
+                sliceCtx.drawImage(workCanvas, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+
+                // 「去除内容 · 框选」：把【已应用】的遮盖区域覆盖为白色，彻底去除该处内容
+                // （导出为位图，覆盖后无法从 PDF 中提取/还原原文）
+                const appliedMasks = (config.masks || []).filter(m => m.applied);
+                const maskRects = getMaskRectsInSlice(
+                    appliedMasks, workCanvas.width, workCanvas.height, sx, sWidth, sHeight
+                );
+                for (const r of maskRects) {
+                    sliceCtx.fillStyle = '#ffffff';
+                    sliceCtx.fillRect(r.x, r.y, r.w, r.h);
+                }
+
+                // 「去除内容 · 涂抹」：叠加白色笔迹层，擦除笔迹经过的内容
+                if (eraseOverlay) {
+                    sliceCtx.drawImage(eraseOverlay, sx, 0, sWidth, sHeight, 0, 0, sWidth, sHeight);
+                }
 
                 const imgData = sliceCanvas.toDataURL('image/jpeg', 0.95);
 
-                // 根据导出适配模式确定页面尺寸与图片绘制区域
-                let pageWidth, pageHeight, orientation;
-                let drawX, drawY, drawW, drawH;
+                // 根据摆放模式 + 裁剪后调整比例，确定内容在 A4 页面上的绘制区域
+                const placement = computePlacement(mode, sWidth / sHeight, outputScale);
+                const { drawX, drawY, drawW, drawH } = placement;
 
-                if (fit === 'wysiwyg') {
-                    // 所见即所得：页面尺寸 = 裁剪区域，图片铺满整页（无白边、不变形）。
-                    // 高度锁定 297mm，宽度按裁剪比例。标准 A3 对半切正好得到 210×297 的 A4。
-                    pageHeight = 297;
-                    pageWidth = pageHeight * (sWidth / sHeight);
-                    orientation = pageWidth > pageHeight ? 'landscape' : 'portrait';
-                    drawX = 0; drawY = 0; drawW = pageWidth; drawH = pageHeight;
-                } else {
-                    // 标准 A4 纵向 (210×297mm)
-                    pageWidth = 210; pageHeight = 297; orientation = 'portrait';
-                    if (fit === 'a4-fill') {
-                        // 拉伸填满：图片铺满整页，切偏时内容会被轻微拉伸变形
-                        drawX = 0; drawY = 0; drawW = 210; drawH = 297;
-                    } else {
-                        // 等比留白 (a4-fit)：保持裁剪比例缩放并居中，切偏时四周留白、不变形
-                        const sliceAspect = sWidth / sHeight;
-                        const a4Aspect = 210 / 297;
-                        if (sliceAspect > a4Aspect) {
-                            drawW = 210; drawH = 210 / sliceAspect;
-                        } else {
-                            drawH = 297; drawW = 297 * sliceAspect;
-                        }
-                        drawX = (210 - drawW) / 2;
-                        drawY = (297 - drawH) / 2;
-                    }
-                }
-
+                // 纸张统一为标准 A4 (210×297mm)
                 if (!doc) {
-                    doc = new jsPDF({ unit: 'mm', orientation, format: [pageWidth, pageHeight] });
+                    doc = new jsPDF({ unit: 'mm', orientation: 'portrait', format: [A4_WIDTH, A4_HEIGHT] });
                 } else {
-                    doc.addPage([pageWidth, pageHeight], orientation);
+                    doc.addPage([A4_WIDTH, A4_HEIGHT], 'portrait');
                 }
 
                 doc.addImage(imgData, 'JPEG', drawX, drawY, drawW, drawH);
@@ -148,6 +142,6 @@ export async function exportPdf() {
         alert('导出失败: ' + e.message);
     } finally {
         elements.exportBtn.disabled = false;
-        elements.exportBtn.innerHTML = '<span class="material-icons">save_alt</span> 导出为 PDF (A4)';
+        elements.exportBtn.innerHTML = '<span class="material-icons">save_alt</span> 导出为 PDF';
     }
 }

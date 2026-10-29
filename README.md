@@ -14,15 +14,22 @@
 ### ✨ Key Features
 
 *   **Smart Import**: Supports drag-and-drop for A3 PDFs or images (JPG/PNG).
-*   **Visual Splitting**: Provides an intuitive red splitter line to manually adjust the cut position between pages.
+*   **Multi-Column Splitting**: Split a page into **N columns**, not just two.
+    *   **Two Columns / Three Columns**: One-click presets for the common layouts.
+    *   **Add Split Line**: Inserts another cut line at the widest gap, so one page can become many.
+    *   **Remove Split Line**: Click a cut line to delete it immediately; "Undo" restores it.
+*   **Orientation Correction**: Rotate content **90° left / right**, fine-tune with a **±15° slider**, and reset back to 0°. Each page is adjusted independently. 方向可 90° 旋转 + 滑动微调，实时显示角度。
 *   **Seal Line Removal**:
     *   Dedicated "Remove Seal Line" mode.
     *   **Smart Detection**: Odd pages default to left, even pages default to right.
     *   Adjustable seal area that is automatically cropped during export.
+*   **Erase Content**: Remove unwanted marks by **drag-selecting a rectangle** or **painting with a brush**. "Apply" bakes the erasure into the page, and the erasure is really applied on export. 框选 / 涂抹两种方式去除内容，去除效果真实写入导出 PDF。
+*   **Post-Crop Zoom**: If a cropped column comes out too small to read, **zoom in / out / reset** the slice and apply it to the current page — the ratio is honoured on export. 裁剪后调整显示大小，比例真实影响导出。
 *   **Batch Application**:
     *   **Apply to Same Type**: One-click apply settings to all Odd or all Even pages.
     *   **Apply to All**: Apply current configuration to every page.
-*   **HD Export**: Generates high-quality A4 PDF documents using `jsPDF`, with selectable page-fit modes (standard A4 with margins, stretch-to-fill, or original crop size).
+    *   **Reset Defaults**: Restore one page back to the default split with no seal line.
+*   **HD Export**: Generates high-quality **standard A4 (210×297 mm)** PDF documents using `jsPDF`, with selectable fit modes (equal-ratio with margins, stretch-to-fill, or equal-ratio cover).
 *   **Responsive Design**: Works perfectly on both PC and mobile devices.
 
 ### 🚀 Quick Start
@@ -44,6 +51,10 @@ Open the local URL shown in the terminal (usually `http://localhost:5173`).
 2.  **Adjust**:
     *   Move the **Red Line** to set the A4 split position.
     *   Click "**Remove Seal Line**" to add a cut-off area if needed (draggable).
+    *   Use "**Two Columns** / **Three Columns**" or "**Add Split Line**" to cut into more columns.
+    *   Rotate with "**Left 90° / Right 90°**" and fine-tune with the slider if the scan is skewed.
+    *   Use "**Erase Content**" to box-select or paint away unwanted marks.
+    *   Use "**Post-Crop Adjustment**" to zoom a too-small column, then "Apply to Current Page".
 3.  **Batch**: Use "Same Type" or "All Pages" buttons to apply your settings to other pages.
 4.  **Export**: Click "Export as PDF (A4)" to download your processed file.
 
@@ -58,15 +69,22 @@ Open the local URL shown in the terminal (usually `http://localhost:5173`).
 ### ✨ 核心功能
 
 *   **智能导入**：支持拖拽上传 A3 PDF 文件或图片（JPG/PNG）。
-*   **可视化分割**：提供直观的红色分割线，可手动调整左右页面的分割位置。
+*   **多栏分割**：一页可切成 **N 栏**，不再局限于一分为二。
+    *   **两栏 / 三栏**：一键套用常见版式。
+    *   **增加分割线**：在最大间隙处插入新的分割线，一分为多。
+    *   **去除分割线**：点击分割线即直接删除，误删可用「撤销删除」还原。
+*   **方向校正**：**左转 / 右转 90°** 快速摆正，再用 **±15° 滑块**微调，角度实时显示，每页独立生效。
 *   **密封线处理**：
     *   支持“去除密封线”模式。
     *   **智能识别**：奇数页默认在左侧，偶数页默认在右侧。
     *   可拖动调整密封线范围，导出时自动裁切该区域。
+*   **去除内容**：支持 **框选矩形** 与 **涂抹笔刷** 两种方式擦除多余内容，点「应用」后画布直接显示去除效果，**导出 PDF 时真实擦除**。
+*   **裁剪后调整**：裁好的某栏太小看不清时，用 **放大 / 缩小 / 重置** 调整大小，点「应用到当前页」后比例在导出时真实生效。
 *   **批量应用**：
     *   **同类页**：一键应用当前配置到所有奇数页或所有偶数页。
     *   **所有页**：一键应用到文档所有页面。
-*   **高清导出**：基于 `jsPDF` 生成高质量的 A4 PDF 文档，并可选择导出尺寸适配方式（标准A4等比留白 / 拉伸填满 / 原始裁剪尺寸）。
+    *   **恢复默认**：一键把当前页还原为默认分割并取消密封线。
+*   **高清导出**：基于 `jsPDF` 生成高质量的**标准 A4（210×297mm）** PDF 文档，可选择等比留白 / 拉伸填满 / 等比填满三种排版方式。
 *   **响应式设计**：完美适配 PC 和移动端操作，手机上也能轻松处理试卷。
 
 ### 🚀 快速开始
@@ -87,6 +105,10 @@ npm run dev
 2.  **调整**：
     *   移动红色**分割线**确定左右分页界限。
     *   若有密封线需要去除，点击“去除密封线”，调整灰色虚线区域。
+    *   用“两栏 / 三栏”或“增加分割线”切成更多栏；用“去除分割线”删掉不要的线。
+    *   扫描歪斜时用“左转 / 右转 90°”摆正，再用滑块微调角度。
+    *   用“去除内容”框选或涂抹掉多余的内容。
+    *   裁剪后太小就用“裁剪后调整”放大，调好后点“应用到当前页”。
 3.  **批量**：调整好一页后，点击“同类页”或“所有页”将配置应用到其他页面。
 4.  **导出**：点击底部的“导出为 PDF (A4)”，文件将自动下载。
 
@@ -107,13 +129,17 @@ npm run dev
 ├── style.css           # Global Styles
 ├── vite.config.js      # Vite Configuration
 ├── src/                # Source Code
-│   ├── main.js         # Entry Point
+│   ├── main.js         # Entry Point / Event Wiring
 │   ├── state.js        # State Management
 │   ├── dom.js          # DOM Elements
 │   ├── file-handler.js # File Upload & Processing
-│   ├── viewer.js       # Canvas Rendering
+│   ├── viewer.js       # Canvas Rendering & Rotation
 │   ├── editor.js       # Split/Seal Line Logic
-│   └── exporter.js     # PDF Export Logic
+│   ├── exporter.js     # PDF Export Logic
+│   ├── export-geometry.js # Slice Ranges & A4 Placement Geometry
+│   ├── crop-adjust.js  # Post-Crop Zoom (output ratio)
+│   ├── mask-editor.js  # Erase Content (rectangle + brush)
+│   └── utils.js        # Rotation / Erasure Drawing Helpers
 └── DEPLOY.md           # Deployment Guide
 ```
 
@@ -124,6 +150,16 @@ npm run dev
 MIT License
 
 ## 📅 Changelog / 更新日志
+
+### 2026-10-29 (Multi-Column Splitting & Editing Suite / 多栏分割与编辑增强)
+
+- **Multi-Column Splitting**: The single `splitLine` model was refactored into a **`splitLines` array**, so one page can be cut into **N columns**. Added "Two Columns / Three Columns" presets and an "Add Split Line" action. 单条分割线重构为分割线数组，支持一分为 N；新增两栏/三栏预设与增加分割线。
+- **Remove Split Line**: Click a cut line in "Remove Split Line" mode to **delete it immediately**; an "Undo" action restores removed lines one by one. 去除分割线改为点击即删，支持逐条撤销还原。
+- **Orientation Adjustment**: Added "Left 90° / Right 90°" buttons, a **±15° fine-tune slider** with live angle display, and a "Reset Angle" button — each page rotates independently. 新增方向旋转：左右转 90°、滑动微调、重置角度，每页独立。
+- **Post-Crop Adjustment**: New "Post-Crop Adjustment" panel with **zoom in / out / reset** plus "Apply to Current Page" and an A4-bounded preview; the ratio is honoured by the exporter. 新增裁剪后调整（放大/缩小/重置/应用到当前页），比例真实影响导出。
+- **Erase Content**: New panel with **rectangle select** and **brush painting**; "Apply" bakes the erasure into the canvas and the erased regions are genuinely removed from the exported PDF. 新增去除内容（框选 + 涂抹），应用后画布直接显示去除效果，导出时真实擦除。
+- **Unified A4 Export**: Export is now always **standard A4 (210×297 mm)** with three fit modes (equal-ratio with margins / stretch-to-fill / equal-ratio cover). 导出统一为标准 A4。
+- **UI Refresh**: Rebuilt the right-hand panel into *Orientation → Editing Tools → Erase Content → Post-Crop Adjustment → File Export*, with a persistent step-by-step guide, compact status chips instead of verbose helper text, a "Reset Defaults" action, and a one-tap "Batch Apply" block. 右侧面板重排为「方向调整 → 编辑工具 → 去除内容 → 裁剪后调整 → 文件导出」，保留操作指南，状态改为紧凑徽标。
 
 ### 2026-06-20 (Export Fit Modes / 导出尺寸适配)
 - **Selectable Export Fit**: Added an "导出尺寸" selector with three modes — **Standard A4 (fit, with margins)** [default], **Standard A4 (stretch to fill)**, and **Original crop size (WYSIWYG)**. Dragging the split line off-center no longer forces non-A4 pages unless you choose WYSIWYG. 新增"导出尺寸"选择器：标准A4等比留白(默认)、标准A4拉伸填满、原始裁剪尺寸；切割线偏离中心也能稳定输出标准 A4。

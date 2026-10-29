@@ -1,6 +1,9 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { renderSplitLines } from './editor.js';
+import { renderSplitLines, getPageConfig } from './editor.js';
+import { renderMasks, renderAppliedErasures } from './mask-editor.js';
+import { rotateCanvas, rotatedBounds } from './utils.js';
+import { syncCropZoomFromPage } from './crop-adjust.js';
 
 /**
  * 切换到指定页面
@@ -10,6 +13,14 @@ export function changePage(pageNum) {
     if (pageNum < 1 || pageNum > state.totalPages) return;
 
     state.currentPage = pageNum;
+    // 翻页时把旋转基准重置为该页绝对角，微调滑块归零
+    state.rotationBase = getPageConfig(state.currentPage).rotation || 0;
+    if (elements.rotateFineSlider) {
+        elements.rotateFineSlider.value = 0;
+        if (elements.rotateFineVal) elements.rotateFineVal.textContent = '0';
+    }
+    // 「裁剪后调整」的待应用值同步为该页已应用值
+    syncCropZoomFromPage();
     updatePageControls();
 
     // 更新缩略图选中状态
@@ -17,6 +28,48 @@ export function changePage(pageNum) {
     thumbs.forEach(t => t.classList.remove('active'));
     if (thumbs[pageNum - 1]) thumbs[pageNum - 1].classList.add('active');
 
+    renderCurrentPage();
+}
+
+/**
+ * 旋转当前页内容方向（每页独立）
+ * @param {number} delta 角度增量，+90 顺时针 / -90 逆时针
+ */
+export function rotatePage(delta) {
+    const config = getPageConfig(state.currentPage);
+    config.rotation = (((config.rotation || 0) + delta) % 360 + 360) % 360;
+    // 整转（左/右 90°）后更新旋转基准为新的绝对角，微调滑块归零
+    state.rotationBase = config.rotation;
+    if (elements.rotateFineSlider) {
+        elements.rotateFineSlider.value = 0;
+        if (elements.rotateFineVal) elements.rotateFineVal.textContent = '0';
+    }
+    renderCurrentPage();
+}
+
+/**
+ * 重置当前页方向角度为 0°（同时重置整转基准与微调滑块）
+ */
+export function resetRotation() {
+    const config = getPageConfig(state.currentPage);
+    config.rotation = 0;
+    state.rotationBase = 0;
+    if (elements.rotateFineSlider) {
+        elements.rotateFineSlider.value = 0;
+        if (elements.rotateFineVal) elements.rotateFineVal.textContent = '0';
+    }
+    renderCurrentPage();
+}
+
+/**
+ * 设置当前页内容方向的绝对角度（支持任意自定义角度，用于纠正扫描歪斜）
+ * @param {number|string} angle 目标角度（度），会被归一化到 [0, 360)
+ */
+export function setPageRotation(angle) {
+    const v = Number(angle);
+    if (!Number.isFinite(v)) return;
+    const config = getPageConfig(state.currentPage);
+    config.rotation = ((v % 360) + 360) % 360;
     renderCurrentPage();
 }
 
@@ -41,6 +94,8 @@ export async function renderCurrentPage() {
 
     let canvas, viewport;
 
+    const rotation = getPageConfig(state.currentPage).rotation || 0;
+
     if (state.isPdf) {
         const page = await state.pdfDoc.getPage(state.currentPage);
         const unscaledViewport = page.getViewport({ scale: 1 });
@@ -49,15 +104,18 @@ export async function renderCurrentPage() {
         const availableWidth = elements.canvasContainer.clientWidth - 40;
         const availableHeight = elements.canvasContainer.clientHeight - 40;
 
-        // 计算宽和高的缩放比例
-        const scaleX = availableWidth / unscaledViewport.width;
-        const scaleY = availableHeight / unscaledViewport.height;
+        // 按旋转后的外接矩形尺寸做 Fit Page（支持任意角度，避免裁切）
+        const disp = rotatedBounds(unscaledViewport.width, unscaledViewport.height, rotation);
+        const dispW = disp.width;
+        const dispH = disp.height;
+        const scaleX = availableWidth / dispW;
+        const scaleY = availableHeight / dispH;
 
-        // 取较小值，确保完全包含 (Fit Page)
-        let scale = Math.min(scaleX, scaleY);
-
-        // 限制最大放大倍数，防止像素化
-        if (scale > 1.5) scale = 1.5;
+        // Fit Page：按容器适配（显示比例统一由「裁剪后调整」控制成品页大小）
+        let fitScale = Math.min(scaleX, scaleY);
+        if (fitScale > 1.5) fitScale = 1.5; // 防止无意义放大
+        fitScale = Math.max(fitScale, 0.1);
+        const scale = fitScale;
 
         viewport = page.getViewport({ scale: scale });
         canvas = document.createElement('canvas');
@@ -81,11 +139,16 @@ export async function renderCurrentPage() {
         const availableWidth = elements.canvasContainer.clientWidth - 40;
         const availableHeight = elements.canvasContainer.clientHeight - 40;
 
-        const scaleX = availableWidth / img.width;
-        const scaleY = availableHeight / img.height;
-        let scale = Math.min(scaleX, scaleY);
-
-        if (scale > 1) scale = 1;
+        // 按旋转后的外接矩形尺寸做 Fit Page（支持任意角度）
+        const disp = rotatedBounds(img.width, img.height, rotation);
+        const dispW = disp.width;
+        const dispH = disp.height;
+        const scaleX = availableWidth / dispW;
+        const scaleY = availableHeight / dispH;
+        let fitScale = Math.min(scaleX, scaleY);
+        if (fitScale > 1) fitScale = 1;
+        fitScale = Math.max(fitScale, 0.1);
+        const scale = fitScale;
 
         canvas = document.createElement('canvas');
         canvas.width = img.width * scale;
@@ -95,6 +158,15 @@ export async function renderCurrentPage() {
 
         viewport = { width: canvas.width, height: canvas.height };
     }
+
+    // 应用方向旋转，得到显示画布。分割线/密封线/切片坐标均基于此旋转后坐标系。
+    canvas = rotateCanvas(canvas, rotation);
+    // 注意：旋转会生成新画布，类名需在此处重新设置
+    canvas.className = 'page-canvas';
+    viewport = { width: canvas.width, height: canvas.height };
+
+    // 把「已应用」的去除区域真正画到画布上 —— 画布直接显示去除后的内容
+    renderAppliedErasures(canvas);
 
     // 渲染期间若有更新的渲染请求（翻页/缩放），则放弃本次结果
     if (myToken !== renderToken) return;
@@ -106,6 +178,9 @@ export async function renderCurrentPage() {
 
     // 恢复或添加默认裁切线
     renderSplitLines();
+
+    // 渲染「去除内容」遮盖框（覆盖在画布之上）
+    renderMasks();
 }
 
 /**
@@ -147,6 +222,10 @@ export async function renderThumbnails() {
             canvas.height = img.height * scale;
             canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         }
+
+        // 缩略图同步方向旋转，与主视图一致
+        const rotation = getPageConfig(i).rotation || 0;
+        canvas = rotateCanvas(canvas, rotation);
 
         const pageNum = document.createElement('div');
         pageNum.className = 'page-number';

@@ -3,6 +3,8 @@ import { version } from 'pdfjs-dist/package.json';
 import { state, resetState } from './state.js';
 import { elements } from './dom.js';
 import { renderThumbnails, renderCurrentPage, updatePageControls } from './viewer.js';
+import { syncCropZoomUI } from './crop-adjust.js';
+import { exitMaskMode, renderMasks } from './mask-editor.js';
 
 // 设置 PDF.js Worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
@@ -39,8 +41,36 @@ export async function handleFileUpload(e) {
     // 启用相关按钮（已确认是受支持的文件类型）
     elements.toggleSealLineBtn.disabled = false;
     elements.exportBtn.disabled = false;
+    elements.addSplitBtn.disabled = false;
+    elements.removeSplitBtn.disabled = false;   // 去除分割线（进入选择模式）
+    elements.undoSplitBtn.disabled = true;     // 尚无删除记录可撤销
+    elements.resetDefaultsBtn.disabled = false; // 恢复当前页默认
+    elements.splitHalfBtn.disabled = false;
+    elements.splitThirdBtn.disabled = false;
     elements.applyToTypeBtn.disabled = false;
     elements.applyToAllBtn.disabled = false;
+    elements.rotateLeftBtn.disabled = false;
+    elements.rotateRightBtn.disabled = false;
+    elements.rotateFineSlider.disabled = false;
+    elements.resetRotationBtn.disabled = false;
+    elements.cropZoomSlider.disabled = false;
+    elements.cropZoomInBtn.disabled = false;
+    elements.cropZoomOutBtn.disabled = false;
+    elements.cropZoomResetBtn.disabled = false;
+    elements.applyCropZoomBtn.disabled = false;
+    elements.maskToggleBtn.disabled = false;
+    elements.maskBrushBtn.disabled = false;
+    elements.maskBrushSlider.disabled = false;
+    elements.maskUndoBtn.disabled = true;   // 尚无去除内容
+    elements.clearMasksBtn.disabled = true; // 尚无去除内容
+    elements.maskApplyBtn.disabled = true; // 尚无待应用的标记
+
+    // 「裁剪后调整」面板初始为 100%
+    syncCropZoomUI();
+
+    // 新文件：退出框选模式并清空遮盖状态
+    exitMaskMode();
+    renderMasks();
 
     if (state.isPdf) {
         const arrayBuffer = await file.arrayBuffer();
