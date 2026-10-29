@@ -40,7 +40,7 @@ export const elements = {
     // 分栏预设：两栏 / 三栏
     splitHalfBtn: document.getElementById('splitHalfBtn'),
     splitThirdBtn: document.getElementById('splitThirdBtn'),
-    // 去除内容（框选 + 涂抹）
+    // 擦除内容（框选 + 涂抹）
     maskToggleBtn: document.getElementById('maskToggleBtn'),
     maskBrushBtn: document.getElementById('maskBrushBtn'),
     maskBrushSlider: document.getElementById('maskBrushSlider'),

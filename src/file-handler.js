@@ -61,8 +61,8 @@ export async function handleFileUpload(e) {
     elements.maskToggleBtn.disabled = false;
     elements.maskBrushBtn.disabled = false;
     elements.maskBrushSlider.disabled = false;
-    elements.maskUndoBtn.disabled = true;   // 尚无去除内容
-    elements.clearMasksBtn.disabled = true; // 尚无去除内容
+    elements.maskUndoBtn.disabled = true;   // 尚无擦除内容
+    elements.clearMasksBtn.disabled = true; // 尚无擦除内容
     elements.maskApplyBtn.disabled = true; // 尚无待应用的标记
 
     // 「裁剪后调整」面板初始为 100%

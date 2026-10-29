@@ -140,7 +140,7 @@ export async function renderCropPreview() {
     const mode = elements.exportFitSelect ? elements.exportFitSelect.value : 'a4-fit';
     const draft = state.outputScaleDraft;
 
-    // 「涂抹去除」：生成白色擦除层，预览与导出保持一致
+    // 「涂抹擦除」：生成白色擦除层，预览与导出保持一致
     // 只处理【已应用】的笔迹，未应用的属于草稿标记
     const appliedStrokes = (cfg.strokes || []).filter(s => s.applied);
     const eraseOverlay = buildEraseOverlay(
@@ -206,7 +206,7 @@ export async function renderCropPreview() {
         const sw = work.width * p.widthRatio;
         ctx.drawImage(work, sx, 0, sw, work.height, cx, cy, cw, ch);
 
-        // 「去除内容」遮盖：与导出一致，用白色覆盖该区域（只覆盖已应用的）
+        // 「擦除内容」遮盖：与导出一致，用白色覆盖该区域（只覆盖已应用的）
         const masks = (cfg.masks || []).filter(m => m.applied);
         if (masks.length) {
             ctx.fillStyle = '#ffffff';
@@ -231,7 +231,7 @@ export async function renderCropPreview() {
             }
         }
 
-        // 「涂抹去除」：叠加白色笔迹层，笔迹经过处内容被真正擦除
+        // 「涂抹擦除」：叠加白色笔迹层，笔迹经过处内容被真正擦除
         if (eraseOverlay) {
             ctx.drawImage(eraseOverlay, sx, 0, sw, work.height, cx, cy, cw, ch);
         }

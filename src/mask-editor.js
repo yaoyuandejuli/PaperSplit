@@ -4,18 +4,18 @@ import { getPageConfig } from './editor.js';
 import { drawEraseStroke } from './utils.js';
 
 /**
- * 「去除内容」模块
+ * 「擦除内容」模块
  *
- * 两种去除方式：
- *  1) 框选去除：拖拽出矩形区域，导出时把该区域覆盖为白色
- *  2) 涂抹去除：按住鼠标/手指涂抹，笔迹经过的内容在导出时被擦除（覆盖为白色）
+ * 两种擦除方式：
+ *  1) 框选擦除：拖拽出矩形区域，导出时把该区域覆盖为白色
+ *  2) 涂抹擦除：按住鼠标/手指涂抹，笔迹经过的内容在导出时被擦除（覆盖为白色）
  *
  * 两阶段工作流：
  *  - 标记阶段：框选 / 涂抹产生的标记以红色半透明显示在画布上（尚未真正擦除）
- *  - 应用阶段：点「应用」→ 标记被真正擦除，画布上【直接显示去除后的内容】（该处变白）
- *  - 「去除」按钮：清除全部标记与已应用的擦除，恢复原始画面
+ *  - 应用阶段：点「应用」→ 标记被真正擦除，画布上【直接显示擦除后的内容】（该处变白）
+ *  - 「擦除」按钮：清除全部标记与已应用的擦除，恢复原始画面
  *
- * 导出 PDF 每页为位图（JPEG），因此去除后的内容无法被提取或还原。
+ * 导出 PDF 每页为位图（JPEG），因此擦除后的内容无法被提取或还原。
  *
  * 数据结构（均位于「旋转后的显示坐标系」，与分割线/密封线同一坐标系）：
  *  - config.masks   = [{ id, x, y, w, h, applied }]        框选区域，比例坐标
@@ -31,7 +31,7 @@ export const MODE_BRUSH = 'brush'; // 涂抹模式
 let maskMode = MODE_OFF;   // 当前模式
 let drag = null;           // 当前拖拽 / 涂抹状态
 let interactionsBound = false;
-let eraseIdSeq = 0;        // 去除项序号（用于「撤销」定位最近一次操作）
+let eraseIdSeq = 0;        // 擦除项序号（用于「撤销」定位最近一次操作）
 let brushCursorEl = null;  // 涂抹模式的圆形光标
 
 /** 编辑器中的「标记」配色（红色半透明），导出时统一为白色 */
@@ -44,7 +44,7 @@ const MARK_STYLE = {
 /* 模式与状态                                                          */
 /* ------------------------------------------------------------------ */
 
-/** 是否处于去除模式（框选或涂抹） */
+/** 是否处于擦除模式（框选或涂抹） */
 export function isMaskMode() {
     return maskMode !== MODE_OFF;
 }
@@ -66,7 +66,7 @@ export function toggleBrushMode() {
     afterModeChange();
 }
 
-/** 退出去除模式 */
+/** 退出擦除模式 */
 export function exitMaskMode() {
     if (maskMode === MODE_OFF) return;
     maskMode = MODE_OFF;
@@ -80,7 +80,7 @@ function afterModeChange() {
     updateBrushCursor(null);
 }
 
-/** 生成一个全局递增的去除项序号 */
+/** 生成一个全局递增的擦除项序号 */
 function nextEraseId() {
     eraseIdSeq += 1;
     return eraseIdSeq;
@@ -91,8 +91,8 @@ function nextEraseId() {
 /* ------------------------------------------------------------------ */
 
 /**
- * 清空当前页所有去除内容（框选 + 涂抹），并恢复已应用的擦除（还原原始画面）
- * 对应界面上的「去除」按钮
+ * 清空当前页所有擦除内容（框选 + 涂抹），并恢复已应用的擦除（还原原始画面）
+ * 对应界面上的「擦除」按钮
  */
 export function removeAllErases() {
     const cfg = getPageConfig(state.currentPage);
@@ -105,8 +105,8 @@ export function removeAllErases() {
 }
 
 /**
- * 应用当前所有「待应用」的标记：把标记真正擦除，画布上直接显示去除后的内容
- * 导出时这些区域同样被擦除（标记即去除意图）
+ * 应用当前所有「待应用」的标记：把标记真正擦除，画布上直接显示擦除后的内容
+ * 导出时这些区域同样被擦除（标记即擦除意图）
  */
 export function applyErases() {
     const cfg = getPageConfig(state.currentPage);
@@ -151,7 +151,7 @@ function requestRepaint() {
 }
 
 /**
- * 撤销上一次去除操作（标记或「应用」，按操作先后顺序回退）
+ * 撤销上一次擦除操作（标记或「应用」，按操作先后顺序回退）
  */
 export function undoErase() {
     const cfg = getPageConfig(state.currentPage);
@@ -194,7 +194,7 @@ export function undoErase() {
     requestRepaint();
 }
 
-/** 当前页去除内容的统计 { rects, strokes, total, applied, pending } */
+/** 当前页擦除内容的统计 { rects, strokes, total, applied, pending } */
 export function getEraseCount() {
     const cfg = state.pagesData[state.currentPage];
     const masks = (cfg && Array.isArray(cfg.masks)) ? cfg.masks : [];
@@ -217,7 +217,7 @@ export function getEraseCount() {
 /* ------------------------------------------------------------------ */
 
 /**
- * 渲染当前页的去除标记（覆盖在画布之上）
+ * 渲染当前页的擦除标记（覆盖在画布之上）
  *  - 待应用（applied=false）：红色半透明标记，可拖动 / 删除
  *  - 已应用（applied=true） ：已真正擦除到画布上，此处仅保留浅色轮廓提示位置
  */
@@ -236,7 +236,7 @@ export function renderMasks() {
         const el = document.createElement('div');
         el.className = m.applied ? 'mask-rect applied' : 'mask-rect';
         el.dataset.maskIndex = String(idx);
-        el.title = m.applied ? '已应用去除（如需修改请先撤销）' : '拖动可移动位置，点击可删除';
+        el.title = m.applied ? '已应用擦除（如需修改请先撤销）' : '拖动可移动位置，点击可删除';
         el.style.left = `${m.x * 100}%`;
         el.style.top = `${m.y * 100}%`;
         el.style.width = `${m.w * 100}%`;
@@ -249,8 +249,8 @@ export function renderMasks() {
 }
 
 /**
- * 把「已应用」的去除区域真正画到页面画布上（白色覆盖），
- * 使画布直接显示去除后的内容（所见即所得，与导出一致）。
+ * 把「已应用」的擦除区域真正画到页面画布上（白色覆盖），
+ * 使画布直接显示擦除后的内容（所见即所得，与导出一致）。
  *
  * @param {HTMLCanvasElement} pageCanvas 页面画布（已旋转）
  */
@@ -335,7 +335,7 @@ function updateMaskUI() {
         rectBtn.classList.toggle('active-state', active);
         rectBtn.innerHTML = active
             ? '<span class="material-icons">check_circle</span> 框选中'
-            : '<span class="material-icons">crop_square</span> 框选去除';
+            : '<span class="material-icons">crop_square</span> 框选擦除';
     }
 
     const brushBtn = elements.maskBrushBtn;
@@ -344,7 +344,7 @@ function updateMaskUI() {
         brushBtn.classList.toggle('active-state', active);
         brushBtn.innerHTML = active
             ? '<span class="material-icons">check_circle</span> 涂抹中'
-            : '<span class="material-icons">brush</span> 涂抹去除';
+            : '<span class="material-icons">brush</span> 涂抹擦除';
     }
 
     const wrapper = elements.canvasWrapper;
@@ -357,13 +357,13 @@ function updateMaskUI() {
 
     // 「应用」：有待应用的标记时才可点
     if (elements.maskApplyBtn) elements.maskApplyBtn.disabled = pending === 0;
-    // 「去除」：有任何标记（含已应用）时才可点
+    // 「擦除」：有任何标记（含已应用）时才可点
     if (elements.clearMasksBtn) elements.clearMasksBtn.disabled = total === 0;
     if (elements.maskUndoBtn) elements.maskUndoBtn.disabled = total === 0;
 
     if (elements.maskCount) {
         if (!total) {
-            elements.maskCount.textContent = '尚未去除';
+            elements.maskCount.textContent = '尚未擦除';
         } else {
             const parts = [];
             if (rects) parts.push(`框选 ${rects} 处`);

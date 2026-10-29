@@ -115,7 +115,7 @@
                             <div class="step-num">5</div>
                             <div class="step-text">
                                 <strong>擦除内容（可选）</strong>
-                                <p>框选或涂抹要去除的内容，点「应用」后画布直接显示去除后的效果</p>
+                                <p>框选或涂抹要擦除的内容，点「应用」后画布直接显示擦除后的效果</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -213,12 +213,12 @@
                     <div class="tools-grid">
                         <div class="btn-group erase-mode-group">
                             <button id="maskToggleBtn" class="btn secondary" disabled
-                                title="开启后可在图上拖拽框选要去除的矩形区域，导出时该区域被覆盖为白色">
-                                <span class="material-icons">crop_square</span> 框选去除
+                                title="开启后可在图上拖拽框选要擦除的矩形区域，导出时该区域被覆盖为白色">
+                                <span class="material-icons">crop_square</span> 框选擦除
                             </button>
                             <button id="maskBrushBtn" class="btn secondary" disabled
                                 title="开启后按住鼠标涂抹，笔迹经过的内容在导出时被擦除">
-                                <span class="material-icons">brush</span> 涂抹去除
+                                <span class="material-icons">brush</span> 涂抹擦除
                             </button>
                         </div>
 
@@ -229,20 +229,20 @@
                         </div>
 
                         <div class="status-line">
-                            <span class="status-chip" id="maskCount">尚未去除</span>
+                            <span class="status-chip" id="maskCount">尚未擦除</span>
                         </div>
 
                         <div class="btn-group">
-                            <button id="maskUndoBtn" class="btn secondary" disabled title="撤销上一次去除操作">
+                            <button id="maskUndoBtn" class="btn secondary" disabled title="撤销上一次擦除操作">
                                 <span class="material-icons">undo</span> 撤销
                             </button>
-                            <button id="clearMasksBtn" class="btn secondary" disabled title="清除当前页所有去除标记，并恢复已擦除区域">
-                                <span class="material-icons">layers_clear</span> 去除
+                            <button id="clearMasksBtn" class="btn secondary" disabled title="清除当前页所有擦除标记，并恢复已擦除区域">
+                                <span class="material-icons">layers_clear</span> 擦除
                             </button>
                         </div>
 
                         <button id="maskApplyBtn" class="btn primary full-width" disabled
-                            title="把标记的去除区域真正应用到页面：画布直接显示去除后的内容">
+                            title="把标记的擦除区域真正应用到页面：画布直接显示擦除后的内容">
                             <span class="material-icons">done_all</span> 应用
                         </button>
                     </div>

@@ -88,7 +88,7 @@ export async function exportPdf() {
             // 应用方向旋转：后续切片坐标均基于旋转后的坐标系（所见即所得）
             const workCanvas = rotateCanvas(sourceCanvas, rotation);
 
-            // 「涂抹去除」：把【已应用】的笔迹渲染成白色擦除层，导出时叠加到切片上，真正擦除内容
+            // 「涂抹擦除」：把【已应用】的笔迹渲染成白色擦除层，导出时叠加到切片上，真正擦除内容
             // 未应用的笔迹属于草稿标记，不参与导出
             const appliedStrokes = (config.strokes || []).filter(s => s.applied);
             const eraseOverlay = buildEraseOverlay(
@@ -116,7 +116,7 @@ export async function exportPdf() {
                 const sliceCtx = sliceCanvas.getContext('2d');
                 sliceCtx.drawImage(workCanvas, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
 
-                // 「去除内容 · 框选」：把【已应用】的遮盖区域覆盖为白色，彻底去除该处内容
+                // 「擦除内容 · 框选」：把【已应用】的遮盖区域覆盖为白色，彻底擦除该处内容
                 // （导出为位图，覆盖后无法从 PDF 中提取/还原原文）
                 const appliedMasks = (config.masks || []).filter(m => m.applied);
                 const maskRects = getMaskRectsInSlice(
@@ -127,7 +127,7 @@ export async function exportPdf() {
                     sliceCtx.fillRect(r.x, r.y, r.w, r.h);
                 }
 
-                // 「去除内容 · 涂抹」：叠加白色笔迹层，擦除笔迹经过的内容
+                // 「擦除内容 · 涂抹」：叠加白色笔迹层，擦除笔迹经过的内容
                 if (eraseOverlay) {
                     sliceCtx.drawImage(eraseOverlay, sx, 0, sWidth, sHeight, 0, 0, sWidth, sHeight);
                 }

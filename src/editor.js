@@ -8,9 +8,9 @@ import { elements } from './dom.js';
  *   sealLine: null | { x, type },           // 密封线（奇左偶右）
  *   rotation: 0 | 90 | 180 | 270,           // 内容方向（每页独立）
  *   outputScale: 1,                        // 裁剪后调整比例（成品页上的大小，导出时生效）
- *   masks: Array<{id,x,y,w,h,applied}>     // 框选去除区域（比例坐标，导出时覆盖为白色）
- *   strokes: Array<{id,points,width,applied}> // 涂抹去除笔迹（比例坐标，导出时擦除）
- *   eraseOps: Array<{type,id|ids}>         // 去除操作栈（支持撤销「标记」与「应用」两类操作）
+ *   masks: Array<{id,x,y,w,h,applied}>     // 框选擦除区域（比例坐标，导出时覆盖为白色）
+ *   strokes: Array<{id,points,width,applied}> // 涂抹擦除笔迹（比例坐标，导出时擦除）
+ *   eraseOps: Array<{type,id|ids}>         // 擦除操作栈（支持撤销「标记」与「应用」两类操作）
  * }
  * 注：splitLines / sealLine / masks / strokes 均定义在「旋转后的显示坐标系」中。
  * applied 表示该标记已被「应用」到画布（画布上直接显示擦除后的内容）。

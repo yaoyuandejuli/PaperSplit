@@ -61,7 +61,7 @@ function initEventListeners() {
     elements.addSplitBtn.addEventListener('click', addSplitLine);
 
     // 「去除分割线」：进入选择模式 → 点击分割线即直接删除
-    // 与「去除内容」的框选/涂抹模式互斥：开启前先退出擦除模式
+    // 与「擦除内容」的框选/涂抹模式互斥：开启前先退出擦除模式
     elements.removeSplitBtn.addEventListener('click', () => {
         if (!state.removeSplitMode) exitMaskMode();
         toggleRemoveSplitMode();
@@ -74,7 +74,7 @@ function initEventListeners() {
     elements.splitHalfBtn.addEventListener('click', () => setSplitColumns(2));
     elements.splitThirdBtn.addEventListener('click', () => setSplitColumns(3));
 
-    // 「去除内容」：框选 / 涂抹，导出时真正擦除该处内容
+    // 「擦除内容」：框选 / 涂抹，导出时真正擦除该处内容
     // 与「去除分割线」模式互斥：开启前先退出去除分割线模式
     elements.maskToggleBtn.addEventListener('click', () => {
         if (!isMaskMode()) exitRemoveSplitMode();
@@ -108,7 +108,7 @@ function initEventListeners() {
 
     // 分割线 / 密封线 / 方向变化后刷新「裁剪结果预览」
     document.addEventListener('papersplit:config-changed', scheduleCropPreview);
-    // 「应用 / 去除」后需要重绘画布：让画布直接显示去除后的内容（或恢复原始画面）
+    // 「应用 / 擦除」后需要重绘画布：让画布直接显示擦除后的内容（或恢复原始画面）
     document.addEventListener('papersplit:page-repaint', () => {
         if (state.pdfDoc || state.fileData) renderCurrentPage();
     });

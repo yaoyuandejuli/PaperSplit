@@ -165,7 +165,7 @@ export async function renderCurrentPage() {
     canvas.className = 'page-canvas';
     viewport = { width: canvas.width, height: canvas.height };
 
-    // 把「已应用」的去除区域真正画到画布上 —— 画布直接显示去除后的内容
+    // 把「已应用」的擦除区域真正画到画布上 —— 画布直接显示擦除后的内容
     renderAppliedErasures(canvas);
 
     // 渲染期间若有更新的渲染请求（翻页/缩放），则放弃本次结果
@@ -179,7 +179,7 @@ export async function renderCurrentPage() {
     // 恢复或添加默认裁切线
     renderSplitLines();
 
-    // 渲染「去除内容」遮盖框（覆盖在画布之上）
+    // 渲染「擦除内容」遮盖框（覆盖在画布之上）
     renderMasks();
 }
 
