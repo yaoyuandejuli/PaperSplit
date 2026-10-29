@@ -264,6 +264,28 @@ body {
     border-color: transparent !important;
 }
 
+/* ==========================================================================
+   焦点可见：全局 reset 关掉了默认 outline，这里为键盘用户显式补回焦点环
+   （鼠标点击不显示，仅键盘 / 辅具聚焦时出现）
+   ========================================================================== */
+.btn:focus-visible,
+.select-input:focus-visible,
+input[type="range"]:focus-visible,
+.thumbnail-item:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    /* 按钮等控件带 transition: all，会让焦点环 200ms 渐显；
+       聚焦瞬间立即显示，键盘操作反馈更即时 */
+    transition-duration: 0s;
+}
+
+/* 画布上的分割线 / 密封线支持键盘操作，聚焦时显示焦点环 */
+.split-line:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
 .btn:active:not(:disabled) {
     transform: scale(0.98);
 }
@@ -288,17 +310,6 @@ body {
     border-color: var(--primary-color);
     color: var(--primary-color);
     background: #f8fafc;
-}
-
-.btn.danger-outline {
-    background: transparent;
-    border: 1px solid #fecaca;
-    color: var(--danger-color);
-}
-
-.btn.danger-outline:hover:not(:disabled) {
-    background: #fef2f2;
-    border-color: var(--danger-color);
 }
 
 .btn.success {
@@ -706,7 +717,7 @@ body {
 }
 
 .select-input:focus {
-    outline: none;
+    /* 注意：这里不能写 outline: none，会盖掉后面统一的 :focus-visible 焦点环 */
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }

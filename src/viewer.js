@@ -189,12 +189,19 @@ export async function renderCurrentPage() {
 export async function renderThumbnails() {
     elements.thumbnailsPanel.innerHTML = '';
 
+    // 先按顺序建好占位容器（保证缩略图顺序与页码一致），再并行渲染各自内容
+    const slots = [];
     for (let i = 1; i <= state.totalPages; i++) {
         const thumbainer = document.createElement('div');
         thumbainer.className = `thumbnail-item ${i === state.currentPage ? 'active' : ''}`;
         thumbainer.dataset.pageNumber = i;
         thumbainer.onclick = () => changePage(i);
+        elements.thumbnailsPanel.appendChild(thumbainer);
+        slots.push({ page: i, thumbainer });
+    }
 
+    /** 渲染单页缩略图画布 */
+    const renderOne = async ({ page: i, thumbainer }) => {
         let canvas;
 
         if (state.isPdf) {
@@ -207,7 +214,7 @@ export async function renderThumbnails() {
 
             await page.render({
                 canvasContext: context,
-                viewport: viewport
+                viewport
             }).promise;
         } else {
             // 图片缩略图
@@ -233,6 +240,8 @@ export async function renderThumbnails() {
 
         thumbainer.appendChild(canvas);
         thumbainer.appendChild(pageNum);
-        elements.thumbnailsPanel.appendChild(thumbainer);
-    }
+    };
+
+    // 并行渲染：页数多时比逐页 await 快得多
+    await Promise.all(slots.map(renderOne));
 }

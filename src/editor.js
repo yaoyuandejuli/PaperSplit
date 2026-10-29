@@ -41,6 +41,17 @@ export function getPageConfig(pageIndex) {
 }
 
 /**
+ * 删除分割线后安置键盘焦点，避免焦点丢失导致键盘用户"无处可去"
+ * 优先下一条分割线 → 「去除分割线」按钮 → 「恢复默认」按钮
+ */
+function focusAfterSplitGone() {
+    const next = elements.canvasWrapper && elements.canvasWrapper.querySelector('.split-line.split');
+    if (next) { next.focus(); return; }
+    if (elements.removeSplitBtn && !elements.removeSplitBtn.disabled) { elements.removeSplitBtn.focus(); return; }
+    if (elements.resetDefaultsBtn) elements.resetDefaultsBtn.focus();
+}
+
+/**
  * 渲染当前页的所有辅助线 (切割线 + 密封线)
  */
 export function renderSplitLines() {
@@ -117,10 +128,23 @@ function createLineElement(initialX, type, index, onUpdate) {
     const lineEl = document.createElement('div');
     lineEl.className = `split-line ${type}`;
     lineEl.style.left = `${initialX * 100}%`;
+
+    // 键盘可操作：可聚焦，语义化为一维滑块（位置 0-100%）
+    lineEl.tabIndex = 0;
+    lineEl.setAttribute('role', 'slider');
+    lineEl.setAttribute('aria-orientation', 'horizontal');
+    lineEl.setAttribute('aria-valuemin', '0');
+    lineEl.setAttribute('aria-valuemax', '100');
+    lineEl.setAttribute('aria-valuenow', String(Math.round(initialX * 100)));
+    lineEl.setAttribute('aria-valuetext', `位置 ${Math.round(initialX * 100)}%`);
+    lineEl.setAttribute('aria-label', type === 'split'
+        ? `分割线 ${index + 1}：左右方向键微调位置，Delete 键删除`
+        : '密封线：左右方向键微调位置');
+
     if (type === 'split') {
         lineEl.title = state.removeSplitMode
-            ? '点击直接删除该分割线'
-            : '双击删除该分割线';
+            ? '点击直接删除该分割线（键盘：Enter 或 Delete 删除，方向键移动）'
+            : '拖动调整位置，双击删除（键盘：Delete 删除，方向键移动）';
     }
 
     // 拖拽状态
@@ -133,6 +157,40 @@ function createLineElement(initialX, type, index, onUpdate) {
     let pressClientX = 0;
     let pressClientY = 0;
     let pressMoved = false;
+
+    /** 把位置钳制进合法范围：0-100%，且分割线还要落在密封线的保留区域内 */
+    const clampPercent = (pct) => {
+        let v = Math.max(0, Math.min(100, pct));
+        if (type === 'split') {
+            const cfg = getPageConfig(state.currentPage);
+            if (cfg.sealLine) {
+                const [lo, hi] = cfg.sealLine.type === 'left'
+                    ? [cfg.sealLine.x * 100, 100]
+                    : [0, cfg.sealLine.x * 100];
+                v = Math.max(lo, Math.min(hi, v));
+            }
+        }
+        return v;
+    };
+
+    /** 同步无障碍属性（读屏可播报当前位置） */
+    const syncAria = (v) => {
+        lineEl.setAttribute('aria-valuenow', String(Math.round(v)));
+        lineEl.setAttribute('aria-valuetext', `位置 ${v.toFixed(0)}%`);
+    };
+
+    /**
+     * 原地更新位置（不重建 DOM，保持键盘焦点不丢失）
+     * @param {number} pct 目标百分比
+     */
+    const setPercent = (pct) => {
+        const v = clampPercent(pct);
+        lineEl.style.left = `${v}%`;
+        syncAria(v);
+        onUpdate(v / 100);
+        // 位置变化后刷新「裁剪结果预览」
+        document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
+    };
 
     const onDragStart = (clientX) => {
         isDragging = true;
@@ -164,6 +222,7 @@ function createLineElement(initialX, type, index, onUpdate) {
         }
 
         lineEl.style.left = `${newPercent}%`;
+        syncAria(newPercent);
         onUpdate(newPercent / 100);
     };
 
@@ -273,6 +332,61 @@ function createLineElement(initialX, type, index, onUpdate) {
             const cfg = getPageConfig(state.currentPage);
             cfg.splitLines.splice(index, 1);
             renderSplitLines();
+        });
+    }
+
+    /* 键盘操作：方向键微调位置（Shift 加速），Delete 删除，
+       「去除分割线」模式下 Enter/Space 也能删除（与鼠标点击一致） */
+    if (type === 'split') {
+        lineEl.addEventListener('keydown', (e) => {
+            const cur = parseFloat(lineEl.style.left) || 0;
+            const step = e.shiftKey ? 5 : 1;
+            let handled = true;
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    setPercent(cur - step);
+                    break;
+                case 'ArrowRight':
+                    setPercent(cur + step);
+                    break;
+                case 'Home':
+                    setPercent(0);
+                    break;
+                case 'End':
+                    setPercent(100);
+                    break;
+                case 'Delete':
+                case 'Backspace':
+                    removeSplitLineAt(index);
+                    focusAfterSplitGone();
+                    break;
+                case 'Enter':
+                case ' ':
+                    if (state.removeSplitMode) {
+                        removeSplitLineAt(index);
+                        focusAfterSplitGone();
+                    } else {
+                        handled = false;
+                    }
+                    break;
+                default:
+                    handled = false;
+            }
+            if (handled) e.preventDefault();
+        });
+    } else {
+        // 密封线：仅支持方向键移动位置
+        lineEl.addEventListener('keydown', (e) => {
+            const cur = parseFloat(lineEl.style.left) || 0;
+            const step = e.shiftKey ? 5 : 1;
+            let handled = true;
+            if (e.key === 'ArrowLeft') setPercent(cur - step);
+            else if (e.key === 'ArrowRight') setPercent(cur + step);
+            else if (e.key === 'Home') setPercent(0);
+            else if (e.key === 'End') setPercent(100);
+            else handled = false;
+            if (handled) e.preventDefault();
         });
     }
 
