@@ -1,3 +1,10 @@
+// 本地字体：图标与正文字体随应用打包，离线可用、无 CDN 依赖
+import 'material-icons/iconfont/filled.css';
+import '@fontsource/outfit/400.css';
+import '@fontsource/outfit/500.css';
+import '@fontsource/outfit/600.css';
+import '@fontsource/outfit/700.css';
+
 import { elements } from './dom.js';
 import { state } from './state.js';
 import { handleFileUpload } from './file-handler.js';
@@ -53,7 +60,7 @@ function initEventListeners() {
     elements.toggleSealLineBtn.addEventListener('click', toggleSealLine);
     elements.addSplitBtn.addEventListener('click', addSplitLine);
 
-    // 「去除分割线」：进入选择模式 → 点击分割线即直接删除 → 可「撤销删除」还原
+    // 「去除分割线」：进入选择模式 → 点击分割线即直接删除
     // 与「去除内容」的框选/涂抹模式互斥：开启前先退出擦除模式
     elements.removeSplitBtn.addEventListener('click', () => {
         if (!state.removeSplitMode) exitMaskMode();

@@ -468,10 +468,8 @@ body {
 /* ==========================================================================
    Components: Cards & Helpers
    ========================================================================== */
-.control-card,
 .guide-steps,
-.tools-grid,
-.application-group {
+.tools-grid {
     background-color: #f8fafc;
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -479,22 +477,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
-}
-
-.application-group {
-    background: #ffffff;
-}
-
-.control-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.control-row .label {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 500;
 }
 
 .step-item {
@@ -644,14 +626,6 @@ body {
     flex: 1 1 0;
 }
 
-.helper-text {
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-    margin-top: 4px;
-    margin-bottom: 0;
-    opacity: 0.8;
-}
-
 /* ==========================================================================
    紧凑状态行 / 状态徽标（替代冗长的底部说明小字）
    ========================================================================== */
@@ -691,33 +665,6 @@ body {
     background: #fffbeb;
     border-color: #fde68a;
     color: #b45309;
-}
-
-/* 轻量文字按钮（用于「取消标记」这类次级操作） */
-.btn.link-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    padding: 2px 4px;
-    font-size: 0.72rem;
-    font-weight: 500;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    white-space: nowrap;
-}
-
-.btn.link-btn:hover:not(:disabled) {
-    background: transparent;
-    color: var(--primary-color);
-    border: none;
-}
-
-.btn.link-btn:disabled {
-    background: transparent !important;
-    border: none !important;
-    color: #cbd5e1 !important;
-    opacity: 0.7;
-    filter: none;
 }
 
 /* Export fit-mode selector */

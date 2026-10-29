@@ -1,13 +1,14 @@
 import * as pdfjsLib from 'pdfjs-dist';
-import { version } from 'pdfjs-dist/package.json';
+// Worker 本地打包（不再依赖 unpkg CDN，断网 / 内网环境也可用）
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { state, resetState } from './state.js';
 import { elements } from './dom.js';
 import { renderThumbnails, renderCurrentPage, updatePageControls } from './viewer.js';
 import { syncCropZoomUI } from './crop-adjust.js';
 import { exitMaskMode, renderMasks } from './mask-editor.js';
 
-// 设置 PDF.js Worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
+// 设置 PDF.js Worker（本地资源）
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 /**
  * 处理文件上传事件 (Change Event)

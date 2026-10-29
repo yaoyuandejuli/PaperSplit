@@ -11,7 +11,6 @@ import { elements } from './dom.js';
  *   masks: Array<{id,x,y,w,h,applied}>     // 框选去除区域（比例坐标，导出时覆盖为白色）
  *   strokes: Array<{id,points,width,applied}> // 涂抹去除笔迹（比例坐标，导出时擦除）
  *   eraseOps: Array<{type,id|ids}>         // 去除操作栈（支持撤销「标记」与「应用」两类操作）
- *   removedSplitStack: Array<{index,x}>   // 已删除分割线的撤销栈（「撤销删除」逐条还原）
  * }
  * 注：splitLines / sealLine / masks / strokes 均定义在「旋转后的显示坐标系」中。
  * applied 表示该标记已被「应用」到画布（画布上直接显示擦除后的内容）。
@@ -27,8 +26,7 @@ export function getPageConfig(pageIndex) {
             outputScale: 1,
             masks: [],
             strokes: [],
-            eraseOps: [],
-            removedSplitStack: []
+            eraseOps: []
         };
     }
     const cfg = state.pagesData[pageIndex];
@@ -36,8 +34,6 @@ export function getPageConfig(pageIndex) {
     if (!Array.isArray(cfg.masks)) cfg.masks = [];
     if (!Array.isArray(cfg.strokes)) cfg.strokes = [];
     if (!Array.isArray(cfg.eraseOps)) cfg.eraseOps = [];
-    // 兼容旧数据（无 removedSplitStack 字段）
-    if (!Array.isArray(cfg.removedSplitStack)) cfg.removedSplitStack = [];
     // 兼容旧数据（标记没有 applied 字段）
     for (const m of cfg.masks) if (typeof m.applied !== 'boolean') m.applied = false;
     for (const s of cfg.strokes) if (typeof s.applied !== 'boolean') s.applied = false;
@@ -310,12 +306,12 @@ export function addSplitLine() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 去除分割线（点击即删 + 撤销）                                         */
+/* 去除分割线（点击即删）                                               */
 /* ------------------------------------------------------------------ */
 
 /**
  * 切换「去除分割线」模式
- * 开启后：点击画布上的分割线即直接删除（误删可用「撤销删除」还原）
+ * 开启后：点击画布上的分割线即直接删除
  */
 export function toggleRemoveSplitMode() {
     state.removeSplitMode = !state.removeSplitMode;
@@ -337,11 +333,8 @@ export function exitRemoveSplitMode() {
  */
 export function removeSplitLineAt(index) {
     const config = getPageConfig(state.currentPage);
-    const x = config.splitLines[index];
-    if (typeof x !== 'number') return;
+    if (typeof config.splitLines[index] !== 'number') return;
 
-    // 记录被删除的分割线，供「撤销删除」逐条还原
-    config.removedSplitStack.push({ index, x });
     config.splitLines.splice(index, 1);
 
     // 已无分割线时自动退出选择模式（避免按钮被禁用后无法退出）
@@ -352,22 +345,6 @@ export function removeSplitLineAt(index) {
     renderSplitLines();
     updateSplitRemoveUI();
     flashSplitRemoved();
-}
-
-/**
- * 撤销上一次删除的分割线
- */
-export function undoSplitRemoval() {
-    const config = getPageConfig(state.currentPage);
-    if (!config.removedSplitStack.length) return;
-
-    // 取出最近一次删除的分割线，按原位置插回并重新排序
-    const last = config.removedSplitStack.pop();
-    config.splitLines.splice(last.index, 0, last.x);
-    config.splitLines.sort((a, b) => a - b);
-
-    renderSplitLines();
-    updateSplitRemoveUI();
 }
 
 /** 同步「去除分割线」相关的按钮与提示文案 */
@@ -390,15 +367,6 @@ export function updateSplitRemoveUI() {
             : '<span class="material-icons">remove_circle_outline</span> 去除分割线';
         // 无分割线时禁用（但在选择模式中仍需可点，以便退出）
         btn.disabled = total === 0 && !active;
-    }
-
-    // 「撤销删除」：撤销栈非空时才可点
-    if (elements.undoSplitBtn) {
-        elements.undoSplitBtn.disabled = !(config && config.removedSplitStack && config.removedSplitStack.length);
-    }
-
-    if (elements.splitCount) {
-        elements.splitCount.textContent = total ? `共 ${total} 条` : '无分割线';
     }
 }
 
@@ -443,8 +411,6 @@ export function setSplitColumns(n) {
     }
 
     config.splitLines = lines;
-    // 分栏重置后，撤销记录不再对应任何分割线
-    config.removedSplitStack = [];
     renderSplitLines();
 }
 
@@ -470,8 +436,6 @@ export function toggleSealLine() {
             ? [config.sealLine.x, 1]
             : [0, config.sealLine.x];
         config.splitLines = config.splitLines.map(x => Math.min(Math.max(x, lo), hi));
-        // 钳制后坐标可能改变，撤销记录可能已失效
-        config.removedSplitStack = [];
     }
 
     renderSplitLines();
@@ -481,7 +445,6 @@ export function toggleSealLine() {
  * 恢复当前页的默认编辑状态
  *  - 分割线恢复为默认「两栏」（一条 0.5 分割线）
  *  - 取消密封线
- *  - 清空「撤销删除」记录
  * 注意：不影响方向角度与裁剪比例（它们各自有独立的重置按钮）
  */
 export function resetToDefaults() {
@@ -489,7 +452,6 @@ export function resetToDefaults() {
 
     config.splitLines = [0.5];
     config.sealLine = null;
-    config.removedSplitStack = [];
 
     // 退出「去除分割线」选择模式，避免残留选中态
     state.removeSplitMode = false;
@@ -510,9 +472,8 @@ export function applySplitToType() {
         for (let i = 1; i <= state.totalPages; i++) {
             const isIterOdd = i % 2 !== 0;
             if (isIterOdd === isCurrentOdd) {
-                // 深拷贝配置（撤销记录不跨页继承）
+                // 深拷贝配置
                 state.pagesData[i] = JSON.parse(JSON.stringify(currentConfig));
-                state.pagesData[i].removedSplitStack = [];
             }
         }
         alert('已应用完成');
@@ -527,9 +488,8 @@ export function applySplitToAll() {
     const currentConfig = getPageConfig(state.currentPage);
     if (confirm(`确定将当前配置应用到所有 ${state.totalPages} 页吗？`)) {
         for (let i = 1; i <= state.totalPages; i++) {
-            // 深拷贝配置（撤销记录不跨页继承）
+            // 深拷贝配置
             state.pagesData[i] = JSON.parse(JSON.stringify(currentConfig));
-            state.pagesData[i].removedSplitStack = [];
         }
         alert('已应用到所有页面');
         requestRepaint();

@@ -1,9 +1,21 @@
-import { jsPDF } from 'jspdf';
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { getPageConfig } from './editor.js';
 import { rotateCanvas, rotatedBounds, buildEraseOverlay } from './utils.js';
 import { getSliceRanges, computePlacement, getMaskRectsInSlice, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
+
+/** 导出按钮进度文案 */
+function setExportProgress(done, total) {
+    elements.exportBtn.innerHTML =
+        `<span class="material-icons">hourglass_top</span> 正在导出 ${done} / ${total} 页…`;
+}
+
+/** 释放画布显存（置 0 让浏览器尽快回收，多页文档导出时避免内存堆积） */
+function releaseCanvas(canvas) {
+    if (!canvas) return;
+    canvas.width = 0;
+    canvas.height = 0;
+}
 
 /**
  * 导出处理后的 PDF
@@ -13,7 +25,8 @@ export async function exportPdf() {
     if (!state.pdfDoc && !state.fileData) return;
 
     elements.exportBtn.disabled = true;
-    elements.exportBtn.textContent = '生成中...';
+    elements.exportBtn.setAttribute('aria-busy', 'true');
+    elements.exportBtn.innerHTML = '<span class="material-icons">hourglass_top</span> 正在准备导出…';
 
     // 内容在 A4 页面上的摆放方式：
     // 'a4-fit'(等比留白，默认) | 'a4-fill'(拉伸填满) | 'a4-cover'(等比填满·超出裁切)
@@ -24,8 +37,13 @@ export async function exportPdf() {
         // 延迟创建：统一使用标准 A4 纵向
         let doc = null;
 
+        // jspdf 按需动态加载：只有真正点导出才下载该 chunk（含 html2canvas/purify），
+        // 首屏加载体积约减半
+        const { jsPDF } = await import('jspdf');
+
         // 遍历所有原始页面
         for (let i = 1; i <= state.totalPages; i++) {
+            setExportProgress(i, state.totalPages);
             const config = getPageConfig(i);
             const rotation = config.rotation || 0;
 
@@ -129,6 +147,11 @@ export async function exportPdf() {
 
                 doc.addImage(imgData, 'JPEG', drawX, drawY, drawW, drawH);
             }
+
+            // 本页切片完成：释放高分辨率画布显存，避免多页文档导出时内存持续增长
+            releaseCanvas(sourceCanvas);
+            releaseCanvas(workCanvas);
+            releaseCanvas(eraseOverlay);
         }
 
         if (!doc) {
@@ -142,6 +165,7 @@ export async function exportPdf() {
         alert('导出失败: ' + e.message);
     } finally {
         elements.exportBtn.disabled = false;
-        elements.exportBtn.innerHTML = '<span class="material-icons">save_alt</span> 导出为 PDF';
+        elements.exportBtn.removeAttribute('aria-busy');
+        elements.exportBtn.innerHTML = '<span class="material-icons">save_alt</span> 导出为 PDF (A4)';
     }
 }

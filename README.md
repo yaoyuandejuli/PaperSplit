@@ -179,6 +179,13 @@ MIT License
 
 ## 📅 Changelog / 更新日志
 
+### 2026-10-30 (Offline Ready & Slimmer Load / 离线可用与首屏瘦身)
+
+- **Fully offline capable**: The PDF.js worker is now bundled locally (`?url` import) instead of fetched from unpkg CDN, and the Material Icons + Outfit fonts ship with the app instead of Google Fonts — the tool now works with **no internet connection** (air-gapped / school intranet). PDF worker 与图标/正文字体全部本地化，断网、内网环境可正常使用。
+- **~50% smaller first load**: `jspdf` (+ transitively `html2canvas`/`dompurify`, ~600 KB) is now **dynamically imported only when exporting**. Fixed the manual-chunk config that made Vite's preload helper land in the jspdf chunk and get statically referenced by the entry. First-load JS drops from ~1.2 MB to ~640 KB; jspdf/worker load on demand. jspdf 及其连带依赖改为导出时按需加载，首屏 JS 体积约减半。
+- **Export progress**: The export button now shows live progress ("正在导出 x / y 页…") and `aria-busy`, instead of a static "生成中..."; per-page canvases are released after slicing to keep memory flat on long documents. 导出按钮显示实时页码进度，逐页释放画布内存。
+- **Dead code & copy cleanup**: Removed the dormant split-undo stack (`removedSplitStack`/`undoSplitRemoval`) left over after the "撤销删除" button was dropped, unused CSS (`.link-btn`, `.helper-text`, `.control-card/.control-row/.application-group`), and the stale "清除待去除标记" tooltip on「恢复默认」. 清理撤销栈死代码、无引用样式与过时提示文案。
+
 ### 2026-10-29 (Guide Collapse & UI Polish / 操作指南折叠与界面微调)
 
 - **Collapsible Operation Guide**: The "操作指南" is now an **accessible disclosure control** — collapsed by default (only the title + a "点击展开" hint are shown), expanded on click to reveal all 8 steps. Implemented as a native `<button>` with `aria-expanded` / `aria-controls`, a rotating chevron, and full keyboard (Enter/Space) + screen-reader support. 操作指南改为点击展开/收起：默认仅显示标题与提示，点击展开全部内容，可键盘操作、兼容读屏。
