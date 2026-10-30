@@ -225,6 +225,9 @@ npx serve dist          # 或
 python -m http.server -d dist
 ```
 
+> **提示**：部分简易服务器（如老版本 `python -m http.server`、部分内网一键部署工具）会把 `.js` / `.mjs` 文件返回成 `application/octet-stream`，浏览器对 module 脚本做严格 MIME 校验，此时会提示「无法加载 PDF 文件」。
+> 本项目已内置兼容处理（自动改用 Blob 方式加载 PDF worker），但仍**推荐用 `npx serve dist`** 启动，或确认服务器对 `.js` 返回 `application/javascript` / `text/javascript`。
+
 ### 方式四：本地开发 / 重新构建
 ```bash
 npm install
@@ -242,6 +245,15 @@ npm run build           # 构建到 dist/
 MIT License
 
 ## 📅 Changelog / 更新日志
+
+### 2026-10-30 (Fix: PDF Won't Load on Some Static Servers / 修复部分服务器下无法加载 PDF)
+
+- **Symptom**: uploading a PDF on a self-hosted copy showed「无法加载 PDF 文件」. 本地部署时上传 PDF 提示「无法加载 PDF 文件」。
+- **Root cause**: the PDF.js worker is an **ES module**, and browsers enforce **strict MIME checks** on module scripts. Servers that answer `.js` / `.mjs` with `application/octet-stream` (old `python -m http.server`, some intranet one-click deploy tools, …) make the worker fail to load — and PDF.js' fake-worker fallback fails for the same reason. 根因是 PDF.js 的 worker 属于 ES module，浏览器对 module 脚本做严格 MIME 校验，服务器 MIME 不对时 worker 无法加载，PDF.js 的回退方案同样失败。
+- **Fix 1 — build output renamed to `.js`**: the worker is now emitted as `assets/pdf.worker.min-<hash>.js` instead of `.mjs`, so virtually every static server serves it with a JavaScript MIME type. 构建产物中的 worker 统一改名为 `.js`，绝大多数服务器都能正确提供。
+- **Fix 2 — automatic Blob fallback**: before the first PDF is loaded, the app probes the worker's `Content-Type` with a `HEAD` request; if the server returns a non-JavaScript type, the worker source is fetched and turned into a **Blob URL** (`fetch` doesn't enforce MIME types), so the PDF still loads. 加载前先用 HEAD 探测 MIME，异常时把 worker 源码转成 Blob URL 再用，彻底绕过限制。
+- **Clearer error message**: the failure dialog now explains the likely cause and how to fix it (`npx serve .`) instead of a bare「无法加载 PDF 文件」. 报错提示补充了原因与解决办法。
+- Verified on three setups: static server with correct MIME, static server returning `application/octet-stream` for the worker, and the Vite dev server (which serves `.mjs` as `text/plain`) — all import PDFs normally. 三种环境（正常 MIME / 异常 MIME / 源码版 dev server）均实测导入正常。
 
 ### 2026-10-30 (Batch Apply by Page Parity / 按奇偶页批量应用)
 

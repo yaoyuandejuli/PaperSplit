@@ -87,19 +87,67 @@ export async function handleFileUpload(e) {
     renderMasks();
 
     if (state.isPdf) {
-        const arrayBuffer = await file.arrayBuffer();
-        loadPdf(arrayBuffer);
+        // 先确定 worker 地址（服务器 MIME 异常时自动改用 Blob 方式）
+        pdfjsLib.GlobalWorkerOptions.workerSrc = await resolveWorkerUrl();
+        loadPdf(file);
     } else {
         loadImage(file);
     }
 }
 
 /**
- * 加载并解析 PDF 文件
- * @param {ArrayBuffer} arrayBuffer 文件二进制数据
+ * 解析可用的 PDF.js Worker 地址
+ *
+ * 浏览器对 module 脚本做**严格 MIME 校验**：只要服务器把 worker 文件当成
+ * application/octet-stream（部分简易静态服务器 / 老版本 Python http.server 会这样），
+ * worker 就无法加载，表现为「无法加载 PDF 文件」。
+ * 这里先用一个 HEAD 请求探测服务器给出的 Content-Type：
+ *  - 正常（javascript / ecmascript）→ 直接用打包好的 worker，零额外开销；
+ *  - 异常 → 把源码取回来转成 Blob URL（fetch 不校验 MIME，可绕过该限制）。
  */
-async function loadPdf(arrayBuffer) {
+async function resolveWorkerUrl() {
     try {
+        const res = await fetch(pdfWorkerUrl, { method: 'HEAD' });
+        const type = (res.headers.get('content-type') || '').toLowerCase();
+        if (type && !/javascript|ecmascript/.test(type)) {
+            const blobUrl = await buildBlobWorkerUrl();
+            if (blobUrl) {
+                console.info(`[PDF] 服务器 MIME 类型异常（${type}），已改用 Blob 方式加载 worker`);
+                return blobUrl;
+            }
+        }
+    } catch (e) {
+        // HEAD 不被支持等情况：直接用原地址，交给 PDF.js 处理
+        console.warn('[PDF] 探测 worker 的 MIME 失败：', e);
+    }
+    return pdfWorkerUrl;
+}
+
+/**
+ * 把打包好的 PDF worker 转成 Blob URL
+ * fetch 不校验 MIME，因此可以绕过「服务器不认识 .js / .mjs」导致的 module 脚本加载失败。
+ * @returns {Promise<string|null>} Blob URL；取不到时返回 null
+ */
+async function buildBlobWorkerUrl() {
+    try {
+        const res = await fetch(pdfWorkerUrl);
+        if (!res.ok) return null;
+        const source = await res.text();
+        if (!source) return null;
+        return URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+    } catch (e) {
+        console.warn('[PDF] 无法生成 Blob 版 worker：', e);
+        return null;
+    }
+}
+
+/**
+ * 加载并解析 PDF 文件
+ * @param {File} file 原始文件对象（失败重试时需要重新读取二进制）
+ */
+async function loadPdf(file) {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         state.pdfDoc = await loadingTask.promise;
         state.totalPages = state.pdfDoc.numPages;
@@ -116,7 +164,13 @@ async function loadPdf(arrayBuffer) {
     } catch (error) {
         console.error('Error loading PDF:', error);
         state.suppressSave = false;
-        alert('无法加载 PDF 文件');
+        alert(
+            '无法加载 PDF 文件。\n\n' +
+            '常见原因：本地部署的静态服务器没有正确设置 MIME 类型，' +
+            '导致 PDF.js 的 worker 无法加载。\n' +
+            '解决办法：改用 `npx serve .` 启动本地服务，' +
+            '或确认服务器把 .js 文件返回为 application/javascript。'
+        );
     }
 }
 
