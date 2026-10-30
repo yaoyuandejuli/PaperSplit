@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/logo.svg" alt="PaperSplit" width="118" height="118">
+  <img src="public/favicon.png" alt="PaperSplit" width="120" height="120">
   <h1>PaperSplit</h1>
 
   <p>
@@ -12,6 +12,7 @@
     <img alt="离线可用 Offline Ready" src="https://img.shields.io/badge/%E7%A6%BB%E7%BA%BF%E5%8F%AF%E7%94%A8%20%7C%20Offline-ready-8b5cf6?style=for-the-badge">
   </p>
   <p><sub>🚀 在线体验，无需安装，打开即用 &nbsp;·&nbsp; <i>Live demo — no install, runs in your browser</i></sub></p>
+  <p><sub><i>A privacy-focused web tool to split A3 PDFs into A4 pages.</i></sub></p>
 
   <p><b>简体中文</b> · <a href="#english">English</a></p>
 </div>
@@ -34,6 +35,8 @@
 > > 正确做法：用上面**方式①**在线体验，或把 **`dist/`** 交给静态服务器，或 `npm run dev` 跑源码版。详见下方 [常见问题](#-常见问题faq)。
 
 ## 📖 简介
+
+*A privacy-focused web tool to split A3 PDFs into A4 pages.*
 
 **PaperSplit** 是一个纯浏览器端运行的轻量工具，专门把 **A3 试卷 / 文档拆分成 A4**，并顺手去掉装订密封线、擦掉多余标记。文件不上传、不依赖网络，所有处理都在本机完成。
 
@@ -130,29 +133,35 @@ npx serve dist          # 或 python -m http.server -d dist
 ## ❓ 常见问题（FAQ）
 
 **Q：双击仓库里的 `index.html`，界面能显示但按钮点了没反应？**
+
 这是最常见的问题。浏览器出于安全限制，**不允许 `file://` 协议加载 ES 模块**，而仓库根目录的 `index.html` 是**源码版**（`src/` 里写的是 `pdfjs-dist`、`jspdf` 这类裸模块标识符），必须经 Vite 打包才能运行。
-**解决办法（任选其一）**：
-① 直接用[在线版本](https://yaoyuandejuli.github.io/PaperSplit/)；
-② 把 `dist/` 目录交给静态服务器（`npx serve dist`）；
-③ 克隆仓库后 `npm install && npm run dev` 跑源码版。
+
+**解决办法（任选其一）**：① 直接用[在线版本](https://yaoyuandejuli.github.io/PaperSplit/)；② 把 `dist/` 目录交给静态服务器（`npx serve dist`）；③ 克隆仓库后 `npm install && npm run dev` 跑源码版。
+
 > 本项目已内置 `file://` 检测，会直接弹出提示层告诉你该怎么做，不用猜。
 
 **Q：上传 PDF 提示「无法加载 PDF 文件」？**
+
 多半是**静态服务器没有正确设置 MIME 类型**（把 `.js` 返回成 `application/octet-stream`），浏览器对 module 脚本做严格校验，PDF worker 因此加载失败。程序已内置兜底（自动改用 Blob 方式加载 worker），若仍失败请改用 `npx serve dist`。
 
 **Q：需要联网吗？文件会上传吗？**
+
 **都不需要**。PDF worker、图标与字体全部随应用本地打包，断网 / 内网可用；所有解析与处理都在浏览器内完成，文件不会离开你的电脑。
 
 **Q：支持哪些文件格式？**
+
 PDF、JPG、PNG。图片按单页处理。
 
 **Q：编辑的内容会丢吗？**
+
 分割线、密封线、方向角度、缩放比例与擦除标记会自动存在**本机浏览器的 localStorage**（按文件指纹区分）。重新打开同一文件会自动恢复；也可以在「文件导出」区点「清除本文件保存记录」随时清掉。
 
 **Q：导出的 PDF 是什么规格？**
+
 始终是**标准 A4（210×297mm）**，可选等比留白 / 拉伸填满 / 等比填满三种排版方式。
 
 **Q：手机上能用吗？**
+
 可以，界面为响应式设计，支持触摸拖动分割线。
 
 ## 🤝 贡献指南
@@ -203,14 +212,30 @@ PDF、JPG、PNG。图片按单页处理。
 
 ## 📖 English
 
-**PaperSplit** splits **A3 exam papers and documents into A4** — entirely in your browser. Files never leave your machine, and the app keeps working offline.
+**PaperSplit** — *A privacy-focused web tool to split A3 PDFs into A4 pages.*
 
-- **Multi-column splitting** — cut a page into *N* columns; add or remove cut lines at any time.
-- **Seal line removal** — odd pages default to the left, even pages to the right; the area that will be cropped is shaded on the canvas.
-- **Erase content** — box-select or brush away unwanted marks; the erasure is really applied on export.
-- **Orientation & post-crop zoom** — rotate 90° plus a ±15° fine-tune slider, and enlarge a column that came out too small.
-- **Batch apply** — copy the current page's setup to all odd pages, all even pages, or every page.
-- **A4 export** — standard A4 PDF via `jsPDF` with three fit modes; edits auto-save in your own browser.
+Everything happens inside your browser: files are never uploaded, and the app keeps working offline. PaperSplit turns scanned exam papers or documents into standard A4 pages, removes the binding (seal) strip, erases stray marks, and exports a clean A4 PDF.
 
-Live demo: **https://yaoyuandejuli.github.io/PaperSplit/**
-For the full guide, see the Chinese sections above.
+**Features**
+
+- **Import** — drag in a PDF or an image (JPG / PNG).
+- **Multi-column splitting** — cut one page into *N* columns: "Two Columns" / "Three Columns" presets, "Add Split Line" for even more, "Remove Split Line" by clicking a line (double-click removes it too).
+- **Orientation correction** — rotate 90° left / right, then fine-tune with a ±15° slider; the angle is shown live and every page is adjusted independently.
+- **Seal line panel** — odd pages default to the left, even pages to the right, and the seal can be flipped to either side at any time. The area that will be cropped is shaded on the canvas, and split lines are kept inside the surviving region.
+- **Erase content** — box-select a rectangle or paint with a brush; "Apply" bakes the erasure into the page and it is really removed from the exported PDF.
+- **Post-crop zoom** — enlarge, shrink or reset a column that came out too small; the ratio is applied on export.
+- **Batch apply** — copy the current page's setup to all odd pages, all even pages, or every page. The seal-line panel has the same buttons, and applying across parities mirrors the seal to keep the odd-left / even-right symmetry.
+- **A4 export** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page.
+- **Auto-save** — split lines, seal line, orientation, zoom ratio and erase marks are stored in your browser's `localStorage` and restored automatically when you reopen the same file.
+- **Offline & responsive** — the PDF worker, icons and fonts all ship with the app; works on desktop and mobile.
+
+**Getting started**
+
+```bash
+git clone https://github.com/yaoyuandejuli/PaperSplit.git
+cd PaperSplit && npm install && npm run dev
+```
+
+Or simply try the live demo: **https://yaoyuandejuli.github.io/PaperSplit/**
+
+> **Note** — the repository's root `index.html` is the *source* version: `src/` uses bare module specifiers, so double-clicking it shows the UI but no button responds. Serve the `dist/` folder instead (`npx serve dist`), or use the live demo.
