@@ -7,9 +7,9 @@
     <title>PaperSplit - A3 试卷拆分</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-DEgeNn9y.js"></script>
+  <script type="module" crossorigin src="./assets/index-vc44lJY1.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-CggrVW6S.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-DBWAQnlO.css">
 </head>
 
 <body>
@@ -109,15 +109,15 @@
                         <div class="step-item">
                             <div class="step-num">4</div>
                             <div class="step-text">
-                                <strong>密封线调整（可选）</strong>
-                                <p>点「去除密封线」可设置密封区域 (奇左偶右)，拖动虚线调整；「恢复默认」可一键还原本页编辑</p>
+                                <strong>擦除内容（可选）</strong>
+                                <p>框选或涂抹要擦除的内容，点「应用」后画布直接显示擦除后的效果</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">5</div>
                             <div class="step-text">
-                                <strong>擦除内容（可选）</strong>
-                                <p>框选或涂抹要擦除的内容，点「应用」后画布直接显示擦除后的效果</p>
+                                <strong>密封线调整（可选）</strong>
+                                <p>点「去除密封线」开启密封区域（奇数页在左、偶数页在右），斜纹阴影标出的部分导出时会被裁掉；可切换左右或拖动虚线调整</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -194,10 +194,7 @@
                         </div>
 
                         <div class="btn-group">
-                            <button id="toggleSealLineBtn" class="btn secondary" disabled title="开启/取消密封线（奇数页左侧、偶数页右侧）">
-                                <span class="material-icons">format_shapes</span> 去除密封线
-                            </button>
-                            <button id="resetDefaultsBtn" class="btn secondary" disabled
+                            <button id="resetDefaultsBtn" class="btn secondary full-width" disabled
                                 title="恢复当前页默认：分割线一分为二、取消密封线">
                                 <span class="material-icons">restart_alt</span> 恢复默认
                             </button>
@@ -254,6 +251,31 @@
                             title="把标记的擦除区域真正应用到页面：画布直接显示擦除后的内容">
                             <span class="material-icons">done_all</span> 应用
                         </button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🔒 密封线调整（可选）</h3>
+                    <div class="tools-grid">
+                        <button id="toggleSealLineBtn" class="btn secondary full-width" disabled
+                            title="开启/取消密封线（奇数页左侧、偶数页右侧）">
+                            <span class="material-icons">format_shapes</span> 去除密封线
+                        </button>
+
+                        <div class="status-line">
+                            <span class="status-chip seal-state" id="sealStatus">未启用</span>
+                        </div>
+
+                        <div class="btn-group seal-side-row">
+                            <button id="sealLeftBtn" class="btn secondary" disabled title="把密封区域放在左侧（导出时裁掉左边）">
+                                <span class="material-icons">align_horizontal_left</span> 左侧
+                            </button>
+                            <button id="sealRightBtn" class="btn secondary" disabled title="把密封区域放在右侧（导出时裁掉右边）">
+                                <span class="material-icons">align_horizontal_right</span> 右侧
+                            </button>
+                        </div>
+
+                        <p class="seal-hint">开启后，画布上带阴影的斜纹区域就是<b>导出时会被裁掉</b>的部分；拖动虚线可调整范围。奇数页默认在左侧，偶数页默认在右侧。</p>
                     </div>
                 </div>
 

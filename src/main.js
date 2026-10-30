@@ -9,7 +9,7 @@ import { elements } from './dom.js';
 import { state } from './state.js';
 import { handleFileUpload } from './file-handler.js';
 import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation } from './viewer.js';
-import { toggleSealLine, applySplitToType, applySplitToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig } from './editor.js';
+import { toggleSealLine, setSealSide, applySplitToType, applySplitToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
 import {
@@ -121,6 +121,8 @@ function initEventListeners() {
     elements.nextPageBtn.addEventListener('click', () => changePage(state.currentPage + 1));
 
     elements.toggleSealLineBtn.addEventListener('click', toggleSealLine);
+    elements.sealLeftBtn.addEventListener('click', () => setSealSide('left'));
+    elements.sealRightBtn.addEventListener('click', () => setSealSide('right'));
     elements.addSplitBtn.addEventListener('click', addSplitLine);
 
     // 「去除分割线」：进入选择模式 → 点击分割线即直接删除

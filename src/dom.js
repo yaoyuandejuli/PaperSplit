@@ -8,7 +8,6 @@ export const elements = {
     pageInfo: document.getElementById('pageInfo'),
 
     // New controls
-    toggleSealLineBtn: document.getElementById('toggleSealLineBtn'),
     applyToTypeBtn: document.getElementById('applyToTypeBtn'),
     applyToAllBtn: document.getElementById('applyToAllBtn'),
 
@@ -37,6 +36,11 @@ export const elements = {
     addSplitBtn: document.getElementById('addSplitBtn'),
     // 去除分割线（点击即删）
     removeSplitBtn: document.getElementById('removeSplitBtn'),
+    // 密封线（独立分区：开关 + 左右切换 + 状态）
+    toggleSealLineBtn: document.getElementById('toggleSealLineBtn'),
+    sealStatus: document.getElementById('sealStatus'),
+    sealLeftBtn: document.getElementById('sealLeftBtn'),
+    sealRightBtn: document.getElementById('sealRightBtn'),
     // 恢复当前页默认编辑状态
     resetDefaultsBtn: document.getElementById('resetDefaultsBtn'),
     // 分栏预设：两栏 / 三栏

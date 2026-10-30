@@ -52,6 +52,63 @@ function focusAfterSplitGone() {
 }
 
 /**
+ * 渲染「密封区域」遮罩
+ * 把导出时会被裁掉的那一块用斜纹阴影标出来，让用户直观看到密封线的影响范围。
+ * 密封线在左 → 遮罩覆盖左侧；密封线在右 → 覆盖右侧。
+ * @param {Object} config 当前页配置
+ */
+function renderSealZone(config) {
+    const wrapper = elements.canvasWrapper;
+    if (!wrapper) return;
+
+    let zone = wrapper.querySelector('.seal-zone');
+
+    if (!config.sealLine) {
+        if (zone) zone.remove();
+        return;
+    }
+
+    if (!zone) {
+        zone = document.createElement('div');
+        zone.className = 'seal-zone';
+        wrapper.appendChild(zone);
+    }
+
+    const isLeft = config.sealLine.type === 'left';
+    zone.classList.toggle('seal-right', !isLeft);
+    zone.style.left = isLeft ? '0' : `${config.sealLine.x * 100}%`;
+    zone.style.width = `${(isLeft ? config.sealLine.x : 1 - config.sealLine.x) * 100}%`;
+}
+
+/**
+ * 更新密封线状态徽标（未启用 / 已启用·左 / 已启用·右）
+ * @param {Object} config 当前页配置
+ */
+function updateSealUI(config) {
+    const chip = elements.sealStatus;
+    if (chip) {
+        if (config.sealLine) {
+            chip.textContent = `已启用 · ${config.sealLine.type === 'left' ? '左侧' : '右侧'}`;
+            chip.classList.add('seal-on');
+        } else {
+            chip.textContent = '未启用';
+            chip.classList.remove('seal-on');
+        }
+    }
+
+    // 左右切换按钮：仅在启用后可点，并高亮当前所在一侧
+    const enabled = !!config.sealLine;
+    if (elements.sealLeftBtn) {
+        elements.sealLeftBtn.disabled = !enabled;
+        elements.sealLeftBtn.classList.toggle('active-state', enabled && config.sealLine.type === 'left');
+    }
+    if (elements.sealRightBtn) {
+        elements.sealRightBtn.disabled = !enabled;
+        elements.sealRightBtn.classList.toggle('active-state', enabled && config.sealLine.type === 'right');
+    }
+}
+
+/**
  * 渲染当前页的所有辅助线 (切割线 + 密封线)
  */
 export function renderSplitLines() {
@@ -71,16 +128,22 @@ export function renderSplitLines() {
     if (config.sealLine) {
         createLineElement(config.sealLine.x, 'seal', (newIter) => {
             config.sealLine.x = newIter;
+            // 位置变化 → 同步遮罩范围
+            renderSealZone(config);
         });
 
         // 更新按钮状态：显示取消
-        elements.toggleSealLineBtn.innerHTML = '<span class="material-icons">close</span> 取消去除';
+        elements.toggleSealLineBtn.innerHTML = '<span class="material-icons">close</span> 取消密封线';
         elements.toggleSealLineBtn.classList.add('active-state');
     } else {
         // 更新按钮状态：显示添加
         elements.toggleSealLineBtn.innerHTML = '<span class="material-icons">format_shapes</span> 去除密封线';
         elements.toggleSealLineBtn.classList.remove('active-state');
     }
+
+    // 遮罩与状态显示
+    renderSealZone(config);
+    updateSealUI(config);
 
     // 启用相关操作按钮
     elements.toggleSealLineBtn.disabled = false;
@@ -536,6 +599,34 @@ export function setSplitColumns(n) {
     }
 
     config.splitLines = lines;
+    renderSplitLines();
+}
+
+/**
+ * 设置密封区域所在的一侧（left / right）
+ * 切换后同步调整密封线位置，并把分割线钳制回保留区域内
+ * @param {'left'|'right'} side 目标一侧
+ */
+export function setSealSide(side) {
+    const config = getPageConfig(state.currentPage);
+    if (!config.sealLine) return;
+
+    // 保持当前宽度，只换到另一侧：左侧时 x = 宽度，右侧时 x = 1 - 宽度
+    const width = config.sealLine.type === 'left'
+        ? config.sealLine.x
+        : 1 - config.sealLine.x;
+
+    config.sealLine.type = side;
+    config.sealLine.x = side === 'left'
+        ? Math.min(Math.max(width, 0.05), 0.95)
+        : Math.min(Math.max(1 - width, 0.05), 0.95);
+
+    // 分割线钳制进新的保留区域
+    const [lo, hi] = side === 'left'
+        ? [config.sealLine.x, 1]
+        : [0, config.sealLine.x];
+    config.splitLines = config.splitLines.map(x => Math.min(Math.max(x, lo), hi));
+
     renderSplitLines();
 }
 

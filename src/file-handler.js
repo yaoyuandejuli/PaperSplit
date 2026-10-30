@@ -48,6 +48,8 @@ export async function handleFileUpload(e) {
 
     // 启用相关按钮（已确认是受支持的文件类型）
     elements.toggleSealLineBtn.disabled = false;
+    elements.sealLeftBtn.disabled = true;   // 需先启用密封线
+    elements.sealRightBtn.disabled = true;
     elements.exportBtn.disabled = false;
     elements.clearSaveBtn.disabled = false;   // 可清除本文件的保存记录
     elements.addSplitBtn.disabled = false;

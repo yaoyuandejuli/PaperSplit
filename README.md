@@ -51,10 +51,12 @@
     *   **Add Split Line**: Inserts another cut line at the widest gap, so one page can become many.
     *   **Remove Split Line**: Enter "Remove Split Line" mode and click a cut line to delete it immediately, or double-click any cut line to remove it. "Reset Defaults" restores the page. 去除分割线模式下点击即删，也可双击删除，「恢复默认」可一键还原。
 *   **Orientation Correction**: Rotate content **90° left / right**, fine-tune with a **±15° slider**, and reset back to 0°. Each page is adjusted independently. 方向可 90° 旋转 + 滑动微调，实时显示角度。
-*   **Seal Line Removal**:
-    *   Dedicated "Remove Seal Line" mode.
+*   **Seal Line Adjustment** (its own panel, right after Erase Content):
     *   **Smart Detection**: Odd pages default to left, even pages default to right.
+    *   **Left / Right switch**: move the seal area to either side at any time.
+    *   **Visual preview**: the area that will be cropped on export is shaded on the canvas.
     *   Adjustable seal area that is automatically cropped during export.
+    密封线调整（独立分区，紧随擦除内容之后）：奇偶页智能识别左右、可自由切换左右侧、画布上用斜纹阴影标出将被裁掉的区域，导出时自动裁切。
 *   **Erase Content**: Remove unwanted marks by **drag-selecting a rectangle** or **painting with a brush**. "Apply" bakes the erasure into the page, and the erasure is really applied on export. 框选 / 涂抹两种方式擦除内容，擦除效果真实写入导出 PDF。
 *   **Post-Crop Zoom**: If a cropped column comes out too small to read, **zoom in / out / reset** the slice and apply it to the current page — the ratio is honoured on export. 裁剪后调整显示大小，比例真实影响导出。
 *   **Batch Application**:
@@ -107,9 +109,10 @@ Open the local URL shown in the terminal (usually `http://localhost:5173`).
     *   **增加分割线**：在最大间隙处插入新的分割线，一分为多。
     *   **去除分割线**：点击分割线即直接删除。
 *   **方向校正**：**左转 / 右转 90°** 快速摆正，再用 **±15° 滑块**微调，角度实时显示，每页独立生效。
-*   **密封线处理**：
-    *   支持“去除密封线”模式。
+*   **密封线调整（可选）**（独立分区，位于「擦除内容」之后）：
     *   **智能识别**：奇数页默认在左侧，偶数页默认在右侧。
+    *   **左右自由切换**：可随时把密封区域换到另一侧。
+    *   **可视化预览**：画布上用斜纹阴影标出导出时会被裁掉的区域。
     *   可拖动调整密封线范围，导出时自动裁切该区域。
 *   **擦除内容（可选）**：支持 **框选矩形** 与 **涂抹笔刷** 两种方式擦除多余内容，点「应用」后画布直接显示擦除效果，**导出 PDF 时真实擦除**。
 *   **裁剪后调整（可选）**：裁好的某栏太小看不清时，用 **放大 / 缩小 / 重置** 调整大小，点「应用到当前页」后比例在导出时真实生效。
@@ -239,6 +242,15 @@ npm run build           # 构建到 dist/
 MIT License
 
 ## 📅 Changelog / 更新日志
+
+### 2026-10-30 (Seal Line as Its Own Panel / 密封线独立分区)
+
+- **Seal Line moved out of Editing Tools**: it now lives in its own **「密封线调整（可选）」** panel, placed right after **「擦除内容（可选）」** (and before「裁剪后调整」). 密封线从「编辑工具」中独立出来，成为「擦除内容（可选）」之后的新分区。
+- **Editing Tools rebalanced**: with the seal-line button gone,「恢复默认」now occupies a **full row** on its own, so the panel no longer has an awkward gap. 编辑工具区去掉密封线按钮后，「恢复默认」独占一整行，补齐原先的空白。
+- **Seal area is now visible on the canvas**: the region that will be cropped on export is marked with a **shaded hatch overlay**, so you can see exactly what gets removed. 画布上用斜纹阴影实时标出导出时会被裁掉的区域。
+- **Left / Right switch added**: the seal area could previously only be moved, never flipped to the other side — now there are dedicated「左侧 / 右侧」buttons (only enabled while the seal line is on). 新增左右切换按钮，密封区域可自由换边。
+- **Status readout**: a chip shows「未启用」/「已启用 · 左侧」/「已启用 · 右侧」. 状态徽标实时显示当前状态与所在侧。
+- The operation guide was reordered to match the new panel order (擦除内容 now comes before 密封线). 操作指南顺序同步调整，与面板顺序一致。
 
 ### 2026-10-30 (Auto-Save of Edits / 编辑配置自动保存)
 
