@@ -41,7 +41,8 @@ fi
 
 # --- 准备发布内容 -----------------------------------------------------------
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+# 清理失败不应影响发布结果（部分环境会拦截删除操作）
+trap 'rm -rf "$TMP" 2>/dev/null || true' EXIT
 
 cp -r "$ROOT/docs/." "$TMP/"
 touch "$TMP/.nojekyll"   # 跳过 Jekyll 处理，保证 assets 原样发布
