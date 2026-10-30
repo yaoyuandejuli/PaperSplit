@@ -38,5 +38,8 @@ export function resetState() {
     state.saveDisabled = false;
     state.documents = [];
     state.pageSlots = [];
-    state.docSeq = 0;
+    // 注意：docSeq **不归零**。
+    // 它是全局单调递增的文件 id 计数器，若在此归零，下一次导入的文件会拿到
+    // 与旧集合重复的 id（doc1/doc2…），导致按 id 索引的页面映射错位。
+    // 追加导入时旧集合仍在，id 必须始终唯一。
 }

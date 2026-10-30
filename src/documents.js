@@ -3,9 +3,10 @@
  *
  * 一次可以导入多个 PDF / 图片，它们会被合并成**一份连续文档**：
  *   - `state.documents`  按「导入先后」保存的文件条目（用于计算存储指纹）
- *   - `state.pageSlots`  按「当前排序」展开的页面序列，每项指明这一页来自哪个文件的第几页
+ *   - `state.pageSlots`  按「当前顺序」展开的页面序列，每项指明这一页来自哪个文件的第几页
  *
  * 两者的关系：文件列表里看到的顺序 = pageSlots 中各文件页面块的先后顺序。
+ * 页面顺序的调整统一交给「导出前排序」（页级），文件本身不再支持拖拽重排。
  * 调整顺序 / 删除文件时，页面的编辑配置（分割线、密封线、旋转、擦除标记）
  * 必须跟着页面一起搬家 —— 由 remapPagesData() 负责搬运。
  */
@@ -25,7 +26,7 @@ export function getPageSource(pageNumber) {
 }
 
 /**
- * 按当前排序返回文件列表（每个文件只出现一次）
+ * 按当前页面顺序返回文件列表（每个文件只出现一次）
  * @returns {Array} 文件条目数组
  */
 export function getOrderedDocs() {
@@ -38,39 +39,6 @@ export function getOrderedDocs() {
         if (doc) out.push(doc);
     }
     return out;
-}
-
-/**
- * 依据文件列表展开出页面序列
- * @param {Array} docs 文件条目数组
- * @returns {Array} pageSlots 数组
- */
-export function buildSlots(docs) {
-    const slots = [];
-    for (const doc of docs) {
-        for (let p = 1; p <= doc.pageCount; p++) {
-            slots.push({ docId: doc.id, localPage: p });
-        }
-    }
-    return slots;
-}
-
-/**
- * 把页面槽位按文件分组（保持组内顺序）
- * @param {Array} slots 页面槽位
- * @returns {Array<Array>} 每项是同一文件的一组槽位
- */
-function groupSlots(slots) {
-    const groups = [];
-    const index = new Map();
-    for (const slot of slots) {
-        if (!index.has(slot.docId)) {
-            index.set(slot.docId, groups.length);
-            groups.push([]);
-        }
-        groups[index.get(slot.docId)].push(slot);
-    }
-    return groups;
 }
 
 /**
@@ -103,29 +71,6 @@ export function remapPagesData(oldSlots, newSlots, oldPagesData) {
  */
 export function syncTotalPages() {
     state.totalPages = state.pageSlots.length;
-}
-
-/**
- * 把某个文件移动到新的位置
- * @param {string} docId 文件 id
- * @param {number} targetIndex 目标位置（按当前排序后的下标）
- */
-export function moveDocument(docId, targetIndex) {
-    const groups = groupSlots(state.pageSlots);
-    const from = groups.findIndex(g => g[0] && g[0].docId === docId);
-    if (from < 0) return false;
-
-    const clamped = Math.max(0, Math.min(targetIndex, groups.length - 1));
-    if (from === clamped) return false;
-
-    const [group] = groups.splice(from, 1);
-    groups.splice(clamped, 0, group);
-
-    const newSlots = groups.flat();
-    state.pagesData = remapPagesData(state.pageSlots, newSlots, state.pagesData);
-    state.pageSlots = newSlots;
-    syncTotalPages();
-    return true;
 }
 
 /**

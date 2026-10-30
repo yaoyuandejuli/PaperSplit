@@ -60,6 +60,17 @@ async function importFiles(files, mode) {
         return;
     }
 
+    const isAppend = mode === 'append' && state.totalPages > 0;
+
+    if (!isAppend) {
+        // 全新导入：先清空旧集合与旧配置，再解析新文件
+        // （resetState 不再重置 docSeq —— 文件 id 必须全局唯一，
+        //   否则追加导入时新文件会与旧文件撞 id，页面映射就会错位）
+        releaseDocuments();
+        resetState();
+        state.suppressSave = true;
+    }
+
     // 解析每一个文件（失败的文件跳过，不影响其它文件）
     const docs = [];
     for (const file of accepted) {
@@ -73,15 +84,6 @@ async function importFiles(files, mode) {
     }
     if (!docs.length) return;
 
-    const isAppend = mode === 'append' && state.totalPages > 0;
-
-    if (!isAppend) {
-        // 全新导入：清空旧集合与旧配置
-        releaseDocuments();
-        resetState();
-        state.suppressSave = true;
-    }
-
     for (const doc of docs) {
         appendDocument(doc);
     }
@@ -90,9 +92,11 @@ async function importFiles(files, mode) {
     state.fileFingerprint = collectionFingerprint(state.documents);
     // 每次重新载入文件都恢复自动保存（除非用户在本次会话中主动清除过）
     state.saveDisabled = false;
-    state.fileName = docs.length === 1
-        ? docs[0].name.replace(/\.[^/.]+$/, '')
-        : `${docs[0].name.replace(/\.[^/.]+$/, '')} 等 ${docs.length} 个文件`;
+    // 仅用于本地存储记录里的展示名；导出的文件名统一由导出器按时间戳生成
+    const firstName = state.documents[0].name.replace(/\.[^/.]+$/, '');
+    state.fileName = state.documents.length === 1
+        ? firstName
+        : `${firstName} 等 ${state.documents.length} 个文件`;
 
     // 隐藏空状态、显示左侧面板
     // 注意：首次渲染后 emptyState 会被 canvasWrapper 清空，这里必须做空值保护

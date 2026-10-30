@@ -57,11 +57,11 @@
         <main class="main-layout">
             <!-- 左侧：文件列表 + 缩略图 -->
             <aside class="left-panel custom-scrollbar">
-                <!-- 已导入文件（可拖拽排序） -->
+                <!-- 已导入文件清单 -->
                 <div class="file-list-box" id="fileListBox" hidden>
                     <div class="file-list-head">
                         <span class="material-icons file-list-icon" aria-hidden="true">folder_open</span>
-                        <span class="file-list-title">文件顺序</span>
+                        <span class="file-list-title">已导入文件</span>
                         <span class="file-list-count" id="fileListCount"></span>
                         <button type="button" class="file-add-btn" id="addFilesBtn" title="继续添加文件（追加到末尾）" hidden>
                             <span class="material-icons" aria-hidden="true">add</span>
@@ -69,7 +69,7 @@
                         </button>
                     </div>
                     <ul class="file-list" id="fileList"></ul>
-                    <p class="file-list-tip">拖动卡片调整顺序，点击卡片跳转到该文件</p>
+                    <p class="file-list-tip">点击卡片跳转到该文件；页面先后请用「导出前排序」调整</p>
                 </div>
 
                 <!-- 缩略图动态生成 -->
@@ -111,7 +111,7 @@
                             <div class="step-num">1</div>
                             <div class="step-text">
                                 <strong>导入试卷</strong>
-                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；左面板拖动文件卡片即可调整顺序</p>
+                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；左面板可查看已导入的文件</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -153,7 +153,7 @@
                             <div class="step-num">7</div>
                             <div class="step-text">
                                 <strong>导出前排序</strong>
-                                <p>如需微调页面先后，点「导出前排序」逐页拖动调整</p>
+                                <p>如需调整页面先后，点「导出前排序」逐页拖动调整（跨文件也可以）</p>
                             </div>
                         </div>
                         <div class="step-item">

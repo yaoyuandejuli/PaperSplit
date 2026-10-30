@@ -19,6 +19,26 @@ function releaseCanvas(canvas) {
 }
 
 /**
+ * 生成导出文件名：A3-A4-YYMMDDHHmmss.pdf
+ *
+ * 例如 2026-10-30 20:19:50 → A3-A4-261030201950.pdf
+ * 采用本地时间，保证同一分钟内连续导出时文件名也互不相同。
+ * @returns {string} 文件名
+ */
+function buildExportFileName() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    const stamp =
+        String(d.getFullYear()).slice(-2) +      // 年：后两位
+        p(d.getMonth() + 1) +                    // 月
+        p(d.getDate()) +                         // 日
+        p(d.getHours()) +                        // 时
+        p(d.getMinutes()) +                      // 分
+        p(d.getSeconds());                       // 秒
+    return `A3-A4-${stamp}.pdf`;
+}
+
+/**
  * 导出处理后的 PDF
  * 遍历每一页，根据切割线和密封线裁剪，每一栏生成一页标准 A4 (210×297mm)
  */
@@ -163,7 +183,7 @@ export async function exportPdf() {
             alert('没有可导出的内容');
             return;
         }
-        doc.save(`${state.fileName}(A4).pdf`);
+        doc.save(buildExportFileName());
 
     } catch (e) {
         console.error(e);

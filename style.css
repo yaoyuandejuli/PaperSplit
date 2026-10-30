@@ -1473,35 +1473,15 @@ body.mask-rect-dragging {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--surface-color);
-    cursor: grab;
+    cursor: pointer;
     font-size: 12px;
-    transition: border-color .15s, box-shadow .15s, transform .12s;
+    transition: border-color .15s, box-shadow .15s;
     user-select: none;
 }
 
 .file-card:hover {
     border-color: var(--primary-color);
     box-shadow: var(--shadow-sm);
-}
-
-.file-card.dragging {
-    opacity: .45;
-    cursor: grabbing;
-}
-
-.file-card.drop-above {
-    box-shadow: inset 0 2px 0 0 var(--primary-color);
-}
-
-.file-card.drop-below {
-    box-shadow: inset 0 -2px 0 0 var(--primary-color);
-}
-
-.file-drag {
-    font-size: 14px;
-    color: var(--text-secondary);
-    opacity: .55;
-    flex-shrink: 0;
 }
 
 .file-badge {
