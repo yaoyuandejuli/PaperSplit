@@ -57,8 +57,12 @@ export async function handleFileUpload(e) {
     elements.resetDefaultsBtn.disabled = false; // 恢复当前页默认
     elements.splitHalfBtn.disabled = false;
     elements.splitThirdBtn.disabled = false;
-    elements.applyToTypeBtn.disabled = false;
+    elements.applyToOddBtn.disabled = false;
+    elements.applyToEvenBtn.disabled = false;
     elements.applyToAllBtn.disabled = false;
+    elements.sealApplyOddBtn.disabled = false;
+    elements.sealApplyEvenBtn.disabled = false;
+    elements.sealApplyAllBtn.disabled = false;
     elements.rotateLeftBtn.disabled = false;
     elements.rotateRightBtn.disabled = false;
     elements.rotateFineSlider.disabled = false;

@@ -8,7 +8,9 @@ export const elements = {
     pageInfo: document.getElementById('pageInfo'),
 
     // New controls
-    applyToTypeBtn: document.getElementById('applyToTypeBtn'),
+    // 编辑工具 · 批量应用：奇数页 / 偶数页（并排一行）+ 所有页（独占一行）
+    applyToOddBtn: document.getElementById('applyToOddBtn'),
+    applyToEvenBtn: document.getElementById('applyToEvenBtn'),
     applyToAllBtn: document.getElementById('applyToAllBtn'),
 
     // 方向旋转
@@ -36,11 +38,15 @@ export const elements = {
     addSplitBtn: document.getElementById('addSplitBtn'),
     // 去除分割线（点击即删）
     removeSplitBtn: document.getElementById('removeSplitBtn'),
-    // 密封线（独立分区：开关 + 左右切换 + 状态）
+    // 密封线（独立分区：开关 + 左右切换 + 状态 + 批量应用）
     toggleSealLineBtn: document.getElementById('toggleSealLineBtn'),
     sealStatus: document.getElementById('sealStatus'),
     sealLeftBtn: document.getElementById('sealLeftBtn'),
     sealRightBtn: document.getElementById('sealRightBtn'),
+    // 密封线 · 批量应用：奇数页 / 偶数页（并排一行）+ 所有页（独占一行）
+    sealApplyOddBtn: document.getElementById('sealApplyOddBtn'),
+    sealApplyEvenBtn: document.getElementById('sealApplyEvenBtn'),
+    sealApplyAllBtn: document.getElementById('sealApplyAllBtn'),
     // 恢复当前页默认编辑状态
     resetDefaultsBtn: document.getElementById('resetDefaultsBtn'),
     // 分栏预设：两栏 / 三栏

@@ -60,8 +60,8 @@
 *   **Erase Content**: Remove unwanted marks by **drag-selecting a rectangle** or **painting with a brush**. "Apply" bakes the erasure into the page, and the erasure is really applied on export. 框选 / 涂抹两种方式擦除内容，擦除效果真实写入导出 PDF。
 *   **Post-Crop Zoom**: If a cropped column comes out too small to read, **zoom in / out / reset** the slice and apply it to the current page — the ratio is honoured on export. 裁剪后调整显示大小，比例真实影响导出。
 *   **Batch Application**:
-    *   **Apply to Same Type**: One-click apply settings to all Odd or all Even pages.
-    *   **Apply to All**: Apply current configuration to every page.
+    *   **Odd Pages / Even Pages / All Pages**: copy the current page's split settings to every odd page, every even page, or the whole document.
+    *   **Seal line batch**: the seal-line panel has its own batch buttons — apply the seal to all odd pages, all even pages, or every page (cross-parity targets are mirrored automatically to keep the odd-left / even-right symmetry).
     *   **Reset Defaults**: Restore one page back to the default split with no seal line.
 *   **HD Export**: Generates high-quality **standard A4 (210×297 mm)** PDF documents using `jsPDF`, with selectable fit modes (equal-ratio with margins, stretch-to-fill, or equal-ratio cover).
 *   **Auto-Save of Edits**: Split lines, seal line, orientation, post-crop zoom and erase marks are **saved in your own browser** (localStorage, never uploaded). Reopen the same file and everything is restored automatically; use "Clear Saved Record" to opt out. 编辑配置自动保存在本机浏览器，重新打开同一文件即可恢复，可一键清除。
@@ -90,7 +90,7 @@ Open the local URL shown in the terminal (usually `http://localhost:5173`).
     *   Rotate with "**Left 90° / Right 90°**" and fine-tune with the slider if the scan is skewed.
     *   Use "**Erase Content**" to box-select or paint away unwanted marks.
     *   Use "**Post-Crop Adjustment**" to zoom a too-small column, then "Apply to Current Page".
-3.  **Batch**: Use "Same Type" or "All Pages" buttons to apply your settings to other pages.
+3.  **Batch**: Use the "**Odd Pages / Even Pages**" buttons (plus "**All Pages**" on its own row) to copy your settings to other pages — the same layout is available inside the Seal Line panel.
 4.  **Export**: Click "Export as PDF (A4)" to download your processed file.
 
 ---
@@ -117,8 +117,8 @@ Open the local URL shown in the terminal (usually `http://localhost:5173`).
 *   **擦除内容（可选）**：支持 **框选矩形** 与 **涂抹笔刷** 两种方式擦除多余内容，点「应用」后画布直接显示擦除效果，**导出 PDF 时真实擦除**。
 *   **裁剪后调整（可选）**：裁好的某栏太小看不清时，用 **放大 / 缩小 / 重置** 调整大小，点「应用到当前页」后比例在导出时真实生效。
 *   **批量应用**：
-    *   **同类页**：一键应用当前配置到所有奇数页或所有偶数页。
-    *   **所有页**：一键应用到文档所有页面。
+    *   **奇数页 / 偶数页 / 所有页**：把当前页的分割设置一键复制到所有奇数页、所有偶数页或整个文档（奇数页与偶数页并排一行，「所有页」独占一行）。
+    *   **密封线批量应用**：密封线分区同样提供「奇数页 / 偶数页 / 所有页」按钮，可统一设置密封区域；跨奇偶应用时会自动镜像到另一侧，保持「奇数页在左、偶数页在右」的对称关系。
     *   **恢复默认**：一键把当前页还原为默认分割并取消密封线。
 *   **高清导出**：基于 `jsPDF` 生成高质量的**标准 A4（210×297mm）** PDF 文档，可选择等比留白 / 拉伸填满 / 等比填满三种排版方式。
 *   **编辑自动保存**：分割线、密封线、方向角度、裁剪后调整比例与擦除标记**自动保存在本机浏览器**（localStorage，不上传任何数据）。重新打开同一文件自动恢复，点「清除本文件保存记录」可随时关闭。
@@ -146,7 +146,7 @@ npm run dev
     *   扫描歪斜时用“左转 / 右转 90°”摆正，再用滑块微调角度。
     *   用“擦除内容”框选或涂抹掉多余的内容。
     *   裁剪后太小就用“裁剪后调整”放大，调好后点“应用到当前页”。
-3.  **批量**：调整好一页后，点击“同类页”或“所有页”将配置应用到其他页面。
+3.  **批量**：调整好一页后，点击「奇数页」「偶数页」把配置复制到同类页面，或点「所有页」复制到整份文档；密封线分区里也有同样的一组批量按钮。
 4.  **导出**：点击底部的“导出为 PDF (A4)”，文件将自动下载。
 
 ---
@@ -242,6 +242,14 @@ npm run build           # 构建到 dist/
 MIT License
 
 ## 📅 Changelog / 更新日志
+
+### 2026-10-30 (Batch Apply by Page Parity / 按奇偶页批量应用)
+
+- **「同类页」拆成两个明确选项**: the Editing Tools batch block now offers **奇数页** and **偶数页** side by side, with **所有页** on its own full-width row below — instead of one ambiguous「同类页」button that depended on the page you were on. 「批量应用」由「同类页」改为「奇数页」「偶数页」并排一行，「所有页」独占一行。
+- **Seal line got its own batch block**: the 密封线调整 panel now has the same **奇数页 / 偶数页 + 所有页** layout, so the seal area can be set across the whole document without touching each page. 密封线分区新增同款「批量应用」按钮组。
+- **Mirrored across parities**: applying the seal to pages of the opposite parity automatically flips it to the other side (same width), preserving the「odd left / even right」book symmetry. 跨奇偶应用时密封区域自动镜像到另一侧，保持书页左右对称。
+- **Split lines stay inside the kept area**: pages that receive a seal line get their split lines clamped into the surviving region, so no column is ever cut in the cropped-away zone. 应用密封线的页面，分割线会自动钳制回保留区域。
+- **Non-blocking feedback**: batch operations now report the result with a toast instead of an `alert` dialog. 批量操作改为轻提示反馈，不再弹出系统对话框。
 
 ### 2026-10-30 (Seal Line as Its Own Panel / 密封线独立分区)
 

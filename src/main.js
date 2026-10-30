@@ -9,7 +9,7 @@ import { elements } from './dom.js';
 import { state } from './state.js';
 import { handleFileUpload } from './file-handler.js';
 import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation } from './viewer.js';
-import { toggleSealLine, setSealSide, applySplitToType, applySplitToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig } from './editor.js';
+import { toggleSealLine, setSealSide, applySplitToOdd, applySplitToEven, applySplitToAll, applySealToOdd, applySealToEven, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
 import {
@@ -195,8 +195,14 @@ function initEventListeners() {
         fineRotateLastRun = Date.now();
         applyFineRotation();
     });
-    elements.applyToTypeBtn.addEventListener('click', () => applySplitToType());
-    elements.applyToAllBtn.addEventListener('click', () => applySplitToAll());
+    // 「批量应用」· 编辑工具：把当前页的分割设置复制到奇数页 / 偶数页 / 所有页
+    elements.applyToOddBtn.addEventListener('click', applySplitToOdd);
+    elements.applyToEvenBtn.addEventListener('click', applySplitToEven);
+    elements.applyToAllBtn.addEventListener('click', applySplitToAll);
+    // 「批量应用」· 密封线：把密封线统一设置到奇数页 / 偶数页 / 所有页
+    elements.sealApplyOddBtn.addEventListener('click', applySealToOdd);
+    elements.sealApplyEvenBtn.addEventListener('click', applySealToEven);
+    elements.sealApplyAllBtn.addEventListener('click', applySealToAll);
     elements.exportBtn.addEventListener('click', exportPdf);
     // 清除本文件的保存记录（并停止该文件的自动保存）
     elements.clearSaveBtn.addEventListener('click', () => {

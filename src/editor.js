@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
+import { showToast } from './toast.js';
 
 /**
  * 获取或初始化当前页面的配置
@@ -109,6 +110,24 @@ function updateSealUI(config) {
 }
 
 /**
+ * 启用「批量应用」按钮
+ * 编辑工具（奇数页 / 偶数页 / 所有页）与密封线分区（奇数页 / 偶数页 / 所有页）共用一套逻辑。
+ */
+function enableBatchButtons() {
+    const buttons = [
+        elements.applyToOddBtn,
+        elements.applyToEvenBtn,
+        elements.applyToAllBtn,
+        elements.sealApplyOddBtn,
+        elements.sealApplyEvenBtn,
+        elements.sealApplyAllBtn
+    ];
+    for (const btn of buttons) {
+        if (btn) btn.disabled = false;
+    }
+}
+
+/**
  * 渲染当前页的所有辅助线 (切割线 + 密封线)
  */
 export function renderSplitLines() {
@@ -147,8 +166,7 @@ export function renderSplitLines() {
 
     // 启用相关操作按钮
     elements.toggleSealLineBtn.disabled = false;
-    elements.applyToTypeBtn.disabled = false;
-    elements.applyToAllBtn.disabled = false;
+    enableBatchButtons();
 
     // 分栏预设按钮高亮：两栏(1条分割线) / 三栏(2条分割线)
     if (elements.splitHalfBtn) {
@@ -677,39 +695,113 @@ export function resetToDefaults() {
 }
 
 /**
- * 批量应用配置到同类页面 (奇数页或偶数页)
+ * 批量应用：把当前页的编辑配置复制到满足条件的页面
+ * @param {(page:number)=>boolean} match 页码筛选器
+ * @param {string} scopeName 目标范围名称（用于提示文案）
  */
-export function applySplitToType() {
+function applyConfigToPages(match, scopeName) {
     const currentConfig = getPageConfig(state.currentPage);
-    const isCurrentOdd = state.currentPage % 2 !== 0;
-    const typeName = isCurrentOdd ? '奇数页' : '偶数页';
 
-    if (confirm(`确定将当前配置应用到所有${typeName}吗？`)) {
-        for (let i = 1; i <= state.totalPages; i++) {
-            const isIterOdd = i % 2 !== 0;
-            if (isIterOdd === isCurrentOdd) {
-                // 深拷贝配置
-                state.pagesData[i] = JSON.parse(JSON.stringify(currentConfig));
-            }
+    if (!confirm(`确定将当前页的分割设置应用到${scopeName}吗？`)) return;
+
+    for (let i = 1; i <= state.totalPages; i++) {
+        if (match(i)) {
+            // 深拷贝配置，避免各页共享同一个对象
+            state.pagesData[i] = JSON.parse(JSON.stringify(currentConfig));
         }
-        alert('已应用完成');
-        requestRepaint();
     }
+
+    showToast(`已应用到${scopeName}`, 'success');
+    requestRepaint();
+}
+
+/** 批量应用分割设置到所有奇数页 */
+export function applySplitToOdd() {
+    applyConfigToPages(page => page % 2 !== 0, '所有奇数页');
+}
+
+/** 批量应用分割设置到所有偶数页 */
+export function applySplitToEven() {
+    applyConfigToPages(page => page % 2 === 0, '所有偶数页');
+}
+
+/** 批量应用分割设置到所有页面 */
+export function applySplitToAll() {
+    applyConfigToPages(() => true, `所有 ${state.totalPages} 页`);
 }
 
 /**
- * 批量应用配置到所有页面
+ * 批量应用密封线：把当前页的密封设置复制到指定页面
+ *
+ * 规则（与「奇数页在左、偶数页在右」的书页对称保持一致）：
+ *  - 目标页与当前页奇偶相同 → 保持同侧、同位置；
+ *  - 目标页与当前页奇偶不同 → 自动镜像到另一侧，密封宽度不变；
+ *  - 当前页未启用密封线 → 使用目标奇偶的默认位置（奇数页 0.15 左侧 / 偶数页 0.85 右侧）。
+ *
+ * 只改动密封线与分割线位置，不影响擦除标记、方向角度与裁剪比例。
+ * @param {(page:number)=>boolean} match 页码筛选器
+ * @param {string} scopeName 目标范围名称（用于提示文案）
  */
-export function applySplitToAll() {
+function applySealToPages(match, scopeName) {
     const currentConfig = getPageConfig(state.currentPage);
-    if (confirm(`确定将当前配置应用到所有 ${state.totalPages} 页吗？`)) {
-        for (let i = 1; i <= state.totalPages; i++) {
-            // 深拷贝配置
-            state.pagesData[i] = JSON.parse(JSON.stringify(currentConfig));
+    const currentSeal = currentConfig.sealLine ? { ...currentConfig.sealLine } : null;
+    const currentIsOdd = state.currentPage % 2 !== 0;
+
+    if (!confirm(`确定把密封线应用到${scopeName}吗？`)) return;
+
+    let affected = 0;
+
+    for (let i = 1; i <= state.totalPages; i++) {
+        if (!match(i)) continue;
+
+        const targetIsOdd = i % 2 !== 0;
+        let seal;
+
+        if (currentSeal) {
+            if (targetIsOdd === currentIsOdd) {
+                // 同奇偶：原样复制
+                seal = { ...currentSeal };
+            } else {
+                // 跨奇偶：镜像到另一侧，宽度不变
+                const width = currentSeal.type === 'left'
+                    ? currentSeal.x
+                    : 1 - currentSeal.x;
+                seal = currentSeal.type === 'left'
+                    ? { x: 1 - width, type: 'right' }
+                    : { x: width, type: 'left' };
+            }
+        } else {
+            // 当前页未启用密封线：按目标奇偶取默认位置
+            seal = targetIsOdd ? { x: 0.15, type: 'left' } : { x: 0.85, type: 'right' };
         }
-        alert('已应用到所有页面');
-        requestRepaint();
+
+        const config = getPageConfig(i);
+        config.sealLine = seal;
+
+        // 分割线钳制进新的保留区域，避免分割线落进会被裁掉的密封区
+        const [lo, hi] = seal.type === 'left' ? [seal.x, 1] : [0, seal.x];
+        config.splitLines = config.splitLines.map(x => Math.min(Math.max(x, lo), hi));
+
+        affected++;
     }
+
+    showToast(`密封线已应用到${scopeName}（${affected} 页）`, 'success');
+    requestRepaint();
+}
+
+/** 批量应用密封线到所有奇数页 */
+export function applySealToOdd() {
+    applySealToPages(page => page % 2 !== 0, '所有奇数页');
+}
+
+/** 批量应用密封线到所有偶数页 */
+export function applySealToEven() {
+    applySealToPages(page => page % 2 === 0, '所有偶数页');
+}
+
+/** 批量应用密封线到所有页面 */
+export function applySealToAll() {
+    applySealToPages(() => true, `所有 ${state.totalPages} 页`);
 }
 
 /** 请求重新绘制页面画布（配置批量应用后，可能包含已应用的擦除区域） */
