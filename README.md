@@ -1,5 +1,9 @@
+<a id="chinese"></a>
+
 <div align="center">
-  <img src="public/favicon.png" alt="PaperSplit" width="120" height="120">
+
+  <img src="public/favicon.png" alt="PaperSplit" width="104" height="104">
+
   <h1>PaperSplit</h1>
 
   <p>
@@ -11,32 +15,47 @@
     <img alt="纯前端 No Backend" src="https://img.shields.io/badge/%E7%BA%AF%E5%89%8D%E7%AB%AF%20%7C%20No%20Backend-0ea5e9?style=for-the-badge">
     <img alt="离线可用 Offline Ready" src="https://img.shields.io/badge/%E7%A6%BB%E7%BA%BF%E5%8F%AF%E7%94%A8%20%7C%20Offline-ready-8b5cf6?style=for-the-badge">
   </p>
-  <p><sub>🚀 在线体验，无需安装，打开即用 &nbsp;·&nbsp; <i>Live demo — no install, runs in your browser</i></sub></p>
-  <p><sub><i>A privacy-focused web tool to split A3 PDFs into A4 pages.</i></sub></p>
 
-  <p><b>简体中文</b> · <a href="#english">English</a></p>
+  <p><sub><i>A privacy-first A3 to A4 PDF splitter. 100% client-side processing.</i>（🚀 在线体验，无需安装，打开即用 &nbsp;·&nbsp; <i>Live demo — no install, runs in your browser</i>）</sub></p>
+
+  <p><a href="#chinese"><b>简体中文</b></a> · <a href="#english"><b>English</b></a></p>
+
 </div>
 
-> ### 🚀 先试为快：两种零门槛方式
->
-> | 方式 | 操作 | 适合谁 |
-> |---|---|---|
-> | **① 在线体验（最推荐）** | 点 **[https://yaoyuandejuli.github.io/PaperSplit/](https://yaoyuandejuli.github.io/PaperSplit/)** | 只想用的人，零安装、零配置 |
-> | **② 本地静态托管** | 下载 ZIP → 进入 **`dist/`** → 起一个静态服务器 | 内网 / 离线环境 |
->
-> ```bash
-> # 方式②：把 dist/ 交给任意静态服务器（推荐 npx serve）
-> npx serve dist
-> # 备选：python -m http.server -d dist
-> ```
->
-> > ⚠️ **请勿直接双击仓库根目录的 `index.html`**：那是**源码版**页面，`src/` 里使用的是裸模块标识符（`pdfjs-dist` / `jspdf` / `material-icons`），浏览器无法解析。
-> > 表现是**界面能显示、但所有按钮都没反应**（控制台报模块解析错误）——这不是版本问题，也不是项目坏了。
-> > 正确做法：用上面**方式①**在线体验，或把 **`dist/`** 交给静态服务器，或 `npm run dev` 跑源码版。详见下方 [常见问题](#-常见问题faq)。
+<p align="center">
+  <a href="#-先试为快两种零门槛方式">🚀 先试为快</a> ·
+  <a href="#-界面预览">🖼️ 界面预览</a> ·
+  <a href="#-核心功能">✨ 核心功能</a> ·
+  <a href="#-快速开始">🚀 快速开始</a> ·
+  <a href="#-部署">🚢 部署</a> ·
+  <a href="#faq">❓ 常见问题</a> ·
+  <a href="#english">📖 English</a>
+</p>
+
+## 🚀 先试为快：两种零门槛方式
+
+| 方式 | 操作 | 适合谁 |
+|---|---|---|
+| **① 在线体验（最推荐）** | 点 **[https://yaoyuandejuli.github.io/PaperSplit/](https://yaoyuandejuli.github.io/PaperSplit/)** | 只想用的人，零安装、零配置 |
+| **② 本地静态托管** | 下载 ZIP → 进入 **`dist/`** → 起一个静态服务器 | 内网 / 离线环境 |
+
+**方式② 的启动命令**
+
+```bash
+# 把 dist/ 交给任意静态服务器（推荐 npx serve）
+npx serve dist
+# 备选：python -m http.server -d dist
+```
+
+> ⚠️ **请勿直接双击仓库根目录的 `index.html`**：那是**源码版**页面，`src/` 里使用的是裸模块标识符（`pdfjs-dist` / `jspdf` / `material-icons`），浏览器无法解析。
+> 表现是**界面能显示、但所有按钮都没反应**（控制台报模块解析错误）——这不是版本问题，也不是项目坏了。
+> 正确做法：用上面**方式①**在线体验，或把 **`dist/`** 交给静态服务器，或 `npm run dev` 跑源码版。详见下方 [常见问题](#faq)。
 
 ## 📖 简介
 
-*A privacy-focused web tool to split A3 PDFs into A4 pages.*
+*A privacy-first A3 to A4 PDF splitter. 100% client-side processing.*
+
+> 正在找英文说明？跳转 **[📖 English](#english)**。
 
 **PaperSplit** 是一个纯浏览器端运行的轻量工具，专门把 **A3 试卷 / 文档拆分成 A4**，并顺手去掉装订密封线、擦掉多余标记。文件不上传、不依赖网络，所有处理都在本机完成。
 
@@ -130,6 +149,8 @@ npx serve dist          # 或 python -m http.server -d dist
 
 把 `deploy/pages-workflow.yml` 复制为 `.github/workflows/deploy.yml` 并推送，之后每次改动 `docs/` 都会自动发布。
 
+<a id="faq"></a>
+
 ## ❓ 常见问题（FAQ）
 
 **Q：双击仓库里的 `index.html`，界面能显示但按钮点了没反应？**
@@ -210,9 +231,13 @@ PDF、JPG、PNG。图片按单页处理。
 
 ---
 
+<a id="english"></a>
+
 ## 📖 English
 
-**PaperSplit** — *A privacy-focused web tool to split A3 PDFs into A4 pages.*
+> [⬆ 返回中文说明](#chinese) · Live demo: **https://yaoyuandejuli.github.io/PaperSplit/**
+
+**PaperSplit** — *A privacy-first A3 to A4 PDF splitter. 100% client-side processing.*
 
 Everything happens inside your browser: files are never uploaded, and the app keeps working offline. PaperSplit turns scanned exam papers or documents into standard A4 pages, removes the binding (seal) strip, erases stray marks, and exports a clean A4 PDF.
 
