@@ -12,6 +12,8 @@
  *  - 最多保留 MAX_RECORDS 个文件的记录，超出时淘汰最旧的
  */
 
+import { normalizeSeal } from './export-geometry.js';
+
 const STORAGE_PREFIX = 'papersplit:edit:';
 const SCHEMA_VERSION = 1;
 const MAX_RECORDS = 10;          // 最多保留 10 个文件的编辑配置
@@ -44,7 +46,7 @@ function storageKey(fingerprint) {
 function serializeConfig(cfg) {
     return {
         splitLines: cfg.splitLines,
-        sealLine: cfg.sealLine,
+        sealRange: cfg.sealRange,
         rotation: cfg.rotation,
         outputScale: cfg.outputScale,
         masks: cfg.masks,
@@ -66,10 +68,10 @@ function sanitizeConfig(raw) {
             .sort((a, b) => a - b)
         : [0.5];
 
-    const seal = raw.sealLine;
-    const sealLine = seal && typeof seal.x === 'number' && isFinite(seal.x)
-        ? { x: Math.min(Math.max(seal.x, 0), 1), type: seal.type === 'right' ? 'right' : 'left' }
-        : null;
+    // 密封区域：现行格式 { x0, x1 }；旧存档 { x, type } 由 normalizeSeal 转换
+    const sealRange = normalizeSeal(
+        raw.sealRange != null ? raw.sealRange : raw.sealLine
+    );
 
     const rotation = Number.isFinite(raw.rotation)
         ? ((raw.rotation % 360) + 360) % 360
@@ -93,7 +95,7 @@ function sanitizeConfig(raw) {
 
     const eraseOps = Array.isArray(raw.eraseOps) ? raw.eraseOps : [];
 
-    return { splitLines, sealLine, rotation, outputScale, masks, strokes, eraseOps };
+    return { splitLines, sealRange, rotation, outputScale, masks, strokes, eraseOps };
 }
 
 /* ------------------------------------------------------------------ */

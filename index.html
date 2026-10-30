@@ -143,7 +143,7 @@
                             <div class="step-num">5</div>
                             <div class="step-text">
                                 <strong>密封线调整（可选）</strong>
-                                <p>点「去除密封线」开启密封区域（奇数页在左、偶数页在右），斜纹阴影标出的部分导出时会被裁掉；可切换左右或拖动虚线调整，也能用「批量应用」统一设置奇数页、偶数页或所有页</p>
+                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；点「手动选区域」后在画布上横向拖动即可自定义范围（位置不限），也可用「靠左/靠右」快捷吸附、「批量应用」统一设置</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -297,8 +297,13 @@
                     <h3>🔒 密封线调整（可选）</h3>
                     <div class="tools-grid">
                         <button id="toggleSealLineBtn" class="btn secondary full-width" disabled
-                            title="开启/取消密封线（奇数页左侧、偶数页右侧）">
+                            title="开启/取消密封区域（默认奇数页靠左、偶数页靠右，各占 15%）">
                             <span class="material-icons">format_shapes</span> 去除密封线
+                        </button>
+
+                        <button id="sealSelectBtn" class="btn secondary full-width" disabled
+                            title="开启后在画布上横向拖动，手动框选要裁掉的密封区域（可落在页面任意位置）">
+                            <span class="material-icons">photo_size_select_large</span> 手动选区域
                         </button>
 
                         <div class="status-line">
@@ -306,11 +311,11 @@
                         </div>
 
                         <div class="btn-group seal-side-row">
-                            <button id="sealLeftBtn" class="btn secondary" disabled title="把密封区域放在左侧（导出时裁掉左边）">
-                                <span class="material-icons">align_horizontal_left</span> 左侧
+                            <button id="sealLeftBtn" class="btn secondary" disabled title="把密封区域贴到页面左边缘（保持当前宽度）">
+                                <span class="material-icons">align_horizontal_left</span> 靠左
                             </button>
-                            <button id="sealRightBtn" class="btn secondary" disabled title="把密封区域放在右侧（导出时裁掉右边）">
-                                <span class="material-icons">align_horizontal_right</span> 右侧
+                            <button id="sealRightBtn" class="btn secondary" disabled title="把密封区域贴到页面右边缘（保持当前宽度）">
+                                <span class="material-icons">align_horizontal_right</span> 靠右
                             </button>
                         </div>
 
@@ -318,21 +323,21 @@
                             <span class="sub-label">批量应用</span>
                             <div class="btn-group batch-apply-row">
                                 <button id="sealApplyOddBtn" class="btn secondary" disabled
-                                    title="把密封线应用到所有奇数页（1、3、5…）：与当前页奇偶相同时保持同侧，跨奇偶时自动镜像到另一侧">
+                                    title="把密封区域应用到所有奇数页（1、3、5…）：与当前页奇偶相同时原样复制，跨奇偶时自动镜像">
                                     奇数页
                                 </button>
                                 <button id="sealApplyEvenBtn" class="btn secondary" disabled
-                                    title="把密封线应用到所有偶数页（2、4、6…）：与当前页奇偶相同时保持同侧，跨奇偶时自动镜像到另一侧">
+                                    title="把密封区域应用到所有偶数页（2、4、6…）：与当前页奇偶相同时原样复制，跨奇偶时自动镜像">
                                     偶数页
                                 </button>
                             </div>
                             <button id="sealApplyAllBtn" class="btn secondary full-width batch-apply-all" disabled
-                                title="把密封线应用到所有页面（保持奇数页在左、偶数页在右的对称关系）">
+                                title="把密封区域应用到所有页面（保持奇数页靠左、偶数页靠右的对称关系）">
                                 所有页
                             </button>
                         </div>
 
-                        <p class="seal-hint">开启后，画布上带阴影的斜纹区域就是<b>导出时会被裁掉</b>的部分；拖动虚线可调整范围。奇数页默认在左侧，偶数页默认在右侧。「批量应用」按当前页的密封线宽度统一设置，跨奇偶时会自动镜像到另一侧。</p>
+                        <p class="seal-hint">开启后，画布上带斜纹阴影的区域就是<b>导出时会被裁掉</b>的部分：<b>手动选区域</b>可在任意位置横向拖出范围，拖动斜纹区可整体移动，拖两侧虚线可改宽窄；<b>靠左/靠右</b>是快捷吸附。区域与分割线彼此独立，可同时使用 —— 密封区被挖掉后，其余部分再按分割线分栏。</p>
                     </div>
                 </div>
 
@@ -366,7 +371,7 @@
                             <span class="material-icons">check_circle</span> 应用到当前页
                         </button>
                         <div class="crop-preview-box">
-                            <div class="crop-preview-title">裁剪结果预览</div>
+                            <div class="crop-preview-title">修改后文件预览</div>
                             <canvas id="cropPreview" class="crop-preview-canvas"></canvas>
                         </div>
                     </div>
@@ -380,6 +385,7 @@
 
                     <div class="export-options">
                         <label class="sub-label export-title" for="exportFitSelect">文件导出</label>
+                        <p class="export-size-note">成品页 210×297mm</p>
                         <select id="exportFitSelect" class="select-input">
                             <option value="a4-fit" selected>标准 A4 · 等比留白（不变形）</option>
                             <option value="a4-fill">标准 A4 · 拉伸填满</option>

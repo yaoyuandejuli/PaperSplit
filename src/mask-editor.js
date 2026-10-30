@@ -377,7 +377,7 @@ function updateMaskUI() {
     }
 }
 
-/** 通知外部：配置已变更，「裁剪结果预览」需重绘 */
+/** 通知外部：配置已变更，「修改后文件预览」需重绘 */
 function dispatchConfigChanged() {
     document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }

@@ -82,9 +82,10 @@ npx http-server dist -p 8080
 - **智能导入**：拖拽上传 PDF 或图片（JPG / PNG）。
 - **多栏分割**：一页可切成 **N 栏**；「两栏 / 三栏」一键预设，「增加分割线」继续细分，「去除分割线」点击即删。
 - **方向校正**：左转 / 右转 90° 摆正，再用 ±15° 滑块微调，角度实时显示，每页独立生效。
-- **密封线调整**（独立分区）：奇数页默认在左、偶数页默认在右，可随时左右切换；画布上用斜纹阴影标出**导出时会被裁掉**的区域。
+- **密封线调整**（独立分区）：密封区域**位置不限** —— 默认奇数页靠左、偶数页靠右（各占 15%），也可点「手动选区域」在画布上横向拖出任意范围；拖动斜纹区整体平移、拖两侧虚线改宽窄，「靠左 / 靠右」一键吸附。画布上用斜纹阴影标出**导出时会被裁掉**的区域。
+- **密封区与分割线互不限制**：密封区域挖掉后，其余部分再按分割线分栏，两者可同时使用。
 - **擦除内容**：框选矩形或涂抹笔刷擦除多余内容，点「应用」后画布直接显示擦除效果，导出 PDF 时真实擦除。
-- **裁剪后调整**：某栏太小看不清时，放大 / 缩小 / 重置，点「应用到当前页」后比例在导出时真实生效。
+- **裁剪后调整**：某栏太小看不清时，放大 / 缩小 / 重置，点「应用到当前页」后比例在导出时真实生效；旁边的「修改后文件预览」实时显示成品页效果，多页时自动换行排版，每页尽可能放大。
 - **多文件合并** — 一次选择多个 PDF 与图片，合并成一份连续文档；左面板可查看已导入的文件、移除单个文件、继续追加
 - **导出前排序** — 页面先后的唯一调整入口：导出前逐页拖动微调最终顺序，支持上下按钮与一键恢复默认，跨文件同样适用
 - **批量应用**：「奇数页 / 偶数页」并排一行、「所有页」独占一行，一键把当前页的设置复制到同类页面；密封线分区也有同样的一组按钮，跨奇偶应用时自动镜像到另一侧，保持书页左右对称。
@@ -282,6 +283,9 @@ PDF、JPG、PNG。图片按单页处理。
 
 ### 2026-10-30
 
+- **密封区域位置不再受限，可手动滑动选区**：密封线从「只能贴左 / 贴右」改为**任意位置的自由区域** —— 新增「手动选区域」按钮，在画布上横向拖动即可框出要裁掉的范围（位置不限，可落在页面中间）；拖动斜纹区可整体平移，拖两侧虚线可单独改宽窄，「靠左 / 靠右」保留为一键吸附快捷键。状态徽标实时显示当前范围（如「已启用 · 28%~48%」）。
+- **密封区域与分割线彻底解耦、可同时使用**：此前分割线会被强制钳制在密封区之外，且分栏只在「保留区域」内计算。现在**先挖掉密封区，再在剩下的每一块里按分割线分栏**，两者互不限制 —— 分割线可以落在任何位置，密封区在中间时页面自然分成左右两段分别分栏。批量应用跨奇偶时改为水平镜像（x0/x1 各自取 1-x），宽度不变。
+- **「裁剪结果预览」改为「修改后文件预览」，并放大预览图**：预览区标题改名，画面内不再绘制「第 N 栏」「成品页 …mm」等文字（成品尺寸已移到「文件导出」标题下方的「成品页 210×297mm」小字）。预览高度 206px → 300px，并改为**按每行页数自适应换行** —— 自动选择让每张成品页最大的列数，多页时分行排布，不再因横向排开而被压成极小的一排。
 - **手机端左面板横向重排 + 文件清单可折叠**：原先手机端左面板只有 120px 高，标题前的图标被挤成竖线「| |」、多份文件的卡片只显示一张、缩略图区几乎不可见。现改为横向两栏 —— **左侧放大展示页面缩略图（80px → 108px）**，**右侧是「已导入文件」竖条**（竖排标题，不占用横向空间），点击标题展开文件清单，收起时几乎不占地方；展开态以浮层覆盖，多份文件卡片一次看全。移除按钮从 18px 放大到 26px 并扩大可点区域，画布区高度从 50vh 提升到 58vh。
 - **手机版「文件导出」区紧凑化**：手机屏幕下该区域原本固定占用 285px（844px 高屏幕的 1/3），且底部常驻，导致画布几乎无法查看。现压缩至 171px（360px 窄屏 156px），减少约 40%：改用两列网格，「导出前排序」与「清除记录」并排一行，下拉框与各按钮字号、内边距统一收敛，图标缩小；「导出为 PDF (A4)」仍独占整行并保持主操作的视觉权重。桌面端布局完全不变。
 - **修复本地部署上传 PDF 报「无法加载 PDF 文件」（图片却正常）**：PDF 解析组件的源码已**直接写进主程序文件**，运行时从内存启用，不再向服务器单独请求它。因此只要页面能打开，PDF 就一定能用 —— 服务器并发不足、MIME 类型不对、路径被限制这三类问题都不再发生。同时新增服务器能力提醒横幅：检测到资源加载失败时，直接提示换用 `npm run serve`。
@@ -320,9 +324,10 @@ Everything happens inside your browser: files are never uploaded, and the app ke
 - **Import** — drag in a PDF or an image (JPG / PNG).
 - **Multi-column splitting** — cut one page into *N* columns: "Two Columns" / "Three Columns" presets, "Add Split Line" for even more, "Remove Split Line" by clicking a line (double-click removes it too).
 - **Orientation correction** — rotate 90° left / right, then fine-tune with a ±15° slider; the angle is shown live and every page is adjusted independently.
-- **Seal line panel** — odd pages default to the left, even pages to the right, and the seal can be flipped to either side at any time. The area that will be cropped is shaded on the canvas, and split lines are kept inside the surviving region.
+- **Seal region panel** — the seal strip can sit *anywhere* on the page: odd pages default to the left, even pages to the right, or pick a custom range by dragging horizontally on the canvas with "Select Area". Drag the shaded strip to move it, drag either dashed edge to resize, and snap it back with "Left" / "Right". The area that will be cropped is shaded on the canvas.
+- **Seal region and split lines work together** — the seal strip is removed first, then the remaining area is split into columns; neither one constrains the other.
 - **Erase content** — box-select a rectangle or paint with a brush; "Apply" bakes the erasure into the page and it is really removed from the exported PDF.
-- **Post-crop zoom** — enlarge, shrink or reset a column that came out too small; the ratio is applied on export.
+- **Post-crop zoom** — enlarge, shrink or reset a column that came out too small; the ratio is applied on export. The "Modified File Preview" next to it shows the resulting A4 pages live, wrapping into rows so every page stays as large as possible.
 - **Batch apply** — copy the current page's setup to all odd pages, all even pages, or every page. The seal-line panel has the same buttons, and applying across parities mirrors the seal to keep the odd-left / even-right symmetry.
 - **A4 export** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page.
 - **Auto-save** — split lines, seal line, orientation, zoom ratio and erase marks are stored in your browser's `localStorage` and restored automatically when you reopen the same file.

@@ -11,7 +11,7 @@ import { handleFileUpload, setImportMode } from './file-handler.js';
 import { toggleFileList } from './file-list.js';
 import { openSortPanel, closeSortPanel, applySort, resetSort } from './page-sort.js';
 import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation } from './viewer.js';
-import { toggleSealLine, setSealSide, applySplitToOdd, applySplitToEven, applySplitToAll, applySealToOdd, applySealToEven, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig } from './editor.js';
+import { toggleSealLine, setSealSide, applySplitToOdd, applySplitToEven, applySplitToAll, applySealToOdd, applySealToEven, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig, toggleSealSelectMode, initSealInteractions } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
 import {
@@ -173,6 +173,16 @@ function initEventListeners() {
     elements.sealRightBtn.addEventListener('click', () => setSealSide('right'));
     elements.addSplitBtn.addEventListener('click', addSplitLine);
 
+    // 「手动选区域」：进入框选模式 → 在画布上横向拖出要裁掉的密封区域
+    // 与「去除分割线」「擦除内容」模式互斥：开启前先退出它们
+    elements.sealSelectBtn.addEventListener('click', () => {
+        if (!state.sealSelectMode) {
+            exitMaskMode();
+            exitRemoveSplitMode();
+        }
+        toggleSealSelectMode();
+    });
+
     // 「去除分割线」：进入选择模式 → 点击分割线即直接删除
     // 与「擦除内容」的框选/涂抹模式互斥：开启前先退出擦除模式
     elements.removeSplitBtn.addEventListener('click', () => {
@@ -206,6 +216,7 @@ function initEventListeners() {
         document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
     });
     initMaskInteractions();
+    initSealInteractions();
     elements.rotateLeftBtn.addEventListener('click', () => rotatePage(-90));
     elements.rotateRightBtn.addEventListener('click', () => rotatePage(90));
     elements.resetRotationBtn.addEventListener('click', resetRotation);
@@ -219,7 +230,7 @@ function initEventListeners() {
     });
     elements.applyCropZoomBtn.addEventListener('click', applyCropZoom);
 
-    // 分割线 / 密封线 / 方向变化后刷新「裁剪结果预览」
+    // 分割线 / 密封线 / 方向变化后刷新「修改后文件预览」
     document.addEventListener('papersplit:config-changed', scheduleCropPreview);
     // 编辑配置变更后自动落盘（仅存本机 localStorage），刷新后可自动恢复
     document.addEventListener('papersplit:config-changed', persistEditConfig);

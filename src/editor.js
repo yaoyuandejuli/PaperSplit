@@ -1,19 +1,23 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { showToast } from './toast.js';
+import { normalizeSeal, SEAL_MIN_W, SEAL_MAX_W } from './export-geometry.js';
+
+/** 新建密封区域时的默认宽度（15%） */
+const SEAL_DEFAULT_W = 0.15;
 
 /**
  * 获取或初始化当前页面的配置
  * 结构: {
  *   splitLines: number[],                   // 分割线位置比例 (0-1)，多条 => 分栏
- *   sealLine: null | { x, type },           // 密封线（奇左偶右）
+ *   sealRange: null | { x0, x1 },           // 密封区域（自由范围，可落在页面任意位置）
  *   rotation: 0 | 90 | 180 | 270,           // 内容方向（每页独立）
  *   outputScale: 1,                        // 裁剪后调整比例（成品页上的大小，导出时生效）
  *   masks: Array<{id,x,y,w,h,applied}>     // 框选擦除区域（比例坐标，导出时覆盖为白色）
  *   strokes: Array<{id,points,width,applied}> // 涂抹擦除笔迹（比例坐标，导出时擦除）
  *   eraseOps: Array<{type,id|ids}>         // 擦除操作栈（支持撤销「标记」与「应用」两类操作）
  * }
- * 注：splitLines / sealLine / masks / strokes 均定义在「旋转后的显示坐标系」中。
+ * 注：splitLines / sealRange / masks / strokes 均定义在「旋转后的显示坐标系」中。
  * applied 表示该标记已被「应用」到画布（画布上直接显示擦除后的内容）。
  * @param {number} pageIndex 页面索引 (1-based)
  * @returns {Object} 页面配置对象
@@ -22,7 +26,7 @@ export function getPageConfig(pageIndex) {
     if (!state.pagesData[pageIndex]) {
         state.pagesData[pageIndex] = {
             splitLines: [0.5],
-            sealLine: null,
+            sealRange: null,
             rotation: 0,
             outputScale: 1,
             masks: [],
@@ -31,6 +35,12 @@ export function getPageConfig(pageIndex) {
         };
     }
     const cfg = state.pagesData[pageIndex];
+
+    // 兼容旧存档：{ x, type } 形态的密封线转换为自由区域 { x0, x1 }
+    if (cfg.sealLine !== undefined) {
+        cfg.sealRange = normalizeSeal(cfg.sealLine);
+        delete cfg.sealLine;
+    }
     // 兼容旧数据（无 masks / strokes / eraseOps 字段）
     if (!Array.isArray(cfg.masks)) cfg.masks = [];
     if (!Array.isArray(cfg.strokes)) cfg.strokes = [];
@@ -55,7 +65,7 @@ function focusAfterSplitGone() {
 /**
  * 渲染「密封区域」遮罩
  * 把导出时会被裁掉的那一块用斜纹阴影标出来，让用户直观看到密封线的影响范围。
- * 密封线在左 → 遮罩覆盖左侧；密封线在右 → 覆盖右侧。
+ * 区域可落在页面任意位置（左 / 中 / 右），拖动遮罩本体可整体移动。
  * @param {Object} config 当前页配置
  */
 function renderSealZone(config) {
@@ -63,8 +73,9 @@ function renderSealZone(config) {
     if (!wrapper) return;
 
     let zone = wrapper.querySelector('.seal-zone');
+    const seal = normalizeSeal(config.sealRange);
 
-    if (!config.sealLine) {
+    if (!seal) {
         if (zone) zone.remove();
         return;
     }
@@ -72,24 +83,114 @@ function renderSealZone(config) {
     if (!zone) {
         zone = document.createElement('div');
         zone.className = 'seal-zone';
+        zone.appendChild(Object.assign(document.createElement('span'), {
+            className: 'seal-zone-tag',
+            textContent: '密封区'
+        }));
         wrapper.appendChild(zone);
+        bindSealZoneDrag(zone);
     }
 
-    const isLeft = config.sealLine.type === 'left';
-    zone.classList.toggle('seal-right', !isLeft);
-    zone.style.left = isLeft ? '0' : `${config.sealLine.x * 100}%`;
-    zone.style.width = `${(isLeft ? config.sealLine.x : 1 - config.sealLine.x) * 100}%`;
+    zone.style.left = `${seal.x0 * 100}%`;
+    zone.style.width = `${(seal.x1 - seal.x0) * 100}%`;
+    zone.title = `密封区域 ${(seal.x0 * 100).toFixed(0)}% ~ ${(seal.x1 * 100).toFixed(0)}%：拖动可整体移动，拖两侧虚线可调整范围`;
 }
 
 /**
- * 更新密封线状态徽标（未启用 / 已启用·左 / 已启用·右）
+ * 拖动遮罩本体 = 整体平移密封区域（宽度保持不变）
+ * @param {HTMLElement} zone 遮罩元素
+ */
+function bindSealZoneDrag(zone) {
+    let dragging = false;
+    let startX = 0;
+    let startLeft = 0;
+
+    const onDown = (clientX) => {
+        dragging = true;
+        startX = clientX;
+        startLeft = parseFloat(zone.style.left) || 0;
+        zone.classList.add('dragging-zone');
+    };
+
+    const onMove = (clientX) => {
+        if (!dragging) return;
+        const cfg = getPageConfig(state.currentPage);
+        const seal = normalizeSeal(cfg.sealRange);
+        if (!seal) return;
+
+        const rect = elements.canvasWrapper.getBoundingClientRect();
+        if (!rect.width) return;
+
+        const w = (seal.x1 - seal.x0) * 100;
+        const left = Math.min(Math.max(startLeft + ((clientX - startX) / rect.width) * 100, 0), 100 - w);
+        cfg.sealRange = { x0: left / 100, x1: left / 100 + w / 100 };
+        syncSealVisuals(cfg);
+    };
+
+    const onUp = () => {
+        if (!dragging) return;
+        dragging = false;
+        zone.classList.remove('dragging-zone');
+        document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
+    };
+
+    const mouseMove = (e) => { if (dragging) { e.preventDefault(); onMove(e.clientX); } };
+    const touchMove = (e) => {
+        if (!dragging || e.touches.length !== 1) return;
+        e.preventDefault();
+        onMove(e.touches[0].clientX);
+    };
+
+    zone.addEventListener('mousedown', (e) => {
+        if (e.button !== 0 || state.removeSplitMode || state.sealSelectMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onDown(e.clientX);
+        document.addEventListener('mousemove', mouseMove);
+        document.addEventListener('mouseup', onUp, { once: true });
+    });
+
+    zone.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1 || state.removeSplitMode || state.sealSelectMode) return;
+        e.stopPropagation();
+        onDown(e.touches[0].clientX);
+        document.addEventListener('touchmove', touchMove, { passive: false });
+        document.addEventListener('touchend', onUp, { once: true });
+    }, { passive: false });
+}
+
+/**
+ * 不重建 DOM，只同步密封相关的视觉（遮罩 + 两条边界虚线 + 状态徽标）
+ * 拖动过程中高频调用，避免整页重绘导致的闪烁与焦点丢失。
+ * @param {Object} config 当前页配置
+ */
+function syncSealVisuals(config) {
+    renderSealZone(config);
+
+    const seal = normalizeSeal(config.sealRange);
+    const edges = elements.canvasWrapper
+        ? elements.canvasWrapper.querySelectorAll('.split-line.seal')
+        : [];
+    if (seal && edges.length >= 2) {
+        edges[0].style.left = `${seal.x0 * 100}%`;
+        edges[1].style.left = `${seal.x1 * 100}%`;
+        edges[0].setAttribute('aria-valuenow', String(Math.round(seal.x0 * 100)));
+        edges[1].setAttribute('aria-valuenow', String(Math.round(seal.x1 * 100)));
+    }
+    updateSealUI(config);
+}
+
+/**
+ * 更新密封线状态徽标与贴边按钮
  * @param {Object} config 当前页配置
  */
 function updateSealUI(config) {
+    const seal = normalizeSeal(config.sealRange);
     const chip = elements.sealStatus;
     if (chip) {
-        if (config.sealLine) {
-            chip.textContent = `已启用 · ${config.sealLine.type === 'left' ? '左侧' : '右侧'}`;
+        if (seal) {
+            const pct = (v) => `${Math.round(v * 100)}%`;
+            chip.textContent = `已启用 · ${pct(seal.x0)}~${pct(seal.x1)}`;
             chip.classList.add('seal-on');
         } else {
             chip.textContent = '未启用';
@@ -97,15 +198,21 @@ function updateSealUI(config) {
         }
     }
 
-    // 左右切换按钮：仅在启用后可点，并高亮当前所在一侧
-    const enabled = !!config.sealLine;
+    // 贴左 / 贴右按钮：仅在启用后可点，并高亮当前所贴的一侧
+    const enabled = !!seal;
+    const atLeft = enabled && seal.x0 <= 0.001;
+    const atRight = enabled && seal.x1 >= 0.999;
+
     if (elements.sealLeftBtn) {
         elements.sealLeftBtn.disabled = !enabled;
-        elements.sealLeftBtn.classList.toggle('active-state', enabled && config.sealLine.type === 'left');
+        elements.sealLeftBtn.classList.toggle('active-state', atLeft);
     }
     if (elements.sealRightBtn) {
         elements.sealRightBtn.disabled = !enabled;
-        elements.sealRightBtn.classList.toggle('active-state', enabled && config.sealLine.type === 'right');
+        elements.sealRightBtn.classList.toggle('active-state', atRight);
+    }
+    if (elements.sealSelectBtn) {
+        elements.sealSelectBtn.classList.toggle('active-state', state.sealSelectMode);
     }
 }
 
@@ -143,12 +250,30 @@ export function renderSplitLines() {
         });
     });
 
-    // 2. 渲染密封线 (如果存在)
-    if (config.sealLine) {
-        createLineElement(config.sealLine.x, 'seal', (newIter) => {
-            config.sealLine.x = newIter;
-            // 位置变化 → 同步遮罩范围
-            renderSealZone(config);
+    // 2. 渲染密封区域的两条边界（左边界 / 右边界），各自可拖动调整
+    const seal = normalizeSeal(config.sealRange);
+    if (seal) {
+        // 边界拖动时互相约束：左边界不能越过右边界，反之亦然（至少保留最小宽度）
+        createLineElement(seal.x0, 'seal', 0, (v) => {
+            const cur = normalizeSeal(config.sealRange);
+            if (!cur) return;
+            const x0 = Math.min(Math.max(v, 0), cur.x1 - SEAL_MIN_W);
+            config.sealRange = { x0, x1: cur.x1 };
+            syncSealVisuals(config);
+        }, (pct) => {
+            const cur = normalizeSeal(config.sealRange);
+            return cur ? Math.min(Math.max(pct, 0), (cur.x1 - SEAL_MIN_W) * 100) : pct;
+        });
+
+        createLineElement(seal.x1, 'seal', 1, (v) => {
+            const cur = normalizeSeal(config.sealRange);
+            if (!cur) return;
+            const x1 = Math.min(Math.max(v, cur.x0 + SEAL_MIN_W), 1);
+            config.sealRange = { x0: cur.x0, x1 };
+            syncSealVisuals(config);
+        }, (pct) => {
+            const cur = normalizeSeal(config.sealRange);
+            return cur ? Math.min(Math.max(pct, (cur.x0 + SEAL_MIN_W) * 100), 100) : pct;
         });
 
         // 更新按钮状态：显示取消
@@ -163,9 +288,12 @@ export function renderSplitLines() {
     // 遮罩与状态显示
     renderSealZone(config);
     updateSealUI(config);
+    // 框选模式状态随页面渲染同步（换文件时 state 被重置，这里一并清掉残留样式）
+    updateSealSelectUI();
 
     // 启用相关操作按钮
     elements.toggleSealLineBtn.disabled = false;
+    if (elements.sealSelectBtn) elements.sealSelectBtn.disabled = false;
     enableBatchButtons();
 
     // 分栏预设按钮高亮：两栏(1条分割线) / 三栏(2条分割线)
@@ -179,7 +307,7 @@ export function renderSplitLines() {
     // 同步「去除分割线」相关按钮与提示
     updateSplitRemoveUI();
 
-    // 通知外部：分割/密封/方向已变更，「裁剪结果预览」需要重绘
+    // 通知外部：分割/密封/方向已变更，「修改后文件预览」需要重绘
     document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
@@ -215,8 +343,9 @@ export function syncRotationUI() {
  * @param {string} type 线条类型 ('split' | 'seal')
  * @param {number} index 分割线索引（仅 split 使用，用于双击删除 / 点击删除）
  * @param {Function} onUpdate 更新位置回调
+ * @param {Function} [clampFn] 自定义范围钳制（输入/输出均为百分比）；不传则仅限制在 0-100%
  */
-function createLineElement(initialX, type, index, onUpdate) {
+function createLineElement(initialX, type, index, onUpdate, clampFn) {
     const lineEl = document.createElement('div');
     lineEl.className = `split-line ${type}`;
     lineEl.style.left = `${initialX * 100}%`;
@@ -231,12 +360,16 @@ function createLineElement(initialX, type, index, onUpdate) {
     lineEl.setAttribute('aria-valuetext', `位置 ${Math.round(initialX * 100)}%`);
     lineEl.setAttribute('aria-label', type === 'split'
         ? `分割线 ${index + 1}：左右方向键微调位置，Delete 键删除`
-        : '密封线：左右方向键微调位置');
+        : `密封区域${index === 0 ? '左' : '右'}边界：左右方向键微调位置`);
+    lineEl.setAttribute('aria-valuetext',
+        `位置 ${Math.round(initialX * 100)}%${type === 'seal' ? (index === 0 ? '（左边界）' : '（右边界）') : ''}`);
 
     if (type === 'split') {
         lineEl.title = state.removeSplitMode
             ? '点击直接删除该分割线（键盘：Enter 或 Delete 删除，方向键移动）'
             : '拖动调整位置，双击删除（键盘：Delete 删除，方向键移动）';
+    } else {
+        lineEl.title = `拖动调整密封区域的${index === 0 ? '左' : '右'}边界（也可直接拖动斜纹区域整体移动）`;
     }
 
     // 拖拽状态
@@ -250,19 +383,10 @@ function createLineElement(initialX, type, index, onUpdate) {
     let pressClientY = 0;
     let pressMoved = false;
 
-    /** 把位置钳制进合法范围：0-100%，且分割线还要落在密封线的保留区域内 */
+    /** 把位置钳制进合法范围：默认 0-100%，密封区域边界由 clampFn 进一步约束 */
     const clampPercent = (pct) => {
-        let v = Math.max(0, Math.min(100, pct));
-        if (type === 'split') {
-            const cfg = getPageConfig(state.currentPage);
-            if (cfg.sealLine) {
-                const [lo, hi] = cfg.sealLine.type === 'left'
-                    ? [cfg.sealLine.x * 100, 100]
-                    : [0, cfg.sealLine.x * 100];
-                v = Math.max(lo, Math.min(hi, v));
-            }
-        }
-        return v;
+        const v = Math.max(0, Math.min(100, pct));
+        return clampFn ? clampFn(v) : v;
     };
 
     /** 同步无障碍属性（读屏可播报当前位置） */
@@ -280,7 +404,7 @@ function createLineElement(initialX, type, index, onUpdate) {
         lineEl.style.left = `${v}%`;
         syncAria(v);
         onUpdate(v / 100);
-        // 位置变化后刷新「裁剪结果预览」
+        // 位置变化后刷新「修改后文件预览」
         document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
     };
 
@@ -299,19 +423,7 @@ function createLineElement(initialX, type, index, onUpdate) {
         const deltaX = clientX - startX;
         const deltaPercent = (deltaX / rect.width) * 100;
 
-        let newPercent = startLeft + deltaPercent;
-
-        // 边界限制 (0% - 100%)
-        newPercent = Math.max(0, Math.min(newPercent, 100));
-
-        // 启用密封线时，将分割线钳制在保留区域内，避免落入被裁掉的密封区
-        const cfg = getPageConfig(state.currentPage);
-        if (cfg.sealLine) {
-            const [lo, hi] = cfg.sealLine.type === 'left'
-                ? [cfg.sealLine.x * 100, 100]
-                : [0, cfg.sealLine.x * 100];
-            newPercent = Math.max(lo, Math.min(newPercent, hi));
-        }
+        let newPercent = clampPercent(startLeft + deltaPercent);
 
         lineEl.style.left = `${newPercent}%`;
         syncAria(newPercent);
@@ -486,17 +598,13 @@ function createLineElement(initialX, type, index, onUpdate) {
 }
 
 /**
- * 新增一条分割线：插在当前最大间隙的中点（受密封线保留区域约束）
+ * 新增一条分割线：插在当前最大间隙的中点
+ * 分割线与密封区域彼此独立，位置不受密封区域限制
  */
 export function addSplitLine() {
     const config = getPageConfig(state.currentPage);
 
-    // 密封线存在时，仅能在保留区域内插入
-    let lo = 0, hi = 1;
-    if (config.sealLine) {
-        if (config.sealLine.type === 'left') lo = config.sealLine.x;
-        else hi = config.sealLine.x;
-    }
+    const lo = 0, hi = 1;
 
     // 在 [lo, hi] 内所有相邻点之间找最大间隙，取其中点
     const pts = [lo, ...config.splitLines.filter(x => x > lo && x < hi), hi].sort((a, b) => a - b);
@@ -594,7 +702,7 @@ function flashSplitRemoved() {
  * 分栏预设：把当前页均分为 N 栏
  *  - n = 2 => 「两栏」，文档一分为二
  *  - n = 3 => 「三栏」，文档一分为三
- * 若已启用密封线，则在「保留区域」内均分（密封区域本来就要裁掉，不参与分栏）。
+ * 分栏按整页均分：密封区域是独立挖掉的一块，不参与分栏计算（导出时才剔除）。
  *
  * @param {number} n 栏数（2 或 3）
  */
@@ -602,12 +710,8 @@ export function setSplitColumns(n) {
     const count = Math.max(1, Math.round(Number(n) || 2));
     const config = getPageConfig(state.currentPage);
 
-    // 计算保留区域 [lo, hi]
-    let lo = 0, hi = 1;
-    if (config.sealLine) {
-        if (config.sealLine.type === 'left') lo = config.sealLine.x;
-        else hi = config.sealLine.x;
-    }
+    // 整页均分 [0, 1]
+    const lo = 0, hi = 1;
 
     // 在保留区域内均分，切割线落在各分界处
     const step = (hi - lo) / count;
@@ -621,58 +725,225 @@ export function setSplitColumns(n) {
 }
 
 /**
- * 设置密封区域所在的一侧（left / right）
- * 切换后同步调整密封线位置，并把分割线钳制回保留区域内
+ * 把密封区域贴到某一侧（保持当前宽度，只挪位置）
+ * 这只是「快捷吸附」，区域本身不受边缘限制，仍可再拖到页面中间。
  * @param {'left'|'right'} side 目标一侧
  */
 export function setSealSide(side) {
     const config = getPageConfig(state.currentPage);
-    if (!config.sealLine) return;
+    const cur = normalizeSeal(config.sealRange);
+    const w = cur ? (cur.x1 - cur.x0) : SEAL_DEFAULT_W;
 
-    // 保持当前宽度，只换到另一侧：左侧时 x = 宽度，右侧时 x = 1 - 宽度
-    const width = config.sealLine.type === 'left'
-        ? config.sealLine.x
-        : 1 - config.sealLine.x;
-
-    config.sealLine.type = side;
-    config.sealLine.x = side === 'left'
-        ? Math.min(Math.max(width, 0.05), 0.95)
-        : Math.min(Math.max(1 - width, 0.05), 0.95);
-
-    // 分割线钳制进新的保留区域
-    const [lo, hi] = side === 'left'
-        ? [config.sealLine.x, 1]
-        : [0, config.sealLine.x];
-    config.splitLines = config.splitLines.map(x => Math.min(Math.max(x, lo), hi));
+    config.sealRange = side === 'left'
+        ? { x0: 0, x1: Math.min(w, SEAL_MAX_W) }
+        : { x0: Math.max(1 - Math.min(w, SEAL_MAX_W), 0), x1: 1 };
 
     renderSplitLines();
 }
 
 /**
- * 切换密封线状态 (添加/移除)
- * 智能判断：奇数页默认左侧，偶数页默认右侧
+ * 切换密封线状态（启用 / 取消）
+ * 首次启用时给出贴合书页习惯的默认区域：奇数页靠左、偶数页靠右，各占 15%
  */
 export function toggleSealLine() {
     const config = getPageConfig(state.currentPage);
 
-    if (config.sealLine) {
-        config.sealLine = null;
+    if (normalizeSeal(config.sealRange)) {
+        config.sealRange = null;
+        // 区域已取消，同时退出框选模式
+        exitSealSelectMode();
     } else {
-        // 奇数页 (1, 3, 5): 左侧 (0.15)
-        // 偶数页 (2, 4, 6): 右侧 (0.85)，与左侧对称，各留 15% 边距
         const isOdd = state.currentPage % 2 !== 0;
-        config.sealLine = isOdd ? { x: 0.15, type: 'left' } : { x: 0.85, type: 'right' };
-    }
-
-    // 密封线开启后，把已有分割线钳制进保留区域
-    if (config.sealLine) {
-        const [lo, hi] = config.sealLine.type === 'left'
-            ? [config.sealLine.x, 1]
-            : [0, config.sealLine.x];
-        config.splitLines = config.splitLines.map(x => Math.min(Math.max(x, lo), hi));
+        config.sealRange = isOdd
+            ? { x0: 0, x1: SEAL_DEFAULT_W }
+            : { x0: 1 - SEAL_DEFAULT_W, x1: 1 };
     }
 
     renderSplitLines();
+}
+
+/* ------------------------------------------------------------------ */
+/* 密封区域 · 手动框选（在画布上横向拖出范围）                          */
+/* ------------------------------------------------------------------ */
+
+/** 框选进行中的临时高亮框 */
+let marqueeEl = null;
+
+/** 「已设置」反馈的定时器（非空表示正在闪烁，此时不覆盖按钮文案） */
+let sealFlashTimer = null;
+
+/** 切换「手动框选密封区域」模式 */
+export function toggleSealSelectMode() {
+    state.sealSelectMode = !state.sealSelectMode;
+    updateSealSelectUI();
+}
+
+/** 退出「手动框选密封区域」模式 */
+export function exitSealSelectMode() {
+    if (!state.sealSelectMode) return;
+    state.sealSelectMode = false;
+    updateSealSelectUI();
+}
+
+/**
+ * 同步框选模式的按钮与画布状态
+ */
+function updateSealSelectUI() {
+    const wrapper = elements.canvasWrapper;
+    if (wrapper) {
+        wrapper.classList.toggle('seal-select-mode', state.sealSelectMode);
+    }
+    // 退出模式时清掉可能残留的选框
+    if (!state.sealSelectMode && marqueeEl) {
+        marqueeEl.remove();
+        marqueeEl = null;
+    }
+    const btn = elements.sealSelectBtn;
+    if (btn) {
+        btn.classList.toggle('active-state', state.sealSelectMode);
+        // 「已设置」反馈闪烁期间不改文案，避免被中途覆盖
+        if (!sealFlashTimer) {
+            btn.innerHTML = state.sealSelectMode
+                ? '<span class="material-icons">check_circle</span> 拖动中…'
+                : '<span class="material-icons">photo_size_select_large</span> 手动选区域';
+        }
+    }
+}
+
+/** 把一次框选结果写入配置 */
+function commitSealRange(a, b) {
+    const config = getPageConfig(state.currentPage);
+    const x0 = Math.min(a, b);
+    const x1 = Math.max(a, b);
+    const w = Math.min(x1 - x0, SEAL_MAX_W);
+    if (w < SEAL_MIN_W) {
+        showToast('区域太窄，请再拖宽一些', 'warn');
+        return false;
+    }
+    const start = Math.min(Math.max(x0, 0), 1 - w);
+    config.sealRange = { x0: start, x1: start + w };
+    return true;
+}
+
+/** 框选完成后的短暂反馈 */
+function flashSealSet() {
+    const btn = elements.sealSelectBtn;
+    if (!btn) return;
+    clearTimeout(sealFlashTimer);
+    btn.innerHTML = '<span class="material-icons">check_circle</span> 已设置';
+    btn.classList.add('applied-state');
+    sealFlashTimer = setTimeout(() => {
+        sealFlashTimer = null;   // 先置空：之后 updateSealSelectUI 才能恢复按钮文案
+        btn.classList.remove('applied-state');
+        updateSealSelectUI();
+    }, 1200);
+}
+
+/**
+ * 绑定画布框选交互（只绑定一次）
+ * 与「去除分割线」「擦除内容」一样是模式化操作：仅在本模式开启时响应。
+ */
+export function initSealInteractions() {
+    const wrapper = elements.canvasWrapper;
+    if (!wrapper || initSealInteractions.bound) return;
+    initSealInteractions.bound = true;
+
+    let dragging = false;
+    let anchorRatio = 0;
+
+    /** 画布横坐标 -> 页面比例（0-1） */
+    const ratioOf = (clientX) => {
+        const rect = wrapper.getBoundingClientRect();
+        if (!rect.width) return 0;
+        return Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    };
+
+    const ensureMarquee = () => {
+        if (marqueeEl && marqueeEl.isConnected) return marqueeEl;
+        marqueeEl = document.createElement('div');
+        marqueeEl.className = 'seal-marquee';
+        wrapper.appendChild(marqueeEl);
+        return marqueeEl;
+    };
+
+    const paintMarquee = (a, b) => {
+        const el = ensureMarquee();
+        const lo = Math.min(a, b), hi = Math.max(a, b);
+        el.style.left = `${lo * 100}%`;
+        el.style.width = `${(hi - lo) * 100}%`;
+    };
+
+    const clearMarquee = () => {
+        if (marqueeEl) marqueeEl.remove();
+        marqueeEl = null;
+    };
+
+    /** 是否可以在画布上开始框选 */
+    const canStart = (target) => !(
+        state.removeSplitMode ||
+        (target && target.closest && target.closest('.split-line'))
+    );
+
+    const onDown = (clientX, target) => {
+        if (!state.sealSelectMode || !canStart(target)) return;
+        dragging = true;
+        anchorRatio = ratioOf(clientX);
+        paintMarquee(anchorRatio, anchorRatio);
+    };
+
+    const onMove = (clientX) => {
+        if (!dragging) return;
+        paintMarquee(anchorRatio, ratioOf(clientX));
+    };
+
+    // 记录最后一次移动的位置，用于抬起时确定终点
+    let lastRatio = 0;
+
+    wrapper.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        if (!state.sealSelectMode) return;
+        e.preventDefault();
+        lastRatio = ratioOf(e.clientX);
+        onDown(e.clientX, e.target);
+        const move = (ev) => { if (dragging) { lastRatio = ratioOf(ev.clientX); onMove(ev.clientX); } };
+        const up = () => {
+            document.removeEventListener('mousemove', move);
+            document.removeEventListener('mouseup', up);
+            finish(lastRatio);
+        };
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', up);
+    });
+
+    wrapper.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1 || !state.sealSelectMode) return;
+        lastRatio = ratioOf(e.touches[0].clientX);
+        onDown(e.touches[0].clientX, e.target);
+        const move = (ev) => {
+            if (!dragging || ev.touches.length !== 1) return;
+            ev.preventDefault();
+            lastRatio = ratioOf(ev.touches[0].clientX);
+            onMove(ev.touches[0].clientX);
+        };
+        const up = () => {
+            document.removeEventListener('touchmove', move);
+            document.removeEventListener('touchend', up);
+            finish(lastRatio);
+        };
+        document.addEventListener('touchmove', move, { passive: false });
+        document.addEventListener('touchend', up);
+    }, { passive: false });
+
+    function finish(endRatio) {
+        if (!dragging) { clearMarquee(); return; }
+        dragging = false;
+        clearMarquee();
+        if (commitSealRange(anchorRatio, endRatio)) {
+            exitSealSelectMode();
+            renderSplitLines();
+            flashSealSet();
+        }
+    }
 }
 
 /**
@@ -685,13 +956,15 @@ export function resetToDefaults() {
     const config = getPageConfig(state.currentPage);
 
     config.splitLines = [0.5];
-    config.sealLine = null;
+    config.sealRange = null;
 
-    // 退出「去除分割线」选择模式，避免残留选中态
+    // 退出「去除分割线」与「密封区域框选」模式，避免残留选中态
     state.removeSplitMode = false;
+    state.sealSelectMode = false;
 
     renderSplitLines();
     updateSplitRemoveUI();
+    updateSealSelectUI();
 }
 
 /**
@@ -734,20 +1007,21 @@ export function applySplitToAll() {
  * 批量应用密封线：把当前页的密封设置复制到指定页面
  *
  * 规则（与「奇数页在左、偶数页在右」的书页对称保持一致）：
- *  - 目标页与当前页奇偶相同 → 保持同侧、同位置；
- *  - 目标页与当前页奇偶不同 → 自动镜像到另一侧，密封宽度不变；
- *  - 当前页未启用密封线 → 使用目标奇偶的默认位置（奇数页 0.15 左侧 / 偶数页 0.85 右侧）。
+ *  - 目标页与当前页奇偶相同 → 原样复制区域；
+ *  - 目标页与当前页奇偶不同 → 水平镜像（x0/x1 各自取 1-x），宽度不变；
+ *  - 当前页未启用密封区域 → 使用目标奇偶的默认位置（奇数页靠左 / 偶数页靠右，各 15%）。
  *
- * 只改动密封线与分割线位置，不影响擦除标记、方向角度与裁剪比例。
+ * 只改动密封区域，不动分割线（两者彼此独立，可同时使用）；
+ * 也不影响擦除标记、方向角度与裁剪比例。
  * @param {(page:number)=>boolean} match 页码筛选器
  * @param {string} scopeName 目标范围名称（用于提示文案）
  */
 function applySealToPages(match, scopeName) {
     const currentConfig = getPageConfig(state.currentPage);
-    const currentSeal = currentConfig.sealLine ? { ...currentConfig.sealLine } : null;
+    const currentSeal = normalizeSeal(currentConfig.sealRange);
     const currentIsOdd = state.currentPage % 2 !== 0;
 
-    if (!confirm(`确定把密封线应用到${scopeName}吗？`)) return;
+    if (!confirm(`确定把密封区域应用到${scopeName}吗？`)) return;
 
     let affected = 0;
 
@@ -760,27 +1034,20 @@ function applySealToPages(match, scopeName) {
         if (currentSeal) {
             if (targetIsOdd === currentIsOdd) {
                 // 同奇偶：原样复制
-                seal = { ...currentSeal };
+                seal = { x0: currentSeal.x0, x1: currentSeal.x1 };
             } else {
-                // 跨奇偶：镜像到另一侧，宽度不变
-                const width = currentSeal.type === 'left'
-                    ? currentSeal.x
-                    : 1 - currentSeal.x;
-                seal = currentSeal.type === 'left'
-                    ? { x: 1 - width, type: 'right' }
-                    : { x: width, type: 'left' };
+                // 跨奇偶：水平镜像，宽度不变
+                seal = { x0: 1 - currentSeal.x1, x1: 1 - currentSeal.x0 };
             }
         } else {
-            // 当前页未启用密封线：按目标奇偶取默认位置
-            seal = targetIsOdd ? { x: 0.15, type: 'left' } : { x: 0.85, type: 'right' };
+            // 当前页未启用密封区域：按目标奇偶取默认位置
+            seal = targetIsOdd
+                ? { x0: 0, x1: SEAL_DEFAULT_W }
+                : { x0: 1 - SEAL_DEFAULT_W, x1: 1 };
         }
 
         const config = getPageConfig(i);
-        config.sealLine = seal;
-
-        // 分割线钳制进新的保留区域，避免分割线落进会被裁掉的密封区
-        const [lo, hi] = seal.type === 'left' ? [seal.x, 1] : [0, seal.x];
-        config.splitLines = config.splitLines.map(x => Math.min(Math.max(x, lo), hi));
+        config.sealRange = normalizeSeal(seal);
 
         affected++;
     }

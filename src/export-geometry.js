@@ -1,5 +1,5 @@
 /**
- * 导出几何计算（由 exporter.js 与「裁剪结果预览」共用）
+ * 导出几何计算（由 exporter.js 与「修改后文件预览」共用）
  *
  * 坐标约定：
  *  - 切片比例 (ratio) 定义在「旋转后的显示坐标系」中，0 = 左边缘，1 = 右边缘
@@ -18,36 +18,81 @@ function splitRegion(start, end, lines) {
     return out;
 }
 
+/** 密封区域最小宽度（低于此值视为未启用） */
+export const SEAL_MIN_W = 0.02;
+/** 密封区域最大宽度（避免整页都被裁掉） */
+export const SEAL_MAX_W = 0.9;
+
 /**
- * 根据页面配置计算切割区间（多条分割线 => 分栏，叠加密封线）
- * @param {Object} config 页面配置 { splitLines, sealLine }
+ * 把任意形态的密封数据规整为 { x0, x1 }，非法数据返回 null
+ *
+ * 支持两种形态：
+ *  - 现行：{ x0, x1 } —— 自由区域，可落在页面任意位置（不一定贴边）
+ *  - 旧存档：{ x, type } —— 贴左/贴右，转换为等价的贴边区域
+ *
+ * @param {*} seal 密封数据
+ * @returns {{x0:number, x1:number}|null}
+ */
+export function normalizeSeal(seal) {
+    if (!seal || typeof seal !== 'object') return null;
+
+    let a, b;
+    if (Number.isFinite(seal.x0) && Number.isFinite(seal.x1)) {
+        a = seal.x0; b = seal.x1;
+    } else if (Number.isFinite(seal.x)) {
+        // 旧形态：type = 'left' 表示裁掉 [0, x]，'right' 表示裁掉 [x, 1]
+        if (seal.type === 'right') { a = seal.x; b = 1; }
+        else { a = 0; b = seal.x; }
+    } else {
+        return null;
+    }
+
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    if (hi - lo < SEAL_MIN_W) return null;
+
+    // 宽度封顶，并把区域收进 [0, 1] 之内
+    const w = Math.min(hi - lo, SEAL_MAX_W);
+    const x0 = Math.min(Math.max(lo, 0), 1 - w);
+    return { x0, x1: x0 + w };
+}
+
+/**
+ * 根据页面配置计算切割区间（多条分割线 => 分栏，叠加密封区域）
+ *
+ * 密封区域与分割线彼此独立、可同时使用：
+ *  1. 先从整页中挖掉密封区域 [x0, x1]（可落在任意位置，居中时页面被分成左右两块）
+ *  2. 再在每一块保留区域内，按落在该区域内的分割线继续切分
+ *
+ * @param {Object} config 页面配置 { splitLines, sealRange }
  * @returns {Array<[number, number]>} 各段的 [起始比例, 结束比例]
  */
 export function getSliceRanges(config) {
-    const seal = config.sealLine;
+    const raw = (config && config.sealRange != null) ? config.sealRange : (config && config.sealLine);
+    const seal = normalizeSeal(raw);
 
     // 多条分割线支持：将页面按分割线数组切成 N 段
     // 无分割线（用户已用「去除分割线」全部移除）=> 整页不切，只有一段
-    const splitLines = Array.isArray(config.splitLines)
+    const splitLines = Array.isArray(config && config.splitLines)
         ? [...config.splitLines].sort((a, b) => a - b)
         : [];
 
+    // 保留区域：挖掉密封区域后剩下的部分
+    let regions = [[0, 1]];
     if (seal) {
-        // 密封方向由 seal.type 决定（与线的语义一致），不受其相对分割线的位置影响。
-        // 先剔除密封区，再在保留区域内按分割线切分；分割线已被钳制进保留区域，杜绝反向切片或漏出密封区。
-        if (seal.type === 'left') {
-            // 左侧密封：丢弃 [0, Seal]，保留 [Seal, 1]
-            return splitRegion(seal.x, 1, splitLines.filter(x => x > seal.x && x < 1));
-        }
-        // 右侧密封：丢弃 [Seal, 1]，保留 [0, Seal]
-        return splitRegion(0, seal.x, splitLines.filter(x => x > 0 && x < seal.x));
+        regions = [];
+        if (seal.x0 > 0.001) regions.push([0, seal.x0]);
+        if (seal.x1 < 0.999) regions.push([seal.x1, 1]);
     }
+    if (!regions.length) regions = [[0, 1]];
 
-    // 无分割线：整页作为一段（不切割）
-    if (!splitLines.length) return [[0, 1]];
-
-    // 无密封：按全部分割线切分 [0, 1]
-    return splitRegion(0, 1, splitLines);
+    // 在每块保留区域内按分割线切分
+    const out = [];
+    for (const [s, e] of regions) {
+        const inner = splitLines.filter(x => x > s && x < e);
+        out.push(...splitRegion(s, e, inner));
+    }
+    return out;
 }
 
 /** 统一输出纸张：标准 A4 (210×297mm)，所有导出页都是这个尺寸 */

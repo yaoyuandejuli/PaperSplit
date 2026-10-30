@@ -703,7 +703,16 @@ a:focus-visible {
     font-weight: 700;
     color: var(--text-main);
     letter-spacing: 3px;
-    margin-bottom: 10px;
+    margin-bottom: 2px;
+}
+
+/* 标题下的成品尺寸说明（A4 210×297mm） */
+.export-size-note {
+    margin: 0 0 10px;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    letter-spacing: .5px;
 }
 
 .select-input {
@@ -1352,6 +1361,13 @@ body.mask-rect-dragging {
         font-size: 0.82rem;
     }
 
+    /* 标题下的成品尺寸小字：手机版再收小一档 */
+    .footer-actions .export-size-note {
+        font-size: 0.66rem;
+        margin: 0 0 6px;
+        letter-spacing: .3px;
+    }
+
     /* 「导出前排序」+「清除记录」并排一行（两个都是次级操作） */
     .footer-actions #openSortBtn {
         grid-row: 2;
@@ -1502,24 +1518,64 @@ body.mask-rect-dragging {
    ========================================================================== */
 
 /* 导出时会被裁掉的密封区域：用斜纹阴影直观标出 */
+/* 密封区域遮罩：导出时会被裁掉的那一块
+   斜纹阴影标出范围；本体可拖动（整体平移），两侧虚线可单独调整 */
 .seal-zone {
     position: absolute;
     top: 0;
     bottom: 0;
     z-index: 15;                 /* 在画布之上、辅助线之下 */
-    pointer-events: none;        /* 不干扰拖动密封线 */
+    pointer-events: auto;        /* 本体可拖动 */
+    cursor: move;
+    touch-action: none;
     background-color: rgb(100 116 139 / 0.16);
     background-image: repeating-linear-gradient(
         45deg,
         rgb(100 116 139 / 0.20) 0 6px,
         transparent 6px 12px
     );
+    border-left: 2px dashed rgb(100 116 139 / 0.55);
     border-right: 2px dashed rgb(100 116 139 / 0.55);
 }
 
-.seal-zone.seal-right {
-    border-right: none;
-    border-left: 2px dashed rgb(100 116 139 / 0.55);
+/* 拖动中的密封区域 */
+.seal-zone.dragging-zone {
+    cursor: grabbing;
+    background-color: rgb(100 116 139 / 0.26);
+}
+
+/* 区域顶部的「密封区」小标签 */
+.seal-zone-tag {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1px 7px;
+    border-radius: 4px;
+    background: rgb(71 85 105 / 0.85);
+    color: #fff;
+    font-size: 10px;
+    line-height: 1.6;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* 「手动选区域」拖动时的高亮框 */
+.seal-marquee {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 30;
+    pointer-events: none;
+    background: rgb(99 102 241 / 0.20);
+    border: 2px dashed var(--primary-color);
+    border-radius: 2px;
+}
+
+/* 框选模式：画布显示十字光标 */
+.canvas-wrapper.seal-select-mode {
+    cursor: crosshair;
 }
 
 /* 状态徽标：启用时高亮 */

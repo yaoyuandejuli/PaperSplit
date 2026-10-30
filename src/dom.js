@@ -38,8 +38,9 @@ export const elements = {
     addSplitBtn: document.getElementById('addSplitBtn'),
     // 去除分割线（点击即删）
     removeSplitBtn: document.getElementById('removeSplitBtn'),
-    // 密封线（独立分区：开关 + 左右切换 + 状态 + 批量应用）
+    // 密封线（独立分区：开关 + 手动框选 + 贴边切换 + 状态 + 批量应用）
     toggleSealLineBtn: document.getElementById('toggleSealLineBtn'),
+    sealSelectBtn: document.getElementById('sealSelectBtn'),
     sealStatus: document.getElementById('sealStatus'),
     sealLeftBtn: document.getElementById('sealLeftBtn'),
     sealRightBtn: document.getElementById('sealRightBtn'),

@@ -3,7 +3,7 @@ import { getPageSource } from './documents.js';
 import { elements } from './dom.js';
 import { getPageConfig } from './editor.js';
 import { rotateCanvas, buildEraseOverlay } from './utils.js';
-import { getSliceRanges, computePlacement } from './export-geometry.js';
+import { getSliceRanges, computePlacement, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
 
 /**
  * 「裁剪后调整」模块
@@ -99,7 +99,7 @@ function flashApplied() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 裁剪结果预览                                                         */
+/* 修改后文件预览                                                         */
 /* ------------------------------------------------------------------ */
 
 let previewTimer = null;
@@ -111,7 +111,7 @@ export function scheduleCropPreview() {
 }
 
 /**
- * 渲染「裁剪结果预览」：
+ * 渲染「修改后文件预览」：
  * 按当前导出模式 + 待应用比例，画出当前页每一栏在成品页面上的实际效果
  */
 export async function renderCropPreview() {
@@ -121,7 +121,8 @@ export async function renderCropPreview() {
     const ctx = cv.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const cssW = Math.max(200, cv.clientWidth || 280);
-    const cssH = 206;
+    // 预览高度：比原先更宽敞，让修改后的一页内容看得更清楚
+    const cssH = 300;
 
     cv.width = Math.round(cssW * dpr);
     cv.height = Math.round(cssH * dpr);
@@ -161,28 +162,43 @@ export async function renderCropPreview() {
         return { r, widthRatio, sliceAspect, pl: computePlacement(mode, sliceAspect, draft) };
     });
 
-    // 布局：所有成品页并排，整体等比缩放到预览区
+    // 布局：成品页按「每行 N 页」自适应换行，尽量填满预览框、让每页画得更大
+    // 画面内不再绘制任何说明文字（栏序 / 成品尺寸），把空间全部留给内容本身
     const pad = 12;
     const gap = 10;
-    const labelH = 16;   // 每栏序号
-    const captionH = 18; // 底部成品尺寸说明
     const availW = cssW - pad * 2;
-    const availH = cssH - pad * 2 - labelH - captionH;
+    const availH = cssH - pad * 2;
+    const n = papers.length;
 
-    let paperH = availH;
-    let totalW = papers.reduce((s, p) => s + paperH * (p.pl.pageWidth / p.pl.pageHeight), 0)
-        + gap * (papers.length - 1);
-    if (totalW > availW && totalW > 0) {
-        const k = availW / totalW;
-        paperH *= k;
-        totalW = availW;
+    // 成品页恒为标准 A4 竖版，宽高比固定
+    const ASPECT = A4_WIDTH / A4_HEIGHT;
+
+    // 枚举「每行放几页」，取每页画得最大的那一种（宽度与高度共同约束）
+    let cols = 1;
+    let paperH = 0;
+    let paperW = 0;
+    for (let c = 1; c <= n; c++) {
+        const r = Math.ceil(n / c);
+        const wLimit = (availW - gap * (c - 1)) / c;
+        const hLimit = (availH - gap * (r - 1)) / r;
+        const h = Math.min(wLimit / ASPECT, hLimit);
+        if (h > paperH + 0.5) {
+            paperH = h;
+            paperW = h * ASPECT;
+            cols = c;
+        }
     }
-
-    let x = pad + Math.max(0, (availW - totalW) / 2);
-    const y = pad;
+    const rows = Math.ceil(n / cols);
 
     papers.forEach((p, idx) => {
-        const paperW = paperH * (p.pl.pageWidth / p.pl.pageHeight);
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+        const inRow = Math.min(cols, n - row * cols);
+        // 每一行独立居中，最后一行页数不足时也保持居中
+        const rowW = inRow * paperW + gap * (inRow - 1);
+        const x = pad + Math.max(0, (availW - rowW) / 2) + col * (paperW + gap);
+        const y = pad + row * (paperH + gap);
+
         const ppm = paperW / p.pl.pageWidth; // 毫米 -> 预览像素
 
         // 纸张：投影让白纸从底色中“浮起”，边界更醒目
@@ -267,7 +283,7 @@ export async function renderCropPreview() {
 
         ctx.strokeStyle = '#6366f1';
         ctx.lineWidth = 2.5;
-        const corner = Math.max(6, Math.min(14, paperW * 0.2, paperH * 0.2));
+        const corner = Math.max(3, Math.min(14, paperW * 0.2, paperH * 0.2));
         ctx.beginPath();
         ctx.moveTo(x + 0.75, y + corner); ctx.lineTo(x + 0.75, y + 0.75); ctx.lineTo(x + corner, y + 0.75);
         ctx.moveTo(x + paperW - corner, y + 0.75); ctx.lineTo(x + paperW - 0.75, y + 0.75); ctx.lineTo(x + paperW - 0.75, y + corner);
@@ -275,9 +291,9 @@ export async function renderCropPreview() {
         ctx.moveTo(x + corner, y + paperH - 0.75); ctx.lineTo(x + 0.75, y + paperH - 0.75); ctx.lineTo(x + 0.75, y + paperH - corner);
         ctx.stroke();
 
-        // 右上角 A4 角标：明确每张纸都是标准 A4
-        const badgeW = 26;
-        const badgeH = 14;
+        // 右上角 A4 角标：明确每张纸都是标准 A4（尺寸随纸张缩放，避免小页面时溢出）
+        const badgeW = Math.max(15, Math.min(26, paperW * 0.26));
+        const badgeH = Math.max(9, Math.min(14, badgeW * 0.55));
         const bx = x + paperW - badgeW - 4;
         const by = y + 4;
         ctx.save();
@@ -294,34 +310,12 @@ export async function renderCropPreview() {
             ctx.strokeRect(bx + 0.5, by + 0.5, badgeW - 1, badgeH - 1);
         }
         ctx.fillStyle = '#4f46e5';
-        ctx.font = 'bold 10px sans-serif';
+        ctx.font = `bold ${Math.max(7, Math.min(10, badgeH * 0.72))}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('A4', bx + badgeW / 2, by + badgeH / 2 + 0.5);
         ctx.restore();
-
-        // 标注栏序
-        ctx.fillStyle = '#64748b';
-        ctx.font = '11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillText(`第 ${idx + 1} 栏`, x + paperW / 2, y + paperH + 12);
-
-        x += paperW + gap;
     });
-
-    // 底部说明：成品页实际尺寸（毫米）与页数，便于确认打印尺寸
-    const widths = papers.map(p => p.pl.pageWidth);
-    const heights = papers.map(p => p.pl.pageHeight);
-    const minW = Math.min(...widths), maxW = Math.max(...widths);
-    const h = Math.round(heights[0]);
-    const sizeText = (Math.abs(maxW - minW) < 0.5)
-        ? `${Math.round(minW)}×${h}mm`
-        : `${Math.round(minW)}~${Math.round(maxW)}×${h}mm`;
-    ctx.fillStyle = '#475569';
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`成品页 ${sizeText} · 共 ${papers.length} 页`, cssW / 2, cssH - 6);
 
     ctx.textAlign = 'left';
 }
