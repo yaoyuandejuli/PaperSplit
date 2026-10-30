@@ -12,6 +12,29 @@
   <p><sub>🚀 在线体验，无需安装，打开即用 &nbsp;·&nbsp; <i>Live demo — no install, runs in your browser</i></sub></p>
 </div>
 
+> ### ⚡ 三种运行方式（选一种即可）
+>
+> | 方式 | 操作 | 说明 |
+> |---|---|---|
+> | **① 最省事** | 下载 ZIP → 把 **`dist/`** 目录交给任意静态服务器 | 免安装、免构建，产物已随仓库提供 |
+> | **② 本地开发** | `git clone` → `npm install` → **`npm run dev`** | 改代码用这个 |
+> | **③ 重新构建** | `npm install` → **`npm run build`** → 用 `dist/` | 产物输出到 `dist/` |
+>
+> ```bash
+> # 方式②：一行启动
+> git clone https://github.com/yaoyuandejuli/PaperSplit.git
+> cd PaperSplit && npm install && npm run dev
+> ```
+>
+> ```bash
+> # 方式①：本地静态托管 dist/（推荐给只想用的人）
+> npx serve dist          # 或： python -m http.server -d dist
+> ```
+>
+> > ⚠️ **请勿直接双击仓库根目录的 `index.html`**：那是**源码版**页面，`src/` 里使用的是裸模块标识符（`jspdf` / `pdfjs-dist` / `material-icons`），浏览器无法解析。
+> > 结果是**界面能显示但所有按钮都没反应**（控制台报 CORS / 模块解析错误）——这不是版本问题，也不是坏了。
+> > 正确做法：用上面方式①托管 `dist/`，或方式②跑 `npm run dev`。
+
 **[English](#english) | [中文指南](#中文)**
 
 <div id="english"></div>

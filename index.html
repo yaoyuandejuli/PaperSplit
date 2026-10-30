@@ -319,6 +319,38 @@
         </main>
     </div>
     <script type="module" src="src/main.js"></script>
+
+    <!--
+      本地文件方式打开时的友好提示
+      浏览器出于安全限制不允许 file:// 协议加载 ES 模块，表现为「界面能显示但所有按钮没反应」，
+      这里直接给出正确做法，避免被误认为「版本不对 / 页面坏了」。
+    -->
+    <script>
+        if (location.protocol === 'file:') {
+            window.addEventListener('DOMContentLoaded', function () {
+                // 源码版的入口是 src/main.js；构建版会被替换成 ./assets/index-*.js
+                var isSource = !!document.querySelector('script[src*="src/main.js"]');
+                var box = document.createElement('div');
+                box.setAttribute('role', 'alert');
+                box.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.94);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;';
+                box.innerHTML =
+                    '<div style="max-width:660px;line-height:1.75">' +
+                    '<h2 style="margin:0 0 14px;font-size:21px">请通过本地服务器打开</h2>' +
+                    '<p style="margin:0 0 12px;color:#cbd5e1">浏览器出于安全限制，不允许用 <code style="color:#fbbf24">file://</code> 协议加载 ES 模块，所以页面脚本无法运行——' +
+                    '界面能显示，但<b>所有按钮都没有反应</b>。这不是版本问题，代码是好的。</p>' +
+                    '<p style="margin:0 0 8px;color:#cbd5e1">改用以下任一方式即可：</p>' +
+                    '<pre style="background:#1e293b;padding:14px;border-radius:8px;overflow:auto;color:#e2e8f0">' +
+                    (isSource
+                        ? 'npm install\nnpm run dev        # 源码版：先安装依赖再启动开发服务器'
+                        : 'npx serve .          # 构建版：把当前目录交给静态服务器') +
+                    '</pre>' +
+                    '<p style="margin:10px 0 0;color:#94a3b8">也可以直接使用在线版本：' +
+                    '<a style="color:#818cf8" href="https://yaoyuandejuli.github.io/PaperSplit/">yaoyuandejuli.github.io/PaperSplit</a></p>' +
+                    '</div>';
+                document.body.appendChild(box);
+            });
+        }
+    </script>
 </body>
 
 </html>
