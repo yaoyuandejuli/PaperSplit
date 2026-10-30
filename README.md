@@ -45,7 +45,7 @@
 **方式② 的启动命令**
 
 ```bash
-# 把 dist/ 交给任意静态服务器（推荐 npx serve）
+# 把 dist/ 交给任意静态服务器（推荐 npx serve，并发处理能力更好）
 npx serve dist
 # 备选：python -m http.server -d dist
 ```
@@ -174,7 +174,18 @@ npx serve dist          # 或 python -m http.server -d dist
 
 **Q：上传 PDF 提示「无法加载 PDF 文件」？**
 
-多半是**静态服务器没有正确设置 MIME 类型**（把 `.js` 返回成 `application/octet-stream`），浏览器对 module 脚本做严格校验，PDF worker 因此加载失败。程序已内置兜底（自动改用 Blob 方式加载 worker），若仍失败请改用 `npx serve dist`。
+这是**本地服务器的问题，不是文件的问题**（同一份 PDF 在在线版能正常打开）。PDF 解析组件需要浏览器单独去服务器取一个约 1 MB 的脚本文件，服务器处理不好这个请求就会失败。两种常见原因：
+
+① **服务器并发能力不足 / 连接被重置** —— 简易服务器（如老版本 `python -m http.server`、部分内网一键部署工具）处理不了浏览器的并发请求，连接被直接断开。解决：改用能并发处理的静态服务器：
+
+```bash
+npx serve dist
+npx http-server dist -p 8080
+```
+
+② **服务器没有正确设置 MIME 类型** —— 把 `.js` 返回成 `application/octet-stream` 时，浏览器会拒绝执行该脚本。解决：确认服务器对该文件返回 `application/javascript`。
+
+> 程序已内置兼容处理：会自动改用「自行取源码 + 内存加载」的方式，并对网络失败做退避重试，因此多数弱服务器也能直接用。若仍失败，说明服务器对该文件完全无法响应，请按上面 ① 换成规范服务器。
 
 **Q：需要联网吗？文件会上传吗？**
 
