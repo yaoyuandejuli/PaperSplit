@@ -39,6 +39,7 @@
     *   **Apply to All**: Apply current configuration to every page.
     *   **Reset Defaults**: Restore one page back to the default split with no seal line.
 *   **HD Export**: Generates high-quality **standard A4 (210×297 mm)** PDF documents using `jsPDF`, with selectable fit modes (equal-ratio with margins, stretch-to-fill, or equal-ratio cover).
+*   **Auto-Save of Edits**: Split lines, seal line, orientation, post-crop zoom and erase marks are **saved in your own browser** (localStorage, never uploaded). Reopen the same file and everything is restored automatically; use "Clear Saved Record" to opt out. 编辑配置自动保存在本机浏览器，重新打开同一文件即可恢复，可一键清除。
 *   **Responsive Design**: Works perfectly on both PC and mobile devices.
 
 ### 🚀 Quick Start
@@ -94,6 +95,7 @@ Open the local URL shown in the terminal (usually `http://localhost:5173`).
     *   **所有页**：一键应用到文档所有页面。
     *   **恢复默认**：一键把当前页还原为默认分割并取消密封线。
 *   **高清导出**：基于 `jsPDF` 生成高质量的**标准 A4（210×297mm）** PDF 文档，可选择等比留白 / 拉伸填满 / 等比填满三种排版方式。
+*   **编辑自动保存**：分割线、密封线、方向角度、裁剪后调整比例与擦除标记**自动保存在本机浏览器**（localStorage，不上传任何数据）。重新打开同一文件自动恢复，点「清除本文件保存记录」可随时关闭。
 *   **响应式设计**：完美适配 PC 和移动端操作，手机上也能轻松处理试卷。
 
 ### 🚀 快速开始
@@ -148,6 +150,8 @@ npm run dev
 │   ├── export-geometry.js # Slice Ranges & A4 Placement Geometry
 │   ├── crop-adjust.js  # Post-Crop Zoom (output ratio)
 │   ├── mask-editor.js  # Erase Content (rectangle + brush)
+│   ├── storage.js      # 编辑配置本地自动保存 / 恢复 (localStorage)
+│   ├── toast.js        # 轻量提示 (Toast)
 │   └── utils.js        # Rotation / Erasure Drawing Helpers
 ├── deploy/
 │   └── pages-workflow.yml # 可选：Actions 自动发布模板
@@ -212,6 +216,15 @@ npm run build           # 构建到 dist/
 MIT License
 
 ## 📅 Changelog / 更新日志
+
+### 2026-10-30 (Auto-Save of Edits / 编辑配置自动保存)
+
+- **Edits are saved locally and restored automatically**: split lines, seal line, orientation angle, post-crop zoom ratio and erase marks are stored in the browser's `localStorage` under a **file fingerprint** (name + size + last-modified). Reopen the same file and everything comes back — no data ever leaves the machine. 编辑配置按「文件指纹」存于本机 localStorage，重新打开同一文件自动恢复，数据不出本机。
+- **Guide step 8 added**: the operation guide now ends with「自动保存」, explaining what is stored and how to turn it off. 操作指南新增第 8 步「自动保存」。
+- **Opt-out button**: 「清除本文件保存记录」in the File Export panel deletes the stored record and stops auto-saving for that file. 文件导出区新增「清除本文件保存记录」，清除后该文件不再自动保存。
+- **Nothing is stored before you edit**: loading a file no longer writes a record by itself — the first render after load is explicitly excluded from auto-save. 仅打开文件不产生记录，载入后的首帧渲染不触发保存。
+- **Robustness**: every field is validated on read (corrupt or hand-edited data falls back to defaults and never breaks the app); records carry a schema version and are ignored when it does not match; at most 10 files are kept and the oldest are pruned. 读取时逐字段校验，损坏数据自动退回默认值；带结构版本号；最多保留 10 个文件的记录并自动淘汰最旧的。
+- **Saves are flushed on exit**: a save is triggered when the page is hidden or closed, so changes made in the last moment are not lost. 页面切到后台或关闭时立即落盘，不会丢失最后的改动。
 
 ### 2026-10-30 (Code Cleanup & Smoother Fine-Tuning / 代码整理与微调提速)
 

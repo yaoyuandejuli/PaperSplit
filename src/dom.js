@@ -32,6 +32,8 @@ export const elements = {
 
     exportBtn: document.getElementById('exportBtn'),
     exportFitSelect: document.getElementById('exportFitSelect'),
+    // 清除本文件已保存的编辑配置
+    clearSaveBtn: document.getElementById('clearSaveBtn'),
     addSplitBtn: document.getElementById('addSplitBtn'),
     // 去除分割线（点击即删）
     removeSplitBtn: document.getElementById('removeSplitBtn'),

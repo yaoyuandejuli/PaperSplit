@@ -7,9 +7,9 @@
     <title>PaperSplit - A3 试卷拆分</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-B14hELRp.js"></script>
+  <script type="module" crossorigin src="./assets/index-DEgeNn9y.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-D3E6KHf8.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-CggrVW6S.css">
 </head>
 
 <body>
@@ -132,6 +132,13 @@
                             <div class="step-text">
                                 <strong>文件导出</strong>
                                 <p>文件调整完成之后，点击「文件导出」导出标准 A4 的 PDF</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">8</div>
+                            <div class="step-text">
+                                <strong>自动保存</strong>
+                                <p>编辑内容自动保存在本机浏览器，重新打开同一文件即可恢复分割线、旋转与擦除设置；数据不会上传，可用「清除本文件保存记录」重置</p>
                             </div>
                         </div>
                     </div>
@@ -303,6 +310,11 @@
 
                     <button id="exportBtn" class="btn success full-width large shadow-btn" disabled>
                         <span class="material-icons">save_alt</span> 导出为 PDF (A4)
+                    </button>
+
+                    <button id="clearSaveBtn" class="btn secondary full-width" disabled
+                        title="清除本文件已保存的编辑配置（分割线 / 旋转 / 擦除 / 裁剪比例），下次打开时不再自动恢复">
+                        <span class="material-icons">delete_sweep</span> 清除本文件保存记录
                     </button>
                 </div>
             </aside>

@@ -4,8 +4,11 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { state, resetState } from './state.js';
 import { elements } from './dom.js';
 import { renderThumbnails, renderCurrentPage, updatePageControls } from './viewer.js';
-import { syncCropZoomUI } from './crop-adjust.js';
+import { syncCropZoomUI, syncCropZoomFromPage } from './crop-adjust.js';
 import { exitMaskMode, renderMasks } from './mask-editor.js';
+import { getPageConfig, syncRotationUI } from './editor.js';
+import { fileFingerprint, loadEditConfig } from './storage.js';
+import { showToast } from './toast.js';
 
 // 设置 PDF.js Worker（本地资源）
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -20,6 +23,10 @@ export async function handleFileUpload(e) {
 
     resetState();
     state.fileName = file.name.replace(/\.[^/.]+$/, "");
+    // 文件指纹：用于编辑配置的自动保存与恢复（仅存本机）
+    state.fileFingerprint = fileFingerprint(file);
+    // 每次重新载入文件都恢复自动保存（除非用户在本次会话中主动清除过）
+    state.saveDisabled = false;
 
     if (file.type === 'application/pdf') {
         state.isPdf = true;
@@ -42,6 +49,7 @@ export async function handleFileUpload(e) {
     // 启用相关按钮（已确认是受支持的文件类型）
     elements.toggleSealLineBtn.disabled = false;
     elements.exportBtn.disabled = false;
+    elements.clearSaveBtn.disabled = false;   // 可清除本文件的保存记录
     elements.addSplitBtn.disabled = false;
     elements.removeSplitBtn.disabled = false;   // 去除分割线（进入选择模式）
     elements.resetDefaultsBtn.disabled = false; // 恢复当前页默认
@@ -91,13 +99,41 @@ async function loadPdf(arrayBuffer) {
         state.totalPages = state.pdfDoc.numPages;
         state.currentPage = 1;
 
+        // 载入与首帧渲染期间不触发自动保存（用户还没做任何编辑）
+        state.suppressSave = true;
+        restoreSavedConfig();
+
         updatePageControls();
         renderThumbnails();
-        renderCurrentPage();
+        await renderCurrentPage();
+        state.suppressSave = false;
     } catch (error) {
         console.error('Error loading PDF:', error);
+        state.suppressSave = false;
         alert('无法加载 PDF 文件');
     }
+}
+
+/**
+ * 恢复该文件上次保存的编辑配置（分割线 / 密封线 / 旋转 / 裁剪比例 / 擦除标记）
+ * 没有记录或数据不可用时静默跳过，一切照常按默认状态开始
+ */
+function restoreSavedConfig() {
+    const saved = loadEditConfig(state.fileFingerprint, state.totalPages);
+    if (!saved) return;
+
+    state.pagesData = saved.pages;
+
+    // 旋转基准重置为当前页角度（微调滑块相对此偏移），并同步角度显示
+    state.rotationBase = getPageConfig(state.currentPage).rotation || 0;
+    syncRotationUI();
+
+    // 恢复后同步各项 UI：擦除标记、裁剪比例（待应用值对齐已应用值）
+    renderMasks();
+    syncCropZoomFromPage();
+
+    const when = saved.at ? new Date(saved.at).toLocaleString('zh-CN', { hour12: false }) : '';
+    showToast(`已恢复上次的编辑配置${when ? `（${when}）` : ''}`, 'success');
 }
 
 /**
@@ -106,11 +142,14 @@ async function loadPdf(arrayBuffer) {
  */
 function loadImage(file) {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         state.fileData = e.target.result;
         state.totalPages = 1;
         state.currentPage = 1;
         state.pdfDoc = null;
+
+        // 载入与首帧渲染期间不触发自动保存
+        state.suppressSave = true;
 
         updatePageControls();
         // 生成简单的图片缩略图
@@ -123,7 +162,10 @@ function loadImage(file) {
         thumb.appendChild(img);
         elements.thumbnailsPanel.appendChild(thumb);
 
-        renderCurrentPage();
+        restoreSavedConfig();
+
+        await renderCurrentPage();
+        state.suppressSave = false;
     };
     reader.readAsDataURL(file);
 }

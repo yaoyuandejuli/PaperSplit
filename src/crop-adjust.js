@@ -57,6 +57,8 @@ export function applyCropZoom() {
     syncCropZoomUI();
     renderCropPreview();
     flashApplied();
+    // 比例已写入配置 → 通知外部（预览刷新 + 自动保存）
+    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
 /** 翻页 / 载入文件后：把待应用值同步为该页已应用值 */

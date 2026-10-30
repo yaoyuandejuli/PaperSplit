@@ -16,6 +16,8 @@ import {
     setCropZoomDraft, stepCropZoom, resetCropZoom, applyCropZoom,
     syncCropZoomUI, renderCropPreview, scheduleCropPreview, STEP
 } from './crop-adjust.js';
+import { saveEditConfig, scheduleSave, clearEditConfig } from './storage.js';
+import { showToast } from './toast.js';
 
 /**
  * 微调角度：节流调度
@@ -53,6 +55,29 @@ function scheduleFineRotation() {
             applyFineRotation();
         }, wait);
     }
+}
+
+/**
+ * 编辑配置自动保存
+ * 任何配置变更（分割线 / 密封线 / 旋转 / 裁剪比例 / 擦除）后防抖写盘，
+ * 数据只存在本机浏览器，刷新或重新打开同一文件时会自动恢复。
+ */
+function persistEditConfig() {
+    if (state.suppressSave || state.saveDisabled) return;
+    if (!state.fileFingerprint || !state.totalPages) return;
+    scheduleSave(() => {
+        saveEditConfig(state.fileFingerprint, state.fileName, state.pagesData, state.totalPages);
+    });
+}
+
+/**
+ * 立即落盘（不做防抖）
+ * 页面切到后台或即将关闭时调用，避免防抖窗口内的最后一点改动丢失
+ */
+function persistEditConfigNow() {
+    if (state.suppressSave || state.saveDisabled) return;
+    if (!state.fileFingerprint || !state.totalPages) return;
+    saveEditConfig(state.fileFingerprint, state.fileName, state.pagesData, state.totalPages);
 }
 
 /**
@@ -146,6 +171,9 @@ function initEventListeners() {
 
     // 分割线 / 密封线 / 方向变化后刷新「裁剪结果预览」
     document.addEventListener('papersplit:config-changed', scheduleCropPreview);
+    // 编辑配置变更后自动落盘（仅存本机 localStorage），刷新后可自动恢复
+    document.addEventListener('papersplit:config-changed', persistEditConfig);
+    document.addEventListener('papersplit:page-repaint', persistEditConfig);
     // 「应用 / 擦除」后需要重绘画布：让画布直接显示擦除后的内容（或恢复原始画面）
     document.addEventListener('papersplit:page-repaint', () => {
         if (state.pdfDoc || state.fileData) renderCurrentPage();
@@ -168,8 +196,21 @@ function initEventListeners() {
     elements.applyToTypeBtn.addEventListener('click', () => applySplitToType());
     elements.applyToAllBtn.addEventListener('click', () => applySplitToAll());
     elements.exportBtn.addEventListener('click', exportPdf);
+    // 清除本文件的保存记录（并停止该文件的自动保存）
+    elements.clearSaveBtn.addEventListener('click', () => {
+        if (!state.fileFingerprint) return;
+        clearEditConfig(state.fileFingerprint);
+        state.saveDisabled = true;
+        showToast('已清除本文件的保存记录，之后不再自动保存', 'success');
+    });
 
     window.addEventListener('resize', handleResize);
+
+    // 页面切到后台或即将关闭时立即落盘，避免防抖窗口内的改动丢失
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') persistEditConfigNow();
+    });
+    window.addEventListener('beforeunload', persistEditConfigNow);
 
     // 拖拽事件支持
     const dropZone = elements.canvasContainer;
