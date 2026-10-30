@@ -1,0 +1,12 @@
+services:
+  papersplit:
+    image: node:22-alpine
+    container_name: papersplit
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "scripts/serve.js", "8080"]
+    ports:
+      - "8080:8080"
+    volumes:
+      # ←←← 改成你自己的路径
+      - .:/app:ro

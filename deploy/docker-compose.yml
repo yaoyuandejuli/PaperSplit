@@ -1,0 +1,28 @@
+# PaperSplit —— Docker 部署配置（飞牛 NAS / 任意 NAS 通用）
+#
+# 用法：
+#   1. 先把仓库克隆到本机，例如 /vol1/docker/papersplit
+#        git clone https://github.com/yaoyuandejuli/PaperSplit.git /vol1/docker/papersplit
+#   2. 修改下面的 volumes 路径，指向你实际的目录
+#   3. 在该目录执行：docker compose up -d
+#   4. 浏览器访问 http://<NAS地址>:8080
+#
+# 说明：容器只托管已经构建好的 dist/ 目录（静态文件），
+#      因此不需要在容器里装 Node、不需要构建、也不会有并发不足的问题。
+
+services:
+  papersplit:
+    image: nginx:alpine
+    container_name: papersplit
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      # ←←← 改成你自己的路径（飞牛 NAS 一般在 /vol1/... 或 /vol2/...）
+      - ./dist:/usr/share/nginx/html:ro
+    # 静态站点无需额外配置；显式声明 gzip 与缓存策略
+    environment:
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/conf.d
+    labels:
+      org.opencontainers.image.title: "PaperSplit"
+      org.opencontainers.image.description: "A3 转 A4 试卷拆分工具（纯前端，文件不上传）"

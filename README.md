@@ -141,7 +141,7 @@ npm run serve    # 构建版，先 npm run build，再访问 http://localhost:80
 ├── screenshots/        # README 预览图
 ├── dist/               # 构建产物（可直接托管）
 ├── docs/               # 与 dist/ 相同的副本，供 GitHub Pages 使用
-├── deploy/             # 可选的 Actions 自动部署模板
+├── deploy/             # Docker 部署配置（compose）+ Actions 自动部署模板
 └── scripts/            # 本地服务器（serve.js）与一键发布脚本
 ```
 
@@ -159,6 +159,29 @@ rm -rf docs && cp -r dist docs     # 同步构建产物
 npm run publish:pages               # 推到 gh-pages 分支，1-2 分钟生效
 ```
 
+### Docker 部署（飞牛 NAS / 群晖 / 任意 NAS）
+
+仓库里已备好两份现成的 compose 文件（`deploy/` 目录），克隆后改一行路径就能用。
+
+**方案一：nginx（推荐）** —— 只托管 `dist/` 静态文件，镜像小、并发强、最稳
+
+```bash
+git clone https://github.com/yaoyuandejuli/PaperSplit.git /vol1/docker/papersplit
+cd /vol1/docker/papersplit
+# 编辑 deploy/docker-compose.yml，把 volumes 的路径改成你的实际目录
+docker compose -f deploy/docker-compose.yml up -d
+```
+
+**方案二：Node 版** —— 用项目自带的服务器（无需额外依赖）
+
+```bash
+cd /vol1/docker/papersplit
+docker compose -f deploy/docker-compose.node.yml up -d
+```
+
+> 两种方案都直接托管**仓库里已构建好的 `dist/`**（构建产物已随仓库提交），所以容器内无需装依赖、无需执行构建。
+> 以后更新只要在宿主机执行 `git pull`，再 `docker compose restart` 即可。
+
 ### 任意静态服务器
 
 ```bash
@@ -167,7 +190,7 @@ npx serve dist           # 或 npx http-server dist -p 8080
 ```
 
 > ⚠️ **不要用 `python -m http.server` 部署**：它是 HTTP/1.0、不支持 keep-alive，浏览器并发拉取资源时连接会被直接断开，页面会出现样式错乱、按钮失效或「无法加载 PDF 文件」。
-> 另外部分简易服务器会把 `.js` 返回成 `application/octet-stream`，浏览器对 module 脚本做严格 MIME 校验，同样会导致加载失败。本项目对这两类问题都做了内置兼容，但**仍建议使用能并发处理请求的服务器**。
+> 另外部分简易服务器会把 `.js` 返回成 `application/octet-stream`，浏览器对 module 脚本做严格 MIME 校验，同样会导致加载失败。本项目对这两类问题都做了内置兼容，但**仍建议使用能并发处理请求的服务器**（nginx / `npm run serve`）。
 
 ### GitHub Actions 自动发布（可选）
 
@@ -258,6 +281,7 @@ PDF、JPG、PNG。图片按单页处理。
 ### 2026-10-30
 
 - **修复本地部署上传 PDF 报「无法加载 PDF 文件」（图片却正常）**：PDF 解析组件的源码已**直接写进主程序文件**，运行时从内存启用，不再向服务器单独请求它。因此只要页面能打开，PDF 就一定能用 —— 服务器并发不足、MIME 类型不对、路径被限制这三类问题都不再发生。同时新增服务器能力提醒横幅：检测到资源加载失败时，直接提示换用 `npm run serve`。
+- **新增 Docker 部署配置**：仓库 `deploy/` 目录提供两份现成的 compose 文件（nginx 版与 Node 版），飞牛 NAS / 群晖等可直接克隆后改一行路径使用；容器只托管已构建好的 `dist/`，无需在容器内构建。
 - **新增零依赖本地服务器**：新增 `npm run serve`（`scripts/serve.js`，仅用 Node 内置模块），并发与 MIME 均已处理妥当，局域网部署可直接使用。同时明确不建议用 `python -m http.server`（HTTP/1.0 不支持 keep-alive，扛不住浏览器并发）。
 - **批量应用改为按奇偶页**：编辑工具的「批量应用」由「同类页」拆成「奇数页 / 偶数页」并排一行、「所有页」独占一行；密封线分区新增同款按钮组，跨奇偶应用时自动镜像到另一侧，目标页分割线自动钳制回保留区域。
 - **密封线独立分区**：从「编辑工具」移出，成为「擦除内容」之后的新分区；画布上用斜纹阴影标出导出时会被裁掉的区域，新增左右切换与状态徽标，「恢复默认」独占一整行。
