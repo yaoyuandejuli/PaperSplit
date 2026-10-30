@@ -1,46 +1,47 @@
 <div align="center">
-  <img src="public/favicon.png" alt="PaperSplit" width="120" height="120">
+  <img src="public/logo.svg" alt="PaperSplit" width="118" height="118">
   <h1>PaperSplit</h1>
 
   <p>
     <a href="https://yaoyuandejuli.github.io/PaperSplit/">
-      <img alt="在线体验" src="https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E4%BD%93%E9%AA%8C-6366f1?style=for-the-badge&logo=github&logoColor=white">
+      <img alt="在线体验 Live Demo" src="https://img.shields.io/badge/%E5%9C%A8%E7%BA%BF%E4%BD%93%E9%AA%8C%20%7C%20Live%20Demo-6366f1?style=for-the-badge&logo=github&logoColor=white">
     </a>
-    &nbsp;&nbsp;
-    <a href="https://yaoyuandejuli.github.io/PaperSplit/"><b>https://yaoyuandejuli.github.io/PaperSplit/</b></a>
+    <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge">
+    <img alt="Build with Vite" src="https://img.shields.io/badge/build-Vite-646cff?style=for-the-badge&logo=vite&logoColor=white">
+    <img alt="纯前端 No Backend" src="https://img.shields.io/badge/%E7%BA%AF%E5%89%8D%E7%AB%AF%20%7C%20No%20Backend-0ea5e9?style=for-the-badge">
+    <img alt="离线可用 Offline Ready" src="https://img.shields.io/badge/%E7%A6%BB%E7%BA%BF%E5%8F%AF%E7%94%A8%20%7C%20Offline-ready-8b5cf6?style=for-the-badge">
   </p>
-  <p><sub>🚀 在线体验，打开即用 · 文件不上传，全部处理都在本机完成</sub></p>
+  <p><sub>🚀 在线体验，无需安装，打开即用 &nbsp;·&nbsp; <i>Live demo — no install, runs in your browser</i></sub></p>
+
+  <p><b>简体中文</b> · <a href="#english">English</a></p>
 </div>
 
-> ### ⚡ 三种运行方式（选一种即可）
+> ### 🚀 先试为快：两种零门槛方式
 >
-> | 方式 | 操作 | 说明 |
+> | 方式 | 操作 | 适合谁 |
 > |---|---|---|
-> | **① 最省事** | 下载 ZIP → 把 **`dist/`** 目录交给任意静态服务器 | 免安装、免构建，产物已随仓库提供 |
-> | **② 本地开发** | `git clone` → `npm install` → **`npm run dev`** | 改代码用这个 |
-> | **③ 重新构建** | `npm install` → **`npm run build`** → 用 `dist/` | 产物输出到 `dist/` |
+> | **① 在线体验（最推荐）** | 点 **[https://yaoyuandejuli.github.io/PaperSplit/](https://yaoyuandejuli.github.io/PaperSplit/)** | 只想用的人，零安装、零配置 |
+> | **② 本地静态托管** | 下载 ZIP → 进入 **`dist/`** → 起一个静态服务器 | 内网 / 离线环境 |
 >
 > ```bash
-> # 方式②：一行启动
-> git clone https://github.com/yaoyuandejuli/PaperSplit.git
-> cd PaperSplit && npm install && npm run dev
+> # 方式②：把 dist/ 交给任意静态服务器（推荐 npx serve）
+> npx serve dist
+> # 备选：python -m http.server -d dist
 > ```
 >
-> ```bash
-> # 方式①：本地静态托管 dist/
-> npx serve dist          # 或： python -m http.server -d dist
-> ```
->
-> > ⚠️ **请勿直接双击仓库根目录的 `index.html`**：那是**源码版**页面，`src/` 里用的是裸模块标识符（`jspdf` / `pdfjs-dist` / `material-icons`），浏览器无法解析。
-> > 结果是**界面能显示但所有按钮都没反应**——这不是版本问题，也不是坏了。正确做法：托管 `dist/`，或跑 `npm run dev`。
+> > ⚠️ **请勿直接双击仓库根目录的 `index.html`**：那是**源码版**页面，`src/` 里使用的是裸模块标识符（`pdfjs-dist` / `jspdf` / `material-icons`），浏览器无法解析。
+> > 表现是**界面能显示、但所有按钮都没反应**（控制台报模块解析错误）——这不是版本问题，也不是项目坏了。
+> > 正确做法：用上面**方式①**在线体验，或把 **`dist/`** 交给静态服务器，或 `npm run dev` 跑源码版。详见下方 [常见问题](#-常见问题faq)。
 
 ## 📖 简介
 
-> 下方为完整中文说明，文末附一段 [English](#english) 简介。
-
 **PaperSplit** 是一个纯浏览器端运行的轻量工具，专门把 **A3 试卷 / 文档拆分成 A4**，并顺手去掉装订密封线、擦掉多余标记。文件不上传、不依赖网络，所有处理都在本机完成。
 
-### ✨ 核心功能
+## 🖼️ 界面预览
+
+![PaperSplit 工作界面](screenshots/preview.png)
+
+## ✨ 核心功能
 
 - **智能导入**：拖拽上传 PDF 或图片（JPG / PNG）。
 - **多栏分割**：一页可切成 **N 栏**；「两栏 / 三栏」一键预设，「增加分割线」继续细分，「去除分割线」点击即删。
@@ -62,7 +63,7 @@ npm install
 npm run dev      # 启动后访问终端显示的地址（通常 http://localhost:5173）
 ```
 
-### 使用流程
+**使用流程**
 
 1. **导入**：点击「选择文件」，或把文件直接拖进工作区。
 2. **调整**：拖动红色分割线确定分栏位置；用「两栏 / 三栏」「增加分割线」细分；扫描歪斜就用方向校正；多余内容用「擦除内容」；密封线在「密封线调整」里开启与换边。
@@ -94,6 +95,8 @@ npm run dev      # 启动后访问终端显示的地址（通常 http://localhos
 │   ├── storage.js      # 编辑配置本地保存 / 恢复
 │   ├── toast.js        # 轻提示
 │   └── utils.js        # 旋转与擦除绘制辅助
+├── public/             # 静态资源（favicon、logo）
+├── screenshots/        # README 预览图
 ├── dist/               # 构建产物（可直接托管）
 ├── docs/               # 与 dist/ 相同的副本，供 GitHub Pages 使用
 ├── deploy/             # 可选的 Actions 自动部署模板
@@ -124,9 +127,60 @@ npx serve dist          # 或 python -m http.server -d dist
 
 把 `deploy/pages-workflow.yml` 复制为 `.github/workflows/deploy.yml` 并推送，之后每次改动 `docs/` 都会自动发布。
 
-## 📄 许可
+## ❓ 常见问题（FAQ）
 
-MIT License
+**Q：双击仓库里的 `index.html`，界面能显示但按钮点了没反应？**
+这是最常见的问题。浏览器出于安全限制，**不允许 `file://` 协议加载 ES 模块**，而仓库根目录的 `index.html` 是**源码版**（`src/` 里写的是 `pdfjs-dist`、`jspdf` 这类裸模块标识符），必须经 Vite 打包才能运行。
+**解决办法（任选其一）**：
+① 直接用[在线版本](https://yaoyuandejuli.github.io/PaperSplit/)；
+② 把 `dist/` 目录交给静态服务器（`npx serve dist`）；
+③ 克隆仓库后 `npm install && npm run dev` 跑源码版。
+> 本项目已内置 `file://` 检测，会直接弹出提示层告诉你该怎么做，不用猜。
+
+**Q：上传 PDF 提示「无法加载 PDF 文件」？**
+多半是**静态服务器没有正确设置 MIME 类型**（把 `.js` 返回成 `application/octet-stream`），浏览器对 module 脚本做严格校验，PDF worker 因此加载失败。程序已内置兜底（自动改用 Blob 方式加载 worker），若仍失败请改用 `npx serve dist`。
+
+**Q：需要联网吗？文件会上传吗？**
+**都不需要**。PDF worker、图标与字体全部随应用本地打包，断网 / 内网可用；所有解析与处理都在浏览器内完成，文件不会离开你的电脑。
+
+**Q：支持哪些文件格式？**
+PDF、JPG、PNG。图片按单页处理。
+
+**Q：编辑的内容会丢吗？**
+分割线、密封线、方向角度、缩放比例与擦除标记会自动存在**本机浏览器的 localStorage**（按文件指纹区分）。重新打开同一文件会自动恢复；也可以在「文件导出」区点「清除本文件保存记录」随时清掉。
+
+**Q：导出的 PDF 是什么规格？**
+始终是**标准 A4（210×297mm）**，可选等比留白 / 拉伸填满 / 等比填满三种排版方式。
+
+**Q：手机上能用吗？**
+可以，界面为响应式设计，支持触摸拖动分割线。
+
+## 🤝 贡献指南
+
+欢迎提 PR 和 issue。**动手前请先看这条硬性要求**：
+
+> ⚠️ **`src/` 目录里用的是裸模块标识符**（`import ... from 'pdfjs-dist'`、`'jspdf'`、`'material-icons'`），
+> 浏览器**无法直接解析**，必须经 Vite 构建。因此：
+> - **不要**把 `src/` 里的模块标识符改成相对路径，也不要直接编辑 `dist/` / `docs/` 里的构建产物（它们是生成物）；
+> - 改完代码必须重新构建并同步产物，否则线上与仓库产物会不一致：
+>
+> ```bash
+> npm install
+> npm run build                    # 产出 dist/
+> rm -rf docs && cp -r dist docs  # 同步到 docs/
+> npm run publish:pages            # 发布到 gh-pages
+> ```
+
+其他约定：
+
+- 代码风格沿用现有模块：原生 ES6 Modules、不引入框架，样式集中在 `style.css`；
+- 改动 UI 时同步更新 `index.html` 里的**操作指南**文案；
+- 提交前请本地自测一遍：导入 PDF → 分栏 → 密封线 → 擦除 → 导出 A4；
+- 涉及新依赖时，请确认它能被离线打包（不要依赖 CDN）。
+
+## 📄 开源协议
+
+[MIT License](LICENSE) © PaperSplit
 
 ## 📅 更新日志
 
