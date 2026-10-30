@@ -1,6 +1,10 @@
 import * as pdfjsLib from 'pdfjs-dist';
 // Worker 本地打包（不再依赖 unpkg CDN，断网 / 内网环境也可用）
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+// Worker 源码（构建时由 vite 插件直接写进主 chunk，运行时转成 Blob URL）。
+// 静态导入是关键：打包器会把源码并入主 JS，浏览器无需再单独请求 worker 文件，
+// 于是「服务器并发不足 / MIME 不对 / 路径被限制」三类问题全部消失。
+import pdfWorkerSource from 'virtual:pdf-worker-inline';
 import { state, resetState } from './state.js';
 import { elements } from './dom.js';
 import { renderThumbnails, renderCurrentPage, updatePageControls } from './viewer.js';
@@ -110,8 +114,9 @@ export async function handleFileUpload(e) {
  * 三种情况都会表现为「无法加载 PDF 文件」。
  *
  * 解决思路（按优先级）：
- *   1. **内联源码**（首选）：构建时把 worker 源码以 base64 打进产物，
- *      运行时解码成 Blob URL。浏览器不再需要任何 worker 请求 → ①②③ 全部消失。
+ *   1. **内联源码**（首选）：构建时把 worker 源码静态写进主 chunk，
+ *      运行时转成 Blob URL。浏览器随主 JS 一次拿到源码，**不再需要任何 worker 请求**
+ *      → ①②③ 全部消失，且「图片能处理」必然意味着「PDF 也能处理」。
  *   2. **自行 fetch + 重试**：内联不可用时（开发模式 / 依赖未安装），
  *      由我们自己 fetch worker 源码。fetch 不校验 MIME（绕开 ①），
  *      且失败可退避重试（绕开 ②）。
@@ -120,8 +125,8 @@ export async function handleFileUpload(e) {
 async function resolveWorkerUrl() {
     if (cachedWorkerUrl) return cachedWorkerUrl;
 
-    // 1. 内联源码（构建版首选）：动态导入，不影响首屏体积
-    const inlineUrl = await buildInlineWorkerUrl();
+    // 1. 内联源码（首选）：随主 chunk 一起到达，无需任何额外请求
+    const inlineUrl = buildInlineWorkerUrl();
     if (inlineUrl) {
         cachedWorkerUrl = inlineUrl;
         return cachedWorkerUrl;
@@ -144,25 +149,16 @@ async function resolveWorkerUrl() {
 }
 
 /**
- * 用内联的 base64 源码生成 Blob URL
+ * 用内联的 worker 源码生成 Blob URL
  *
- * 内联源码由 vite 插件在构建时以 base64 形式写入一个独立 chunk，
- * 这里用动态导入按需加载 —— 用户上传 PDF 时才下载，不拖慢首屏。
- * @returns {Promise<string|null>} Blob URL；没有内联源码时返回 null
+ * 源码由 vite 插件在构建时**静态写入主 chunk**，因此它随主 JS 一次到达，
+ * 不产生任何额外请求 —— 这是弱服务器环境下唯一可靠的方式。
+ * @returns {string|null} Blob URL；没有内联源码时返回 null
  */
-async function buildInlineWorkerUrl() {
+function buildInlineWorkerUrl() {
+    if (!pdfWorkerSource) return null;
     try {
-        const mod = await import('virtual:pdf-worker-inline');
-        const b64 = mod && mod.default;
-        if (!b64) return null;
-
-        // base64 → 二进制字符串 → Uint8Array → Blob
-        const binary = atob(b64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
-        }
-        return URL.createObjectURL(new Blob([bytes], { type: 'text/javascript' }));
+        return URL.createObjectURL(new Blob([pdfWorkerSource], { type: 'text/javascript' }));
     } catch (e) {
         console.warn('[PDF] 内联 worker 不可用：', e);
         return null;

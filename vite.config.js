@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * 把 PDF worker 源码内联成 base64 字符串，注入到构建产物中。
+ * 把 PDF worker 源码内联进构建产物。
  *
  * 背景：PDF.js 的 worker 是一个独立的 ES module 文件，浏览器必须单独向服务器
  * 请求它才能加载。真实内网环境里这一步经常失败：
@@ -11,12 +11,12 @@ import path from 'node:path';
  *   - 服务器并发能力弱 → 浏览器并发拉取资源时连接被 reset；
  *   - 服务器对 worker 路径做了限制 / 白名单 → 直接 403。
  *
- * 把源码内联进主包后，worker 不再需要任何独立请求：
- *   - 运行时用 base64 解码出源码 → 生成 Blob URL → 交给 PDF.js；
- *   - 完全不依赖服务器对 worker 文件的响应，MIME 与并发问题一并消失。
+ * 关键设计：worker 源码必须**静态导入**进主 chunk，而不是动态 import 成独立 chunk。
+ * 动态 import 依然需要浏览器额外发一个请求，弱服务器照样会把它掐断；
+ * 静态导入则由打包器把源码直接写进主 JS —— 服务器只要能返回主 JS 这一个文件，
+ * PDF 功能就一定可用（于是「图片能正常处理」必然意味着「PDF 也能正常处理」）。
  *
- * 内联的代价是首屏包体积增加约 1.4MB（base64 编码后），因此 worker 采用
- * **动态导入**的方式按需加载：用户上传 PDF 时才下载，不影响首屏。
+ * 代价：主包体积增加约 1MB（源码原文），换取在任何服务器上的确定性。
  */
 function inlinePdfWorker() {
     const workerPath = path.resolve(
@@ -40,11 +40,11 @@ function inlinePdfWorker() {
                 // 依赖未安装时不阻断构建，回退到普通 worker 文件
                 return 'export default "";';
             }
+            // 直接内联源码原文（比 base64 省约 25% 体积）
             const source = fs.readFileSync(workerPath, 'utf-8');
-            const b64 = Buffer.from(source, 'utf-8').toString('base64');
-            return `export default ${JSON.stringify(b64)};`;
+            return `export default ${JSON.stringify(source)};`;
         },
-        // 开发模式也需要能解析该虚拟模块（供动态 import 使用）
+        // 开发模式也需要能解析该虚拟模块
         configureServer(server) {
             server.middlewares.use((req, res, next) => {
                 if (!req.url || !req.url.includes('virtual:pdf-worker-inline')) {
@@ -52,17 +52,17 @@ function inlinePdfWorker() {
                 }
                 res.setHeader('Content-Type', 'application/javascript');
                 res.end(
-                    `export default ${JSON.stringify(readWorkerBase64(workerPath))};`
+                    `export default ${JSON.stringify(readWorkerSource(workerPath))};`
                 );
             });
         }
     };
 }
 
-/** 读取 worker 源码并转成 base64（依赖未安装时返回空串） */
-function readWorkerBase64(workerPath) {
+/** 读取 worker 源码（依赖未安装时返回空串） */
+function readWorkerSource(workerPath) {
     if (!fs.existsSync(workerPath)) return '';
-    return Buffer.from(fs.readFileSync(workerPath, 'utf-8'), 'utf-8').toString('base64');
+    return fs.readFileSync(workerPath, 'utf-8');
 }
 
 export default defineConfig({
