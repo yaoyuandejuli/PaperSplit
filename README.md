@@ -23,14 +23,16 @@
 </div>
 
 <p align="center">
-  <a href="#-先试为快两种零门槛方式">🚀 先试为快</a> ·
-  <a href="#-界面预览">🖼️ 界面预览</a> ·
-  <a href="#-核心功能">✨ 核心功能</a> ·
-  <a href="#-快速开始">🚀 快速开始</a> ·
-  <a href="#-部署">🚢 部署</a> ·
+  <a href="#quickstart">🚀 先试为快</a> ·
+  <a href="#preview">🖼️ 界面预览</a> ·
+  <a href="#features">✨ 核心功能</a> ·
+  <a href="#dev">🚀 快速开始</a> ·
+  <a href="#deploy">🚢 部署</a> ·
   <a href="#faq">❓ 常见问题</a> ·
   <a href="#english">📖 English</a>
 </p>
+
+<a id="quickstart"></a>
 
 ## 🚀 先试为快：两种零门槛方式
 
@@ -59,9 +61,13 @@ npx serve dist
 
 **PaperSplit** 是一个纯浏览器端运行的轻量工具，专门把 **A3 试卷 / 文档拆分成 A4**，并顺手去掉装订密封线、擦掉多余标记。文件不上传、不依赖网络，所有处理都在本机完成。
 
+<a id="preview"></a>
+
 ## 🖼️ 界面预览
 
 ![PaperSplit 工作界面](screenshots/preview.png)
+
+<a id="features"></a>
 
 ## ✨ 核心功能
 
@@ -75,6 +81,8 @@ npx serve dist
 - **高清导出**：基于 `jsPDF` 生成标准 **A4（210×297mm）** PDF，可选等比留白 / 拉伸填满 / 等比填满三种排版方式。
 - **编辑自动保存**：分割线、密封线、角度、缩放比例与擦除标记自动存在本机浏览器（localStorage），重开同一文件自动恢复，可一键清除。
 - **离线可用 & 响应式**：PDF worker、图标与字体全部本地打包，断网 / 内网照常使用；PC 与手机都能操作。
+
+<a id="dev"></a>
 
 ## 🚀 快速开始
 
@@ -124,6 +132,8 @@ npm run dev      # 启动后访问终端显示的地址（通常 http://localhos
 ├── deploy/             # 可选的 Actions 自动部署模板
 └── scripts/            # 一键发布脚本
 ```
+
+<a id="deploy"></a>
 
 ## 🚢 部署
 
