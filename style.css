@@ -407,10 +407,26 @@ a:focus-visible {
     color: var(--text-secondary);
 }
 
-.reset-rotation-btn {
-    width: 100%;
-    justify-content: center;
-    margin-top: 4px;
+
+/* 方向调整：「重置角度」与「应用全部页」并列一行 */
+.rotate-apply-row .btn {
+    flex: 1 1 0;
+    font-size: 0.85rem;
+    padding: 8px 6px;
+}
+
+/* 编辑工具：「恢复默认」与「应用所有页」并列一行 */
+.edit-apply-row .btn {
+    flex: 1 1 0;
+    font-size: 0.85rem;
+    padding: 8px 6px;
+}
+
+/* 裁剪后调整：「应用到当前页」与「应用所有页」并列一行 */
+.crop-apply-row .btn {
+    flex: 1 1 0;
+    font-size: 0.82rem;
+    padding: 9px 6px;
 }
 
 /* 裁剪后调整 */
@@ -703,12 +719,21 @@ a:focus-visible {
     font-weight: 700;
     color: var(--text-main);
     letter-spacing: 3px;
-    margin-bottom: 2px;
+    margin-bottom: 0;
+}
+
+/* 标题行：「文件导出」与成品尺寸小字同行，整体居中 */
+.export-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
 }
 
 /* 标题下的成品尺寸说明（A4 210×297mm） */
 .export-size-note {
-    margin: 0 0 10px;
+    margin: 0;
     text-align: center;
     font-size: 0.72rem;
     color: var(--text-secondary);
@@ -1107,6 +1132,16 @@ body.mask-rect-dragging {
         position: relative;   /* 展开的文件清单以浮层定位在面板内 */
     }
 
+    /* 手机端横向排列：缩略图在左、文件清单竖条在右
+       （DOM 中文件清单在前，这里用 order 把它排到右边） */
+    .left-panel .thumbnails-panel {
+        order: 1;
+    }
+
+    .left-panel .file-list-box {
+        order: 2;
+    }
+
     /* 缩略图：手机端在左侧，横向滚动，尺寸放大 */
     .left-panel .thumbnails-panel {
         flex: 1 1 auto;
@@ -1347,13 +1382,18 @@ body.mask-rect-dragging {
         margin-bottom: 0;
     }
 
-    /* 「文件导出」标题：小号左对齐，去掉多余字间距 */
+    /* 「文件导出」标题行：标题与成品尺寸小字同行，整体居中 */
+    .footer-actions .export-head {
+        justify-content: center;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+
+    /* 「文件导出」标题：小号，去掉多余字间距 */
     .footer-actions .export-title {
         font-size: 0.82rem;
         font-weight: 600;
         letter-spacing: 1px;
-        text-align: left;
-        margin-bottom: 4px;
     }
 
     .footer-actions .select-input {
@@ -1361,10 +1401,9 @@ body.mask-rect-dragging {
         font-size: 0.82rem;
     }
 
-    /* 标题下的成品尺寸小字：手机版再收小一档 */
+    /* 标题旁的成品尺寸小字：手机版再收小一档 */
     .footer-actions .export-size-note {
         font-size: 0.66rem;
-        margin: 0 0 6px;
         letter-spacing: .3px;
     }
 
@@ -1591,17 +1630,7 @@ body.mask-rect-dragging {
     color: #4338ca;
 }
 
-/* 分区内的说明文字 */
-.seal-hint {
-    font-size: 0.76rem;
-    line-height: 1.55;
-    color: var(--text-secondary);
-    margin: 0;
-}
 
-.seal-hint b {
-    color: var(--text-main);
-}
 
 /* ==================================================================
    多文件导入：文件列表（拖拽排序）

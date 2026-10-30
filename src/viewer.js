@@ -5,6 +5,7 @@ import { renderMasks, renderAppliedErasures } from './mask-editor.js';
 import { rotateCanvas, rotatedBounds } from './utils.js';
 import { syncCropZoomFromPage } from './crop-adjust.js';
 import { getPageSource } from './documents.js';
+import { showToast } from './toast.js';
 
 /**
  * 切换到指定页面
@@ -67,6 +68,21 @@ export function setPageRotation(angle) {
     config.rotation = ((v % 360) + 360) % 360;
     syncRotationUI();
     renderCurrentPage();
+}
+
+/**
+ * 把当前页的方向角度应用到所有页面
+ */
+export function applyRotationToAll() {
+    const angle = getPageConfig(state.currentPage).rotation || 0;
+    if (!confirm(`确定把当前页的方向角度（${angle}°）应用到所有页面吗？`)) return;
+
+    for (let i = 1; i <= state.totalPages; i++) {
+        getPageConfig(i).rotation = angle;
+    }
+
+    showToast(`方向角度已应用到所有页面（${angle}°）`, 'success');
+    document.dispatchEvent(new CustomEvent('papersplit:page-repaint'));
 }
 
 /**

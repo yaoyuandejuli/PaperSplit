@@ -3,6 +3,7 @@ import { getPageSource } from './documents.js';
 import { elements } from './dom.js';
 import { getPageConfig } from './editor.js';
 import { rotateCanvas, buildEraseOverlay } from './utils.js';
+import { showToast } from './toast.js';
 import { getSliceRanges, computePlacement, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
 
 /**
@@ -59,6 +60,23 @@ export function applyCropZoom() {
     renderCropPreview();
     flashApplied();
     // 比例已写入配置 → 通知外部（预览刷新 + 自动保存）
+    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
+}
+
+/**
+ * 把当前待应用比例应用到所有页面（每页独立生效，导出时统一使用）
+ */
+export function applyCropZoomToAll() {
+    const scale = state.outputScaleDraft;
+    if (!confirm(`确定把输出比例（${Math.round(scale * 100)}%）应用到所有页面吗？`)) return;
+
+    for (let i = 1; i <= state.totalPages; i++) {
+        getPageConfig(i).outputScale = scale;
+    }
+
+    showToast(`输出比例已应用到所有页面（${Math.round(scale * 100)}%）`, 'success');
+    syncCropZoomUI();
+    renderCropPreview();
     document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
@@ -121,13 +139,13 @@ export async function renderCropPreview() {
     const ctx = cv.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const cssW = Math.max(200, cv.clientWidth || 280);
-    // 预览高度：比原先更宽敞，让修改后的一页内容看得更清楚
-    const cssH = 300;
+    // 预览区最大高度（实际高度按内容自适应，不留多余空白）
+    const MAX_H = 300;
 
     cv.width = Math.round(cssW * dpr);
-    cv.height = Math.round(cssH * dpr);
+    cv.height = Math.round(MAX_H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssW, cssH);
+    ctx.clearRect(0, 0, cssW, MAX_H);
 
     if (!state.totalPages) return;
 
@@ -167,7 +185,7 @@ export async function renderCropPreview() {
     const pad = 12;
     const gap = 10;
     const availW = cssW - pad * 2;
-    const availH = cssH - pad * 2;
+    const contentMaxH = MAX_H - pad * 2;
     const n = papers.length;
 
     // 成品页恒为标准 A4 竖版，宽高比固定
@@ -180,7 +198,7 @@ export async function renderCropPreview() {
     for (let c = 1; c <= n; c++) {
         const r = Math.ceil(n / c);
         const wLimit = (availW - gap * (c - 1)) / c;
-        const hLimit = (availH - gap * (r - 1)) / r;
+        const hLimit = (contentMaxH - gap * (r - 1)) / r;
         const h = Math.min(wLimit / ASPECT, hLimit);
         if (h > paperH + 0.5) {
             paperH = h;
@@ -189,6 +207,15 @@ export async function renderCropPreview() {
         }
     }
     const rows = Math.ceil(n / cols);
+
+    // 画布高度按实际内容裁掉多余空白（页数少时不再留一大片空地）
+    const needH = pad * 2 + rows * paperH + (rows - 1) * gap;
+    const cssH = Math.max(90, Math.min(MAX_H, Math.ceil(needH)));
+    if (cv.height !== Math.round(cssH * dpr)) {
+        cv.height = Math.round(cssH * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
 
     papers.forEach((p, idx) => {
         const col = idx % cols;

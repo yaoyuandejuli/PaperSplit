@@ -116,8 +116,6 @@ async function importFiles(files, mode) {
     elements.resetDefaultsBtn.disabled = false;
     elements.splitHalfBtn.disabled = false;
     elements.splitThirdBtn.disabled = false;
-    elements.applyToOddBtn.disabled = false;
-    elements.applyToEvenBtn.disabled = false;
     elements.applyToAllBtn.disabled = false;
     elements.sealApplyOddBtn.disabled = false;
     elements.sealApplyEvenBtn.disabled = false;
@@ -126,11 +124,13 @@ async function importFiles(files, mode) {
     elements.rotateRightBtn.disabled = false;
     elements.rotateFineSlider.disabled = false;
     elements.resetRotationBtn.disabled = false;
+    elements.applyRotateAllBtn.disabled = false;
     elements.cropZoomSlider.disabled = false;
     elements.cropZoomInBtn.disabled = false;
     elements.cropZoomOutBtn.disabled = false;
     elements.cropZoomResetBtn.disabled = false;
     elements.applyCropZoomBtn.disabled = false;
+    elements.applyCropZoomAllBtn.disabled = false;
     elements.maskToggleBtn.disabled = false;
     elements.maskBrushBtn.disabled = false;
     elements.maskBrushSlider.disabled = false;

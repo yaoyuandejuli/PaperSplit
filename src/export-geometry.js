@@ -58,18 +58,63 @@ export function normalizeSeal(seal) {
 }
 
 /**
+ * 读取并规整某一页的全部密封区域
+ *
+ * 一页可以有多个密封区域（例如左右两侧同时存在装订线），
+ * 返回结果按位置升序。这里只做「合法性过滤 + 排序」，**不合并重叠区域** ——
+ * 合并会让区域下标发生偏移，导致拖动时改错区域；重叠部分由几何层自行处理。
+ *
+ * @param {Object} config 页面配置
+ * @returns {Array<{x0:number,x1:number}>}
+ */
+export function getSealRanges(config) {
+    if (!config) return [];
+    const raw = config.sealRanges != null ? config.sealRanges
+        : (config.sealRange != null ? config.sealRange : config.sealLine);
+    const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+
+    const valid = [];
+    for (const item of list) {
+        const s = normalizeSeal(item);
+        if (s) valid.push(s);
+    }
+    valid.sort((a, b) => a.x0 - b.x0);
+    return valid;
+}
+
+/**
+ * 从 [start, end] 区间中挖掉若干子区间，返回剩余的区间列表
+ * @param {number} start
+ * @param {number} end
+ * @param {Array<[number,number]>} removals 待挖掉的区间
+ * @returns {Array<[number,number]>}
+ */
+function subtractRanges(start, end, removals) {
+    let segs = [[start, end]];
+    for (const [a, b] of removals) {
+        const next = [];
+        for (const [s, e] of segs) {
+            if (b <= s || a >= e) { next.push([s, e]); continue; }
+            if (a > s) next.push([s, a]);
+            if (b < e) next.push([b, e]);
+        }
+        segs = next;
+    }
+    return segs.filter(([s, e]) => e - s > 0.0001);
+}
+
+/**
  * 根据页面配置计算切割区间（多条分割线 => 分栏，叠加密封区域）
  *
  * 密封区域与分割线彼此独立、可同时使用：
- *  1. 先从整页中挖掉密封区域 [x0, x1]（可落在任意位置，居中时页面被分成左右两块）
+ *  1. 先从整页中挖掉所有密封区域（可落在任意位置，一页可有多个）
  *  2. 再在每一块保留区域内，按落在该区域内的分割线继续切分
  *
- * @param {Object} config 页面配置 { splitLines, sealRange }
+ * @param {Object} config 页面配置 { splitLines, sealRanges }
  * @returns {Array<[number, number]>} 各段的 [起始比例, 结束比例]
  */
 export function getSliceRanges(config) {
-    const raw = (config && config.sealRange != null) ? config.sealRange : (config && config.sealLine);
-    const seal = normalizeSeal(raw);
+    const seals = getSealRanges(config);
 
     // 多条分割线支持：将页面按分割线数组切成 N 段
     // 无分割线（用户已用「去除分割线」全部移除）=> 整页不切，只有一段
@@ -77,13 +122,8 @@ export function getSliceRanges(config) {
         ? [...config.splitLines].sort((a, b) => a - b)
         : [];
 
-    // 保留区域：挖掉密封区域后剩下的部分
-    let regions = [[0, 1]];
-    if (seal) {
-        regions = [];
-        if (seal.x0 > 0.001) regions.push([0, seal.x0]);
-        if (seal.x1 < 0.999) regions.push([seal.x1, 1]);
-    }
+    // 保留区域：挖掉所有密封区域后剩下的部分
+    let regions = subtractRanges(0, 1, seals.map(s => [s.x0, s.x1]));
     if (!regions.length) regions = [[0, 1]];
 
     // 在每块保留区域内按分割线切分

@@ -4,7 +4,7 @@
 export const state = {
     currentPage: 1,       // 当前页码
     totalPages: 0,        // 总页数
-    pagesData: {},        // 页面配置数据 { pageIndex: { splitLines: number[], sealRange } }
+    pagesData: {},        // 页面配置数据 { pageIndex: { splitLines: number[], sealRanges: [{x0,x1}] } }
     fileName: 'document', // 当前文件名（仅用于本地存储记录的展示名）
     rotationBase: 0,      // 整转基准角 ([0,360))，微调滑块相对此偏移
     outputScaleDraft: 1,  // 「裁剪后调整」待应用比例（应用到当前页后写入 config.outputScale）

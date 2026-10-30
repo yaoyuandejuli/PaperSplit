@@ -9,8 +9,6 @@ export const elements = {
 
     // New controls
     // 编辑工具 · 批量应用：奇数页 / 偶数页（并排一行）+ 所有页（独占一行）
-    applyToOddBtn: document.getElementById('applyToOddBtn'),
-    applyToEvenBtn: document.getElementById('applyToEvenBtn'),
     applyToAllBtn: document.getElementById('applyToAllBtn'),
 
     // 方向旋转
@@ -20,6 +18,7 @@ export const elements = {
     rotateFineSlider: document.getElementById('rotateFineSlider'),
     rotateFineVal: document.getElementById('rotateFineVal'),
     resetRotationBtn: document.getElementById('resetRotationBtn'),
+    applyRotateAllBtn: document.getElementById('applyRotateAllBtn'),
     // 裁剪后调整（作用于成品页大小，导出时生效）
     cropZoomSlider: document.getElementById('cropZoomSlider'),
     cropZoomVal: document.getElementById('cropZoomVal'),
@@ -29,6 +28,7 @@ export const elements = {
     cropZoomOutBtn: document.getElementById('cropZoomOutBtn'),
     cropZoomResetBtn: document.getElementById('cropZoomResetBtn'),
     applyCropZoomBtn: document.getElementById('applyCropZoomBtn'),
+    applyCropZoomAllBtn: document.getElementById('applyCropZoomAllBtn'),
     cropPreview: document.getElementById('cropPreview'),
 
     exportBtn: document.getElementById('exportBtn'),

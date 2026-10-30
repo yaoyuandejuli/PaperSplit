@@ -10,12 +10,12 @@ import { state } from './state.js';
 import { handleFileUpload, setImportMode } from './file-handler.js';
 import { toggleFileList } from './file-list.js';
 import { openSortPanel, closeSortPanel, applySort, resetSort } from './page-sort.js';
-import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation } from './viewer.js';
-import { toggleSealLine, setSealSide, applySplitToOdd, applySplitToEven, applySplitToAll, applySealToOdd, applySealToEven, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig, toggleSealSelectMode, initSealInteractions } from './editor.js';
+import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation, applyRotationToAll } from './viewer.js';
+import { toggleSealLine, setSealSide, applySplitToAll, applySealToOdd, applySealToEven, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig, toggleSealSelectMode, initSealInteractions } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
 import {
-    setCropZoomDraft, stepCropZoom, resetCropZoom, applyCropZoom,
+    setCropZoomDraft, stepCropZoom, resetCropZoom, applyCropZoom, applyCropZoomToAll,
     syncCropZoomUI, renderCropPreview, scheduleCropPreview, STEP
 } from './crop-adjust.js';
 import { saveEditConfig, scheduleSave, clearEditConfig } from './storage.js';
@@ -220,6 +220,7 @@ function initEventListeners() {
     elements.rotateLeftBtn.addEventListener('click', () => rotatePage(-90));
     elements.rotateRightBtn.addEventListener('click', () => rotatePage(90));
     elements.resetRotationBtn.addEventListener('click', resetRotation);
+    elements.applyRotateAllBtn.addEventListener('click', applyRotationToAll);
 
     // 「裁剪后调整」：调整裁剪结果在成品页面上的大小
     elements.cropZoomOutBtn.addEventListener('click', () => stepCropZoom(-STEP));
@@ -229,6 +230,7 @@ function initEventListeners() {
         setCropZoomDraft(Number(elements.cropZoomSlider.value) / 100);
     });
     elements.applyCropZoomBtn.addEventListener('click', applyCropZoom);
+    elements.applyCropZoomAllBtn.addEventListener('click', applyCropZoomToAll);
 
     // 分割线 / 密封线 / 方向变化后刷新「修改后文件预览」
     document.addEventListener('papersplit:config-changed', scheduleCropPreview);
@@ -255,8 +257,6 @@ function initEventListeners() {
         applyFineRotation();
     });
     // 「批量应用」· 编辑工具：把当前页的分割设置复制到奇数页 / 偶数页 / 所有页
-    elements.applyToOddBtn.addEventListener('click', applySplitToOdd);
-    elements.applyToEvenBtn.addEventListener('click', applySplitToEven);
     elements.applyToAllBtn.addEventListener('click', applySplitToAll);
     // 「批量应用」· 密封线：把密封线统一设置到奇数页 / 偶数页 / 所有页
     elements.sealApplyOddBtn.addEventListener('click', applySealToOdd);
