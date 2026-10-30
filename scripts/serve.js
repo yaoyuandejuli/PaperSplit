@@ -15,6 +15,9 @@
  *   node scripts/serve.js                 # 服务 dist/，端口 8080
  *   node scripts/serve.js 3000            # 指定端口
  *   node scripts/serve.js 3000 docs       # 指定端口与目录
+ *
+ *   在部署包里（产物已解压到本目录）直接运行 `node serve.js` 即可，
+ *   会自动识别当前目录就是站点根目录。
  */
 
 import http from 'node:http';
@@ -26,8 +29,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 const port = Number(process.argv[2]) || 8080;
-const dirArg = process.argv[3] || 'dist';
-const DIR = path.resolve(ROOT, dirArg);
+
+/**
+ * 确定要服务的目录：
+ *   1. 命令行指定了目录 → 用它；
+ *   2. 当前目录本身就是构建产物（含有 index.html 与 assets/）→ 用当前目录
+ *      （部署包解压后就是这种结构）；
+ *   3. 否则用项目里的 dist/。
+ */
+function resolveDir(arg) {
+    if (arg) return path.resolve(ROOT, arg);
+
+    const here = path.resolve(__dirname);
+    const looksLikeBuild = fs.existsSync(path.join(here, 'index.html')) &&
+        fs.existsSync(path.join(here, 'assets'));
+    if (looksLikeBuild) return here;
+
+    return path.resolve(ROOT, 'dist');
+}
+
+const DIR = resolveDir(process.argv[3]);
 
 const MIME = {
     '.html': 'text/html; charset=utf-8',
