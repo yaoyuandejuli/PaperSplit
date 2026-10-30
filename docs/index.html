@@ -15,9 +15,9 @@
     <title>PaperSplit - A3 试卷拆分</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-MS1cifJX.js"></script>
+  <script type="module" crossorigin src="./assets/index-Du-r6FU1.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-BP0yKpYY.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-BygVUWWo.css">
 </head>
 
 <body>
@@ -57,25 +57,29 @@
 
         <!-- 三栏布局主体 -->
         <main class="main-layout">
-            <!-- 左侧：文件列表 + 缩略图 -->
+            <!-- 左侧：缩略图 + 已导入文件清单 -->
             <aside class="left-panel custom-scrollbar">
-                <!-- 已导入文件清单 -->
+                <!-- 缩略图动态生成（手机端为主区域，放大展示） -->
+                <div class="thumbnails-panel" id="thumbnailsPanel"></div>
+
+                <!-- 已导入文件清单（手机端收在右侧，点击标题展开） -->
                 <div class="file-list-box" id="fileListBox" hidden>
-                    <div class="file-list-head">
-                        <span class="material-icons file-list-icon" aria-hidden="true">folder_open</span>
-                        <span class="file-list-title">已导入文件</span>
-                        <span class="file-list-count" id="fileListCount"></span>
+                    <div class="file-list-top">
+                        <button type="button" class="file-list-head" id="fileListToggle"
+                            aria-expanded="false" aria-controls="fileList">
+                            <span class="material-icons file-list-icon" aria-hidden="true">folder_open</span>
+                            <span class="file-list-title">已导入文件</span>
+                            <span class="file-list-count" id="fileListCount"></span>
+                            <span class="material-icons file-list-caret" aria-hidden="true">chevron_left</span>
+                        </button>
                         <button type="button" class="file-add-btn" id="addFilesBtn" title="继续添加文件（追加到末尾）" hidden>
                             <span class="material-icons" aria-hidden="true">add</span>
                             <span class="sr-only">继续添加文件</span>
                         </button>
                     </div>
                     <ul class="file-list" id="fileList"></ul>
-                    <p class="file-list-tip">点击卡片跳转到该文件；页面先后请用「导出前排序」调整</p>
+                    <p class="file-list-tip">点击卡片跳转 · 页面先后用「导出前排序」</p>
                 </div>
-
-                <!-- 缩略图动态生成 -->
-                <div class="thumbnails-panel" id="thumbnailsPanel"></div>
             </aside>
 
             <!-- 中间：工作区 (支持拖拽上传) -->

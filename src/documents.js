@@ -52,7 +52,7 @@ export function getOrderedDocs() {
  * @param {Object} oldPagesData 调整前的各页配置
  * @returns {Object} 调整后的各页配置
  */
-export function remapPagesData(oldSlots, newSlots, oldPagesData) {
+function remapPagesData(oldSlots, newSlots, oldPagesData) {
     const oldIndex = new Map();
     oldSlots.forEach((s, i) => oldIndex.set(`${s.docId}:${s.localPage}`, i + 1));
 
@@ -69,7 +69,7 @@ export function remapPagesData(oldSlots, newSlots, oldPagesData) {
 /**
  * 重新计算页数
  */
-export function syncTotalPages() {
+function syncTotalPages() {
     state.totalPages = state.pageSlots.length;
 }
 

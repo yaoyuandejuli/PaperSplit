@@ -4,10 +4,8 @@
 export const state = {
     currentPage: 1,       // 当前页码
     totalPages: 0,        // 总页数
-    scale: 1.5,           // 渲染缩放比例
     pagesData: {},        // 页面配置数据 { pageIndex: { splitLines: number[], sealLine } }
-    fileName: 'document', // 当前文件名
-    isPdf: true,          // 当前页是否为 PDF 来源（兼容位，由页面源决定）
+    fileName: 'document', // 当前文件名（仅用于本地存储记录的展示名）
     rotationBase: 0,      // 整转基准角 ([0,360))，微调滑块相对此偏移
     outputScaleDraft: 1,  // 「裁剪后调整」待应用比例（应用到当前页后写入 config.outputScale）
     brushSize: 0.06,      // 「涂抹擦除」笔刷直径，占页面宽度的比例
@@ -28,7 +26,6 @@ export function resetState() {
     state.currentPage = 1;
     state.totalPages = 0;
     state.pagesData = {};
-    state.isPdf = true;
     state.rotationBase = 0;
     state.outputScaleDraft = 1;
     state.brushSize = 0.06;

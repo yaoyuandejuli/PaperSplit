@@ -8,6 +8,7 @@ import '@fontsource/outfit/700.css';
 import { elements } from './dom.js';
 import { state } from './state.js';
 import { handleFileUpload, setImportMode } from './file-handler.js';
+import { toggleFileList } from './file-list.js';
 import { openSortPanel, closeSortPanel, applySort, resetSort } from './page-sort.js';
 import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation } from './viewer.js';
 import { toggleSealLine, setSealSide, applySplitToOdd, applySplitToEven, applySplitToAll, applySealToOdd, applySealToEven, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig } from './editor.js';
@@ -131,6 +132,10 @@ function initEventListeners() {
             setImportMode('append');
             elements.fileInput.click();
         });
+    }
+    // 手机端：点击「已导入文件」标题展开 / 收起文件清单
+    if (elements.fileListToggle) {
+        elements.fileListToggle.addEventListener('click', toggleFileList);
     }
     elements.fileInput.addEventListener('change', handleFileUpload);
 

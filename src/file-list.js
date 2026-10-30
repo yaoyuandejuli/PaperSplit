@@ -1,10 +1,12 @@
 /**
  * 已导入文件清单
  *
- * 左面板顶部显示已导入的文件，支持：
+ * 左面板显示已导入的文件，支持：
  *   - 移除单个文件（它的页面会一并移除，其余页面的编辑配置自动跟位）
  *   - 点击卡片跳转到该文件的第一页
  *   - 继续添加更多文件（追加到末尾）
+ *
+ * 桌面端清单常驻展开；手机端收在右侧竖条里，点击标题展开 / 收起。
  *
  * 注意：文件本身**不支持拖拽重排** —— 页面先后统一由「导出前排序」（页级）调整，
  * 那里可以把任意文件的所有页整体前移 / 后移，功能上完全覆盖文件级重排。
@@ -14,6 +16,18 @@ import { elements } from './dom.js';
 import { getOrderedDocs, removeDocument, firstPageOf } from './documents.js';
 import { renderThumbnails, renderCurrentPage, changePage, updatePageControls } from './viewer.js';
 import { showToast } from './toast.js';
+
+/**
+ * 展开 / 收起文件清单（仅手机端生效，桌面端始终展开）
+ */
+export function toggleFileList() {
+    const box = elements.fileListBox;
+    if (!box) return;
+    const expanded = box.classList.toggle('expanded');
+    if (elements.fileListToggle) {
+        elements.fileListToggle.setAttribute('aria-expanded', String(expanded));
+    }
+}
 
 /**
  * 渲染文件清单
@@ -71,6 +85,7 @@ export function renderFileList() {
 
         li.append(badge, name, pages, remove);
 
+        // 点击卡片跳转到该文件的第一页
         li.addEventListener('click', () => {
             const page = firstPageOf(doc.id);
             if (page) changePage(page);

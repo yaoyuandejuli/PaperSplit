@@ -1079,29 +1079,212 @@ body.mask-rect-dragging {
         padding: 8px;
     }
 
-    /* Left Panel - Thumbnails (Horizontal Scroll) */
+    /* ------------------------------------------------------------------
+       Left Panel（手机端）
+       横向两栏：左侧放大展示缩略图（主区域），右侧是「已导入文件」竖条。
+       竖条默认收起，只露出一行标题；点击标题展开文件卡片列表。
+       ------------------------------------------------------------------ */
     .left-panel {
         width: 100%;
         min-width: 0;
-        height: 120px;
+        height: 180px;
         flex-direction: row;
-        overflow-x: auto;
-        overflow-y: hidden;
+        align-items: stretch;
+        gap: 8px;
+        overflow: hidden;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
-        padding: 10px;
+        padding: 8px;
+        position: relative;   /* 展开的文件清单以浮层定位在面板内 */
+    }
+
+    /* 缩略图：手机端在左侧，横向滚动，尺寸放大 */
+    .left-panel .thumbnails-panel {
+        flex: 1 1 auto;
+        min-width: 0;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
     }
 
     .thumbnail-item {
-        min-width: 80px;
-        width: 80px;
+        min-width: 108px;
+        width: 108px;
+        flex-shrink: 0;
         display: flex;
         flex-direction: column;
     }
 
-    /* Center Panel - Canvas */
+    /* 文件清单竖条：默认收起，仅显示标题行 */
+    .left-panel .file-list-box {
+        flex: 0 0 auto;
+        width: 44px;
+        min-width: 44px;
+        padding: 6px 4px;
+        gap: 6px;
+        align-items: center;
+        overflow: hidden;
+        transition: width .22s ease, min-width .22s ease;
+    }
+    /* 竖条里标题与添加按钮上下排列 */
+    .left-panel .file-list-top {
+        flex-direction: column;
+        gap: 4px;
+        align-items: center;
+        width: 100%;
+    }
+
+    /* 标题行在竖条里竖排显示 */
+    .left-panel .file-list-head {
+        flex-direction: column;
+        gap: 2px;
+        height: 100%;
+        justify-content: flex-start;
+        cursor: pointer;
+        padding: 2px 0;
+        border-radius: 6px;
+        transition: background .15s;
+    }
+
+    .left-panel .file-list-head:active {
+        background: #e2e8f0;
+    }
+
+    .left-panel .file-list-title {
+        /* 竖排：逐字显示，避免横向挤压导致文字异常 */
+        writing-mode: vertical-rl;
+        letter-spacing: 1px;
+        font-size: 11px;
+        max-height: 100%;
+    }
+
+    .left-panel .file-list-count {
+        margin-left: 0;
+        font-size: 10px;
+    }
+
+    .left-panel .file-list-head .file-list-caret {
+        display: block;
+        font-size: 16px;
+        transform: rotate(0deg);
+    }
+
+    /* 展开态：竖条变宽，显示完整卡片列表。
+       采用「浮层覆盖」而非挤压缩略图 —— 这样展开面板能用满左面板高度，
+       多张文件卡片都能一次看全，且不会把缩略图挤到只剩一条缝。 */
+    .left-panel .file-list-box.expanded {
+        position: absolute;
+        /* 绝对定位的包含块是 .left-panel 的 padding box，
+           直接用 top/bottom + height:auto 让浏览器算出满高 */
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 210px;
+        min-width: 210px;
+        align-items: stretch;
+        z-index: 20;
+        box-shadow: 0 8px 24px -8px rgb(15 23 42 / 0.28);
+        background: var(--surface-color);
+        /* 展开后由内部列表自行滚动，外层不裁剪 */
+        overflow: visible;
+        border-radius: var(--radius);
+        /* 绝对定位时 flex 属性不参与布局，但显式置空避免继承 flex-basis 干扰 */
+        flex: 0 0 auto;
+        height: auto;
+    }
+
+    .left-panel .file-list-box.expanded .file-list-top {
+        flex-direction: row;
+        gap: 6px;
+        align-items: center;
+    }
+
+    .left-panel .file-list-box.expanded .file-list-head {
+        flex-direction: row;
+        gap: 6px;
+        height: auto;
+    }
+
+    .left-panel .file-list-box.expanded .file-list-title {
+        writing-mode: horizontal-tb;
+        font-size: 12px;
+    }
+
+    .left-panel .file-list-box.expanded .file-list-count {
+        margin-left: auto;
+        font-size: 11px;
+    }
+
+    .left-panel .file-list-box.expanded .file-list-caret {
+        transform: rotate(180deg);
+    }
+
+    /* 收起时隐藏列表与提示文字 */
+    .left-panel .file-list-box:not(.expanded) .file-list,
+    .left-panel .file-list-box:not(.expanded) .file-list-tip {
+        display: none;
+    }
+
+    /* 展开时列表可滚动，高度占满浮层剩余空间 */
+    .left-panel .file-list-box.expanded .file-list {
+        overflow-y: auto;
+        overflow-x: hidden;
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+    }
+
+    .left-panel .file-list-box.expanded .file-list-tip {
+        display: block;
+        font-size: 10px;
+        line-height: 1.4;
+        flex-shrink: 0;
+        /* 提示文字改为列表上方的一行说明，避免遮挡下方卡片 */
+        order: -1;
+        padding-bottom: 2px;
+    }
+
+    /* 竖条里的添加按钮 */
+    .left-panel .file-add-btn {
+        width: 26px;
+        height: 26px;
+        flex-shrink: 0;
+    }
+
+    /* 手机端卡片：加大触摸高度，移除按钮也放大到易点尺寸 */
+    .left-panel .file-card {
+        padding: 7px 6px;
+        gap: 5px;
+    }
+
+    .left-panel .file-remove {
+        width: 26px;
+        height: 26px;
+        font-size: 19px;
+        /* 扩大可点区域，但视觉大小不变 */
+        margin: -4px -4px -4px 0;
+    }
+
+    /* 展开态下面板较宽，徽标 / 文件名 / 页数 / 移除按钮可同排 */
+    .left-panel .file-list-box.expanded .file-card {
+        flex-wrap: nowrap;
+    }
+
+    .left-panel .file-list-box.expanded .file-name {
+        font-size: 11px;
+    }
+
+    .left-panel .file-list-box.expanded .file-pages {
+        font-size: 10px;
+    }
+
+    /* Center Panel - Canvas（导入后画布是主要操作区，给足高度） */
     .center-panel {
-        min-height: 50vh;
+        min-height: 58vh;
         padding: 10px;
     }
 
@@ -1380,7 +1563,7 @@ body.mask-rect-dragging {
     border: 0;
 }
 
-/* 缩略图容器独立成一块，便于在其上方放文件列表 */
+/* 缩略图容器独立成一块；桌面端在左、手机端占据主区域 */
 .thumbnails-panel {
     display: flex;
     flex-direction: column;
@@ -1400,6 +1583,23 @@ body.mask-rect-dragging {
     flex-shrink: 0;
 }
 
+/* 标题行 + 添加按钮的容器 */
+.file-list-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+/* 展开箭头：仅手机端可见。
+   用 .file-list-head 限定特异性，避免被手机端媒体查询里的规则覆盖。 */
+.file-list-head .file-list-caret {
+    display: none;
+    font-size: 18px;
+    transition: transform .2s ease;
+}
+
+/* 标题行：桌面端只是静态文字，手机端是展开/收起按钮 */
 .file-list-head {
     display: flex;
     align-items: center;
@@ -1409,11 +1609,20 @@ body.mask-rect-dragging {
     font-weight: 600;
     flex-wrap: nowrap;
     overflow: hidden;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    text-align: left;
+    font-family: inherit;
+    cursor: default;
 }
 
 .file-list-icon {
     font-size: 16px;
     color: var(--primary-color);
+    flex-shrink: 0;
 }
 
 .file-list-title {

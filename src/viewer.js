@@ -92,7 +92,6 @@ export async function renderCurrentPage() {
     // 解析当前页来自哪个文件（多文件合并后，每页可能来源不同）
     const source = getPageSource(state.currentPage);
     if (!source) return;
-    state.isPdf = source.isPdf;
 
     if (source.isPdf) {
         const page = await source.doc.pdfDoc.getPage(source.localPage);

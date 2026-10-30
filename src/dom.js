@@ -67,10 +67,11 @@ export const elements = {
     emptyState: document.getElementById('emptyState'),
     dragOverlay: document.getElementById('dragOverlay'),
 
-    // 文件列表（多选导入 + 拖拽排序）
+    // 文件清单（多选导入后展示文件列表；手机端为可折叠竖条）
     fileListBox: document.getElementById('fileListBox'),
     fileList: document.getElementById('fileList'),
     fileListCount: document.getElementById('fileListCount'),
+    fileListToggle: document.getElementById('fileListToggle'),
     addFilesBtn: document.getElementById('addFilesBtn'),
 
     // 导出前排序面板（页级手动排序）
