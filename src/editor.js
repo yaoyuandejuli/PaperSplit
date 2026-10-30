@@ -98,11 +98,25 @@ export function renderSplitLines() {
     // 同步「去除分割线」相关按钮与提示
     updateSplitRemoveUI();
 
-    // 更新方向角度显示与微调滑块
-    // 微调滑块值为【相对整转基准 rotationBase 的偏移】，翻页/±90° 时基准已更新，偏移归零
+    // 通知外部：分割/密封/方向已变更，「裁剪结果预览」需要重绘
+    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
+}
+
+/**
+ * 同步「方向调整」的界面显示
+ *  - 角度读数：当前页的绝对角度
+ *  - 微调滑块：相对「整转基准 rotationBase」的偏移（±15°）
+ *
+ * 与分割线渲染解耦：调整分割不会改变角度，无需重写这两处；
+ * 反之旋转也不必重建分割线 DOM。
+ */
+export function syncRotationUI() {
+    const config = getPageConfig(state.currentPage);
+
     if (elements.rotateAngle) {
         elements.rotateAngle.textContent = `${config.rotation || 0}°`;
     }
+
     if (elements.rotateFineSlider) {
         // 计算相对基准的偏移并归一到 [-180,180]，再裁剪进微调域 ±15°
         let off = (((config.rotation || 0) - state.rotationBase + 540) % 360) - 180;
@@ -112,9 +126,6 @@ export function renderSplitLines() {
             elements.rotateFineVal.textContent = (off > 0 ? '+' : '') + off;
         }
     }
-
-    // 通知外部：分割/密封/方向已变更，「裁剪结果预览」需要重绘
-    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
 /**
@@ -445,7 +456,7 @@ export function exitRemoveSplitMode() {
  * 删除某条分割线（「去除分割线」模式下点击即删）
  * @param {number} index 分割线在 config.splitLines 中的索引
  */
-export function removeSplitLineAt(index) {
+function removeSplitLineAt(index) {
     const config = getPageConfig(state.currentPage);
     if (typeof config.splitLines[index] !== 'number') return;
 
@@ -462,7 +473,7 @@ export function removeSplitLineAt(index) {
 }
 
 /** 同步「去除分割线」相关的按钮与提示文案 */
-export function updateSplitRemoveUI() {
+function updateSplitRemoveUI() {
     const config = state.pagesData[state.currentPage];
     const total = (config && Array.isArray(config.splitLines)) ? config.splitLines.length : 0;
 

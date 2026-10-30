@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { renderSplitLines, getPageConfig } from './editor.js';
+import { renderSplitLines, getPageConfig, syncRotationUI } from './editor.js';
 import { renderMasks, renderAppliedErasures } from './mask-editor.js';
 import { rotateCanvas, rotatedBounds } from './utils.js';
 import { syncCropZoomFromPage } from './crop-adjust.js';
@@ -13,12 +13,9 @@ export function changePage(pageNum) {
     if (pageNum < 1 || pageNum > state.totalPages) return;
 
     state.currentPage = pageNum;
-    // 翻页时把旋转基准重置为该页绝对角，微调滑块归零
+    // 翻页时把旋转基准重置为该页绝对角，微调滑块归零（偏移 = 角度 - 基准 = 0）
     state.rotationBase = getPageConfig(state.currentPage).rotation || 0;
-    if (elements.rotateFineSlider) {
-        elements.rotateFineSlider.value = 0;
-        if (elements.rotateFineVal) elements.rotateFineVal.textContent = '0';
-    }
+    syncRotationUI();
     // 「裁剪后调整」的待应用值同步为该页已应用值
     syncCropZoomFromPage();
     updatePageControls();
@@ -40,10 +37,7 @@ export function rotatePage(delta) {
     config.rotation = (((config.rotation || 0) + delta) % 360 + 360) % 360;
     // 整转（左/右 90°）后更新旋转基准为新的绝对角，微调滑块归零
     state.rotationBase = config.rotation;
-    if (elements.rotateFineSlider) {
-        elements.rotateFineSlider.value = 0;
-        if (elements.rotateFineVal) elements.rotateFineVal.textContent = '0';
-    }
+    syncRotationUI();
     renderCurrentPage();
 }
 
@@ -54,10 +48,7 @@ export function resetRotation() {
     const config = getPageConfig(state.currentPage);
     config.rotation = 0;
     state.rotationBase = 0;
-    if (elements.rotateFineSlider) {
-        elements.rotateFineSlider.value = 0;
-        if (elements.rotateFineVal) elements.rotateFineVal.textContent = '0';
-    }
+    syncRotationUI();
     renderCurrentPage();
 }
 
@@ -70,6 +61,7 @@ export function setPageRotation(angle) {
     if (!Number.isFinite(v)) return;
     const config = getPageConfig(state.currentPage);
     config.rotation = ((v % 360) + 360) % 360;
+    syncRotationUI();
     renderCurrentPage();
 }
 

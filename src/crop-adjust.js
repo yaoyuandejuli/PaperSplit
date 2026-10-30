@@ -19,7 +19,7 @@ export const MAX_SCALE = 2;     // 200%
 export const STEP = 0.05;       // 5%
 
 /** 当前页已应用的比例 */
-export function getAppliedScale() {
+function getAppliedScale() {
     const cfg = getPageConfig(state.currentPage);
     return typeof cfg.outputScale === 'number' && cfg.outputScale > 0 ? cfg.outputScale : 1;
 }

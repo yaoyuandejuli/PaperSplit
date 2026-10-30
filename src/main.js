@@ -9,13 +9,51 @@ import { elements } from './dom.js';
 import { state } from './state.js';
 import { handleFileUpload } from './file-handler.js';
 import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation } from './viewer.js';
-import { toggleSealLine, applySplitToType, applySplitToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults } from './editor.js';
+import { toggleSealLine, applySplitToType, applySplitToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
 import {
     setCropZoomDraft, stepCropZoom, resetCropZoom, applyCropZoom,
     syncCropZoomUI, renderCropPreview, scheduleCropPreview, STEP
 } from './crop-adjust.js';
+
+/**
+ * 微调角度：节流调度
+ * 拖动滑块时 input 事件非常密集（每秒可达数十次），而每次都会完整重渲染
+ * PDF 页面（重新取页、绘制、擦除重绘），连续触发会造成明显卡顿。
+ * 这里限制为最多每 50ms 重渲染一次，并保证最后一次一定生效（尾随执行）。
+ */
+const FINE_ROTATE_MIN_INTERVAL = 50;   // ms
+let fineRotateLastRun = 0;
+let fineRotateTimer = 0;
+
+/** 把当前微调滑块的角度应用到页面（已是目标角度时跳过，避免重复渲染） */
+function applyFineRotation() {
+    const target = state.rotationBase + Number(elements.rotateFineSlider.value);
+    const current = getPageConfig(state.currentPage).rotation || 0;
+    // 比较两个角度是否等价（0 与 360 同义）
+    const diff = Math.abs((((target - current) % 360) + 540) % 360 - 180);
+    if (diff < 0.01) return;
+    // 微调 = 整转基准 + 滑块偏移
+    setPageRotation(target);
+}
+
+function scheduleFineRotation() {
+    const page = state.currentPage;
+    const wait = FINE_ROTATE_MIN_INTERVAL - (Date.now() - fineRotateLastRun);
+    if (wait <= 0) {
+        fineRotateLastRun = Date.now();
+        applyFineRotation();
+    } else if (!fineRotateTimer) {
+        fineRotateTimer = setTimeout(() => {
+            fineRotateTimer = 0;
+            // 期间若已翻页，本次任务作废（否则会用上一页的偏移去转新页）
+            if (state.currentPage !== page) return;
+            fineRotateLastRun = Date.now();
+            applyFineRotation();
+        }, wait);
+    }
+}
 
 /**
  * 操作指南：点击展开 / 收起（可访问的 disclosure 控件）
@@ -119,8 +157,13 @@ function initEventListeners() {
         if (elements.rotateFineVal) {
             elements.rotateFineVal.textContent = (offset > 0 ? '+' : '') + offset;
         }
-        // 微调 = 整转基准 + 滑块偏移
-        setPageRotation(state.rotationBase + offset);
+        scheduleFineRotation();
+    });
+    // 松手时立即应用最终角度（不必等节流窗口）
+    elements.rotateFineSlider.addEventListener('change', () => {
+        if (fineRotateTimer) { clearTimeout(fineRotateTimer); fineRotateTimer = 0; }
+        fineRotateLastRun = Date.now();
+        applyFineRotation();
     });
     elements.applyToTypeBtn.addEventListener('click', () => applySplitToType());
     elements.applyToAllBtn.addEventListener('click', () => applySplitToAll());

@@ -49,11 +49,6 @@ export function isMaskMode() {
     return maskMode !== MODE_OFF;
 }
 
-/** 当前模式 */
-export function getMaskMode() {
-    return maskMode;
-}
-
 /** 切换框选模式 */
 export function toggleMaskMode() {
     maskMode = (maskMode === MODE_RECT) ? MODE_OFF : MODE_RECT;
@@ -195,7 +190,7 @@ export function undoErase() {
 }
 
 /** 当前页擦除内容的统计 { rects, strokes, total, applied, pending } */
-export function getEraseCount() {
+function getEraseCount() {
     const cfg = state.pagesData[state.currentPage];
     const masks = (cfg && Array.isArray(cfg.masks)) ? cfg.masks : [];
     const strokes = (cfg && Array.isArray(cfg.strokes)) ? cfg.strokes : [];

@@ -123,14 +123,14 @@ npm run dev
 
 ---
 
-## �️ Tech Stack / 技术栈
+## 🛠️ Tech Stack / 技术栈
 
 *   **Core**: Native JavaScript (ES6 Modules)
 *   **PDF Processing**: `pdfjs-dist` (Rendering), `jspdf` (Generation)
 *   **Styling**: CSS3 (Flexbox/Grid), Material Icons, Google Fonts
 *   **Build**: Vite
 
-## �📂 Project Structure / 项目结构
+## 📂 Project Structure / 项目结构
 
 ```
 /
@@ -179,8 +179,10 @@ npm run dev
 ```bash
 npm run build
 rm -rf docs && cp -r dist docs     # 同步构建产物到 docs/
-bash scripts/publish-pages.sh       # 把 docs/ 推到 gh-pages 分支，1-2 分钟生效
+npm run publish:pages               # 把 docs/ 推到 gh-pages 分支，1-2 分钟生效
 ```
+
+> `publish:pages` 会先检查 `docs/` 是否与 `dist/` 一致，避免发布过期内容。
 
 ### 方式二：GitHub Actions 自动发布（可选）
 
@@ -210,6 +212,15 @@ npm run build           # 构建到 dist/
 MIT License
 
 ## 📅 Changelog / 更新日志
+
+### 2026-10-30 (Code Cleanup & Smoother Fine-Tuning / 代码整理与微调提速)
+
+- **Rotation UI decoupled from split-line rendering**: `renderSplitLines()` no longer owns the angle readout / fine-tune slider — those moved into a dedicated `syncRotationUI()`. Adjusting the split layout no longer rewrites the angle controls, and rotating no longer rebuilds the split-line DOM. 旋转显示与滑块同步从分割线渲染中拆出为独立函数：调整分栏不再改写角度控件，旋转也不再重建分割线 DOM。
+- **Fine-tune slider throttled**: dragging the ±15° slider previously re-rendered the whole PDF page on every `input` event (dozens of times per second). It is now throttled to one re-render per 50 ms with a guaranteed trailing update, and redundant re-renders are skipped when the angle is already correct. 微调滑块拖动由「每次 input 全页重渲染」改为 50ms 节流 + 尾随保证，角度未变时跳过渲染。
+- **Stale task guard**: a pending throttled rotation is discarded if the user switches pages in the meantime, so it can never rotate the new page with the previous page's offset. 切页时自动作废未执行的节流任务，避免用上一页偏移误转新页。
+- **Dead code removed**: dropped the unused `getMaskMode()`, and removed the needless `export` keyword from five functions that are only used inside their own module (`getEraseCount`, `getAppliedScale`, `removeSplitLineAt`, `updateSplitRemoveUI`). Also removed the unused `guideSection` id. 删除无用函数与多余导出，清理未使用的 HTML id。
+- **Package metadata fixed**: `repository` / `bugs` / `homepage` still pointed at the upstream project — now point to this fork and the live site; dropped the meaningless `main` field. 包信息中的仓库与主页地址从上游项目改为本仓库与线上站点。
+- **Publishing made safer**: `scripts/publish-pages.sh` now checks that `docs/` exists, warns when `docs/` and `dist/` are out of sync (prevents publishing stale builds), verifies git availability, and is wired up as `npm run publish:pages`. 发布脚本增加前置检查与产物一致性校验，避免发布过期内容。
 
 ### 2026-10-30 (Guide Copy Polish / 操作指南文案打磨)
 
