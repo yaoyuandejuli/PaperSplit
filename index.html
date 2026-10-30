@@ -404,6 +404,58 @@
                 document.body.appendChild(box);
             });
         }
+
+        /*
+          服务器能力不足时的提醒
+          部分简易服务器（如 python -m http.server）使用 HTTP/1.0、不支持 keep-alive，
+          浏览器并发拉取 CSS / 字体 / 主脚本时连接会被直接断开（浏览器随后会重试，
+          所以多数情况下最终还能显示出来，只是明显变慢；偶尔重试也失败就会样式错乱）。
+          这里监听资源加载失败事件，命中时给出一句提醒和可执行的解决办法。
+        */
+        (function () {
+            if (location.protocol === 'file:') return;
+
+            var failed = [];
+            window.addEventListener('error', function (e) {
+                var el = e.target;
+                if (!el || !el.tagName) return;
+                var tag = el.tagName.toUpperCase();
+                if (tag !== 'LINK' && tag !== 'SCRIPT' && tag !== 'IMG') return;
+                var href = el.href || el.src || '';
+                if (!href || href.startsWith('data:')) return;
+                if (/favicon/i.test(href)) return; // 图标缺失无关紧要
+                failed.push(href);
+            }, true);
+
+            window.addEventListener('DOMContentLoaded', function () {
+                setTimeout(function () {
+                    var noStyles = !(document.styleSheets && document.styleSheets.length > 0);
+                    if (!noStyles && failed.length === 0) return; // 一切正常，不打扰用户
+
+                    var banner = document.createElement('div');
+                    banner.setAttribute('role', 'status');
+                    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;' +
+                        'background:#7c2d12;color:#fde68a;padding:12px 18px;line-height:1.7;font-size:14px;' +
+                        'font-family:system-ui,-apple-system,"Segoe UI",sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25);';
+                    var code = 'background:rgba(0,0,0,.28);padding:1px 6px;border-radius:4px;font-family:ui-monospace,Consolas,monospace';
+                    var reason = noStyles
+                        ? '页面样式完全没有加载，说明服务器没有正常响应资源'
+                        : '检测到部分资源加载失败，页面可能会样式错乱或加载很慢';
+                    banner.innerHTML =
+                        '<b>' + reason + '</b><br>' +
+                        '常见原因：服务器扛不住浏览器的并发请求（多为 HTTP/1.0、不支持 keep-alive 的简易服务器）。<br>' +
+                        '建议改用项目自带服务器：<code style="' + code + '">npm run serve</code>' +
+                        '（或 <code style="' + code + '">npx serve dist</code>）；' +
+                        '在线版本：<a style="color:#fcd34d" href="https://yaoyuandejuli.github.io/PaperSplit/">yaoyuandejuli.github.io/PaperSplit</a>' +
+                        ' <button type="button" style="margin-left:10px;background:rgba(0,0,0,.28);color:#fde68a;border:1px solid rgba(253,230,138,.45);' +
+                        'border-radius:6px;padding:3px 10px;cursor:pointer;font-size:13px">知道了</button>';
+                    banner.querySelector('button').addEventListener('click', function () {
+                        banner.remove();
+                    });
+                    document.body.appendChild(banner);
+                }, 2500);
+            });
+        })();
     </script>
 </body>
 
