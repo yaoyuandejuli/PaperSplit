@@ -36,6 +36,8 @@
 
 ## 📖 简介
 
+> 下方为完整中文说明，文末附一段 [English](#english) 简介。
+
 **PaperSplit** 是一个纯浏览器端运行的轻量工具，专门把 **A3 试卷 / 文档拆分成 A4**，并顺手去掉装订密封线、擦掉多余标记。文件不上传、不依赖网络，所有处理都在本机完成。
 
 ### ✨ 核心功能
@@ -142,3 +144,19 @@ MIT License
 - **多栏分割与编辑套件上线**：分割线由单条重构为数组，支持一分为 N；新增方向校正、擦除内容、裁剪后调整、统一 A4 导出，右侧面板重排为「方向调整 → 编辑工具 → 擦除内容 → 密封线 → 裁剪后调整 → 文件导出」。
 - **操作指南与界面打磨**：指南改为可展开的折叠控件，术语与按钮名与界面保持一致；修复窗口缩放、快速翻页时的画布重影与密封线左右对称性问题。
 - **稳定性修复**：并发渲染用令牌丢弃过期结果，窗口缩放防抖；上传不支持的文件类型会中止而不是留下「半启用」界面；密封方向改由语义决定并钳制分割点，杜绝密封区外泄与反向切片。
+
+---
+
+## 📖 English
+
+**PaperSplit** splits **A3 exam papers and documents into A4** — entirely in your browser. Files never leave your machine, and the app keeps working offline.
+
+- **Multi-column splitting** — cut a page into *N* columns; add or remove cut lines at any time.
+- **Seal line removal** — odd pages default to the left, even pages to the right; the area that will be cropped is shaded on the canvas.
+- **Erase content** — box-select or brush away unwanted marks; the erasure is really applied on export.
+- **Orientation & post-crop zoom** — rotate 90° plus a ±15° fine-tune slider, and enlarge a column that came out too small.
+- **Batch apply** — copy the current page's setup to all odd pages, all even pages, or every page.
+- **A4 export** — standard A4 PDF via `jsPDF` with three fit modes; edits auto-save in your own browser.
+
+Live demo: **https://yaoyuandejuli.github.io/PaperSplit/**
+For the full guide, see the Chinese sections above.
