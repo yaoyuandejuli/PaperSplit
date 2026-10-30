@@ -45,10 +45,17 @@
 **方式② 的启动命令**
 
 ```bash
-# 把 dist/ 交给任意静态服务器（推荐 npx serve，并发处理能力更好）
+# 推荐：项目自带零依赖服务器（Node 内置模块，并发与 MIME 都已处理好）
+npm run serve              # 服务 dist/，打开 http://localhost:8080
+npm run serve 3000         # 换端口
+npm run serve 3000 docs    # 换端口与服务目录
+
+# 备选：其他静态服务器
 npx serve dist
-# 备选：python -m http.server -d dist
+npx http-server dist -p 8080
 ```
+
+> ⚠️ **不建议用 `python -m http.server`**：它是 HTTP/1.0、不支持 keep-alive，浏览器并发拉取资源时连接会被直接断开，表现为样式错乱、按钮没反应或「无法加载 PDF 文件」。它只适合临时看一眼，不能当部署方案。
 
 > ⚠️ **请勿直接双击仓库根目录的 `index.html`**：那是**源码版**页面，`src/` 里使用的是裸模块标识符（`pdfjs-dist` / `jspdf` / `material-icons`），浏览器无法解析。
 > 表现是**界面能显示、但所有按钮都没反应**（控制台报模块解析错误）——这不是版本问题，也不是项目坏了。
@@ -91,8 +98,12 @@ npx serve dist
 git clone https://github.com/yaoyuandejuli/PaperSplit.git
 cd PaperSplit
 npm install
-npm run dev      # 启动后访问终端显示的地址（通常 http://localhost:5173）
+
+npm run dev      # 源码版（热更新），访问终端显示的地址，通常 http://localhost:5173
+npm run serve    # 构建版，先 npm run build，再访问 http://localhost:8080
 ```
+
+> 只想用、不想折腾环境？直接打开[在线版本](https://yaoyuandejuli.github.io/PaperSplit/)即可。
 
 **使用流程**
 
@@ -131,7 +142,7 @@ npm run dev      # 启动后访问终端显示的地址（通常 http://localhos
 ├── dist/               # 构建产物（可直接托管）
 ├── docs/               # 与 dist/ 相同的副本，供 GitHub Pages 使用
 ├── deploy/             # 可选的 Actions 自动部署模板
-└── scripts/            # 一键发布脚本
+└── scripts/            # 本地服务器（serve.js）与一键发布脚本
 ```
 
 <a id="deploy"></a>
@@ -151,10 +162,12 @@ npm run publish:pages               # 推到 gh-pages 分支，1-2 分钟生效
 ### 任意静态服务器
 
 ```bash
-npx serve dist          # 或 python -m http.server -d dist
+npm run serve            # 项目自带（零依赖，Node 内置模块，并发与 MIME 都已处理好）
+npx serve dist           # 或 npx http-server dist -p 8080
 ```
 
-> 部分简易服务器（老版本 `python -m http.server`、部分内网部署工具）会把 `.js` 返回成 `application/octet-stream`，浏览器对 module 脚本做严格 MIME 校验。本项目已内置兼容处理（自动改用 Blob 方式加载 PDF worker），但仍**推荐用 `npx serve dist`** 启动。
+> ⚠️ **不要用 `python -m http.server` 部署**：它是 HTTP/1.0、不支持 keep-alive，浏览器并发拉取资源时连接会被直接断开，页面会出现样式错乱、按钮失效或「无法加载 PDF 文件」。
+> 另外部分简易服务器会把 `.js` 返回成 `application/octet-stream`，浏览器对 module 脚本做严格 MIME 校验，同样会导致加载失败。本项目对这两类问题都做了内置兼容，但**仍建议使用能并发处理请求的服务器**。
 
 ### GitHub Actions 自动发布（可选）
 
@@ -168,24 +181,27 @@ npx serve dist          # 或 python -m http.server -d dist
 
 这是最常见的问题。浏览器出于安全限制，**不允许 `file://` 协议加载 ES 模块**，而仓库根目录的 `index.html` 是**源码版**（`src/` 里写的是 `pdfjs-dist`、`jspdf` 这类裸模块标识符），必须经 Vite 打包才能运行。
 
-**解决办法（任选其一）**：① 直接用[在线版本](https://yaoyuandejuli.github.io/PaperSplit/)；② 把 `dist/` 目录交给静态服务器（`npx serve dist`）；③ 克隆仓库后 `npm install && npm run dev` 跑源码版。
+**解决办法（任选其一）**：① 直接用[在线版本](https://yaoyuandejuli.github.io/PaperSplit/)；② 把 `dist/` 目录交给静态服务器（推荐 `npm run serve`）；③ 克隆仓库后 `npm install && npm run dev` 跑源码版。
 
 > 本项目已内置 `file://` 检测，会直接弹出提示层告诉你该怎么做，不用猜。
 
 **Q：上传 PDF 提示「无法加载 PDF 文件」？**
 
-这是**本地服务器的问题，不是文件的问题**（同一份 PDF 在在线版能正常打开）。PDF 解析组件需要浏览器单独去服务器取一个约 1 MB 的脚本文件，服务器处理不好这个请求就会失败。两种常见原因：
+这是**本地服务器的问题，不是文件的问题**（同一份 PDF 在在线版能正常打开）。PDF 解析组件需要浏览器单独去服务器取一个约 1 MB 的脚本文件，服务器处理不好这个请求就会失败。常见原因：
 
-① **服务器并发能力不足 / 连接被重置** —— 简易服务器（如老版本 `python -m http.server`、部分内网一键部署工具）处理不了浏览器的并发请求，连接被直接断开。解决：改用能并发处理的静态服务器：
+① **服务器扛不住浏览器的并发请求** —— 典型是 `python -m http.server`：它是 HTTP/1.0、不支持 keep-alive，浏览器一并发就连通都断，样式、主脚本、解析组件会随机加载失败。解决：换用能并发处理的服务器。
 
 ```bash
+npm run serve              # 项目自带，零依赖，已处理好并发与 MIME
 npx serve dist
 npx http-server dist -p 8080
 ```
 
 ② **服务器没有正确设置 MIME 类型** —— 把 `.js` 返回成 `application/octet-stream` 时，浏览器会拒绝执行该脚本。解决：确认服务器对该文件返回 `application/javascript`。
 
-> 程序已内置兼容处理：会自动改用「自行取源码 + 内存加载」的方式，并对网络失败做退避重试，因此多数弱服务器也能直接用。若仍失败，说明服务器对该文件完全无法响应，请按上面 ① 换成规范服务器。
+③ 服务器对 `assets/` 目录做了访问限制或白名单，解析组件取不到。解决：放开该目录。
+
+> 程序已内置三层兼容处理：优先用**内联的解析组件源码**（不产生额外请求），失败则改为**自行取源码并退避重试**，最后才回退到原始地址。因此多数弱服务器也能直接用。若仍失败，基本可以确定是服务器连基础资源都响应不稳定 —— 请按 ① 换成规范服务器。
 
 **Q：需要联网吗？文件会上传吗？**
 
@@ -221,6 +237,7 @@ PDF、JPG、PNG。图片按单页处理。
 > npm run build                    # 产出 dist/
 > rm -rf docs && cp -r dist docs  # 同步到 docs/
 > npm run publish:pages            # 发布到 gh-pages
+> npm run serve                    # 本地预览 dist/（http://localhost:8080）
 > ```
 
 其他约定：
@@ -228,7 +245,8 @@ PDF、JPG、PNG。图片按单页处理。
 - 代码风格沿用现有模块：原生 ES6 Modules、不引入框架，样式集中在 `style.css`；
 - 改动 UI 时同步更新 `index.html` 里的**操作指南**文案；
 - 提交前请本地自测一遍：导入 PDF → 分栏 → 密封线 → 擦除 → 导出 A4；
-- 涉及新依赖时，请确认它能被离线打包（不要依赖 CDN）。
+- 涉及新依赖时，请确认它能被离线打包（不要依赖 CDN）；
+- **PDF 解析组件（worker）的加载方式**在 `vite.config.js` 的 `inlinePdfWorker` 插件中定制：构建时把 worker 源码以 base64 写入独立 chunk，运行时动态导入解码成 Blob URL。这样浏览器不再需要单独请求 worker 文件，可规避服务器 MIME 错误与并发断连。改动 worker 相关逻辑时，请一并检查该插件。
 
 ## 📄 开源协议
 
@@ -238,7 +256,8 @@ PDF、JPG、PNG。图片按单页处理。
 
 ### 2026-10-30
 
-- **修复部分服务器下无法加载 PDF**：PDF worker 属于 ES module，服务器 MIME 类型不对会被浏览器拒绝加载。构建产物中的 worker 统一改为 `.js`，并在运行时探测 MIME，异常时自动改用 Blob 方式加载；报错提示同时补上了原因与解决办法。
+- **修复本地部署上传 PDF 报「无法加载 PDF 文件」**：根因是 PDF 解析组件（worker）需要浏览器单独向服务器请求，而弱服务器常在三处出错 —— MIME 类型不对被浏览器拒绝执行、并发不足导致连接被重置、worker 路径被限制。改为构建时把 worker 源码内联进产物、运行时解码成 Blob URL，从根上不再需要该请求；并保留「自行取源码 + 退避重试」「原始地址」两级兜底。报错提示与 FAQ 同步给出可执行解法。
+- **新增零依赖本地服务器**：新增 `npm run serve`（`scripts/serve.js`，仅用 Node 内置模块），并发与 MIME 均已处理妥当，局域网部署可直接使用。同时明确不建议用 `python -m http.server`（HTTP/1.0 不支持 keep-alive，扛不住浏览器并发）。
 - **批量应用改为按奇偶页**：编辑工具的「批量应用」由「同类页」拆成「奇数页 / 偶数页」并排一行、「所有页」独占一行；密封线分区新增同款按钮组，跨奇偶应用时自动镜像到另一侧，目标页分割线自动钳制回保留区域。
 - **密封线独立分区**：从「编辑工具」移出，成为「擦除内容」之后的新分区；画布上用斜纹阴影标出导出时会被裁掉的区域，新增左右切换与状态徽标，「恢复默认」独占一整行。
 - **编辑配置自动保存**：分割线、密封线、角度、缩放比例与擦除标记存于本机 localStorage，重开同一文件自动恢复，可一键清除；仅打开文件不产生记录，读取时逐字段校验，损坏数据自动退回默认值。
@@ -275,14 +294,19 @@ Everything happens inside your browser: files are never uploaded, and the app ke
 - **A4 export** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page.
 - **Auto-save** — split lines, seal line, orientation, zoom ratio and erase marks are stored in your browser's `localStorage` and restored automatically when you reopen the same file.
 - **Offline & responsive** — the PDF worker, icons and fonts all ship with the app; works on desktop and mobile.
+- **Weak-server friendly** — the PDF parsing component is inlined into the build, so it no longer needs a separate request; combined with a retrying fallback, it loads even on servers with the wrong MIME type or limited concurrency.
 
 **Getting started**
 
 ```bash
 git clone https://github.com/yaoyuandejuli/PaperSplit.git
-cd PaperSplit && npm install && npm run dev
+cd PaperSplit && npm install
+npm run dev      # source version, usually http://localhost:5173
+npm run serve    # built version (npm run build first), http://localhost:8080
 ```
 
 Or simply try the live demo: **https://yaoyuandejuli.github.io/PaperSplit/**
 
-> **Note** — the repository's root `index.html` is the *source* version: `src/` uses bare module specifiers, so double-clicking it shows the UI but no button responds. Serve the `dist/` folder instead (`npx serve dist`), or use the live demo.
+> **Note** — the repository's root `index.html` is the *source* version: `src/` uses bare module specifiers, so double-clicking it shows the UI but no button responds. Serve the `dist/` folder instead (`npm run serve`), or use the live demo.
+>
+> **Also avoid `python -m http.server`** for anything beyond a quick look: it speaks HTTP/1.0 without keep-alive, so the browser's parallel requests get dropped — which shows up as broken styling, dead buttons, or "cannot load PDF file".
