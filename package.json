@@ -1,7 +1,7 @@
 {
   "name": "paper-split",
   "version": "1.0.0",
-  "description": "A privacy-focused web tool to split A3 PDFs into A4 pages with seal line removal.",
+  "description": "纯浏览器端的 A3 转 A4 试卷拆分工具：多栏分割、去除密封线、擦除内容、批量应用，文件不上传。",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
