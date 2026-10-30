@@ -65,5 +65,22 @@ export const elements = {
     canvasContainer: document.getElementById('canvasContainer'),
     canvasWrapper: document.getElementById('canvasWrapper'),
     emptyState: document.getElementById('emptyState'),
-    dragOverlay: document.getElementById('dragOverlay')
+    dragOverlay: document.getElementById('dragOverlay'),
+
+    // 文件列表（多选导入 + 拖拽排序）
+    fileListBox: document.getElementById('fileListBox'),
+    fileList: document.getElementById('fileList'),
+    fileListCount: document.getElementById('fileListCount'),
+    addFilesBtn: document.getElementById('addFilesBtn'),
+
+    // 导出前排序面板（页级手动排序）
+    openSortBtn: document.getElementById('openSortBtn'),
+    sortPanel: document.getElementById('sortPanel'),
+    sortPanelMask: document.getElementById('sortPanelMask'),
+    sortPanelList: document.getElementById('sortPanelList'),
+    sortPanelClose: document.getElementById('sortPanelClose'),
+    sortPanelCancel: document.getElementById('sortPanelCancel'),
+    sortPanelApply: document.getElementById('sortPanelApply'),
+    sortPanelReset: document.getElementById('sortPanelReset'),
+    sortPanelCount: document.getElementById('sortPanelCount')
 };

@@ -4,6 +4,7 @@ import { renderSplitLines, getPageConfig, syncRotationUI } from './editor.js';
 import { renderMasks, renderAppliedErasures } from './mask-editor.js';
 import { rotateCanvas, rotatedBounds } from './utils.js';
 import { syncCropZoomFromPage } from './crop-adjust.js';
+import { getPageSource } from './documents.js';
 
 /**
  * 切换到指定页面
@@ -88,8 +89,13 @@ export async function renderCurrentPage() {
 
     const rotation = getPageConfig(state.currentPage).rotation || 0;
 
-    if (state.isPdf) {
-        const page = await state.pdfDoc.getPage(state.currentPage);
+    // 解析当前页来自哪个文件（多文件合并后，每页可能来源不同）
+    const source = getPageSource(state.currentPage);
+    if (!source) return;
+    state.isPdf = source.isPdf;
+
+    if (source.isPdf) {
+        const page = await source.doc.pdfDoc.getPage(source.localPage);
         const unscaledViewport = page.getViewport({ scale: 1 });
 
         // 获取容器的可用宽高 (减去 padding)
@@ -125,7 +131,7 @@ export async function renderCurrentPage() {
         await new Promise((resolve, reject) => {
             img.onload = resolve;
             img.onerror = reject;
-            img.src = state.fileData;
+            img.src = source.doc.imageUrl;
         });
 
         const availableWidth = elements.canvasContainer.clientWidth - 40;
@@ -196,8 +202,11 @@ export async function renderThumbnails() {
     const renderOne = async ({ page: i, thumbainer }) => {
         let canvas;
 
-        if (state.isPdf) {
-            const page = await state.pdfDoc.getPage(i);
+        const source = getPageSource(i);
+        if (!source) return;
+
+        if (source.isPdf) {
+            const page = await source.doc.pdfDoc.getPage(source.localPage);
             const viewport = page.getViewport({ scale: 0.2 }); // 缩略图比例
             canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -211,7 +220,7 @@ export async function renderThumbnails() {
         } else {
             // 图片缩略图
             const img = new Image();
-            img.src = state.fileData;
+            img.src = source.doc.imageUrl;
             await new Promise(r => img.onload = r);
 
             // 简单的缩放

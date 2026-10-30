@@ -7,7 +7,8 @@ import '@fontsource/outfit/700.css';
 
 import { elements } from './dom.js';
 import { state } from './state.js';
-import { handleFileUpload } from './file-handler.js';
+import { handleFileUpload, setImportMode } from './file-handler.js';
+import { openSortPanel, closeSortPanel, applySort, resetSort } from './page-sort.js';
 import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation } from './viewer.js';
 import { toggleSealLine, setSealSide, applySplitToOdd, applySplitToEven, applySplitToAll, applySealToOdd, applySealToEven, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
@@ -111,11 +112,53 @@ function initGuideToggle() {
  */
 function initEventListeners() {
     initGuideToggle();
-    elements.uploadBtn.addEventListener('click', () => elements.fileInput.click());
+
+    // 文件选择：支持多选
+    //   「选择文件」「更换文件」→ 替换现有集合
+    //   「+ 添加」→ 追加到末尾（多文件时才显示）
+    elements.uploadBtn.addEventListener('click', () => {
+        setImportMode('replace');
+        elements.fileInput.click();
+    });
     if (elements.changeFileBtn) {
-        elements.changeFileBtn.addEventListener('click', () => elements.fileInput.click());
+        elements.changeFileBtn.addEventListener('click', () => {
+            setImportMode('replace');
+            elements.fileInput.click();
+        });
+    }
+    if (elements.addFilesBtn) {
+        elements.addFilesBtn.addEventListener('click', () => {
+            setImportMode('append');
+            elements.fileInput.click();
+        });
     }
     elements.fileInput.addEventListener('change', handleFileUpload);
+
+    // 导出前手动排序
+    if (elements.openSortBtn) {
+        elements.openSortBtn.addEventListener('click', openSortPanel);
+    }
+    if (elements.sortPanelClose) {
+        elements.sortPanelClose.addEventListener('click', closeSortPanel);
+    }
+    if (elements.sortPanelCancel) {
+        elements.sortPanelCancel.addEventListener('click', closeSortPanel);
+    }
+    if (elements.sortPanelMask) {
+        elements.sortPanelMask.addEventListener('click', closeSortPanel);
+    }
+    if (elements.sortPanelApply) {
+        elements.sortPanelApply.addEventListener('click', applySort);
+    }
+    if (elements.sortPanelReset) {
+        elements.sortPanelReset.addEventListener('click', resetSort);
+    }
+    // Esc 关闭排序面板
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && elements.sortPanel && !elements.sortPanel.hidden) {
+            closeSortPanel();
+        }
+    });
 
     elements.prevPageBtn.addEventListener('click', () => changePage(state.currentPage - 1));
     elements.nextPageBtn.addEventListener('click', () => changePage(state.currentPage + 1));
@@ -178,7 +221,7 @@ function initEventListeners() {
     document.addEventListener('papersplit:page-repaint', persistEditConfig);
     // 「应用 / 擦除」后需要重绘画布：让画布直接显示擦除后的内容（或恢复原始画面）
     document.addEventListener('papersplit:page-repaint', () => {
-        if (state.pdfDoc || state.fileData) renderCurrentPage();
+        if (state.totalPages) renderCurrentPage();
     });
     // 导出模式变化后，预览需按新模式重绘
     elements.exportFitSelect.addEventListener('change', renderCropPreview);
@@ -257,6 +300,8 @@ function handleDrop(e) {
     const files = dt.files;
 
     if (files.length > 0) {
+        // 拖拽上传 = 替换现有集合
+        setImportMode('replace');
         handleFileUpload({ target: { files: files } });
     }
 }
@@ -269,7 +314,7 @@ let resizeTimer = null;
 function handleResize() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-        if (state.pdfDoc || state.fileData) {
+        if (state.totalPages) {
             renderCurrentPage();
         }
     }, 150);

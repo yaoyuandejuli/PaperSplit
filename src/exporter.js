@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { getPageConfig } from './editor.js';
+import { getPageSource } from './documents.js';
 import { rotateCanvas, rotatedBounds, buildEraseOverlay } from './utils.js';
 import { getSliceRanges, computePlacement, getMaskRectsInSlice, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
 
@@ -22,7 +23,7 @@ function releaseCanvas(canvas) {
  * 遍历每一页，根据切割线和密封线裁剪，每一栏生成一页标准 A4 (210×297mm)
  */
 export async function exportPdf() {
-    if (!state.pdfDoc && !state.fileData) return;
+    if (!state.totalPages) return;
 
     elements.exportBtn.disabled = true;
     elements.exportBtn.setAttribute('aria-busy', 'true');
@@ -62,9 +63,13 @@ export async function exportPdf() {
                 if (w > 0.01 && w < minRatio) minRatio = w;
             }
             const targetSlicePx = (TARGET_DPI / 25.4) * 210; // A4 宽 210mm 在目标 DPI 下的像素宽
+            // 解析本页来自哪个文件（多文件合并后每页来源可能不同）
+            const source = getPageSource(i);
+            if (!source) continue;
+
             let sourceCanvas;
-            if (state.isPdf) {
-                const page = await state.pdfDoc.getPage(i);
+            if (source.isPdf) {
+                const page = await source.doc.pdfDoc.getPage(source.localPage);
                 const base = page.getViewport({ scale: 1 });
                 const rotBaseW = rotatedBounds(base.width, base.height, rotation).width; // 旋转后切片基准宽度
                 const scale = Math.min(4, Math.max(2, targetSlicePx / (minRatio * rotBaseW)));
@@ -75,7 +80,7 @@ export async function exportPdf() {
                 await page.render({ canvasContext: sourceCanvas.getContext('2d'), viewport }).promise;
             } else {
                 const img = new Image();
-                img.src = state.fileData;
+                img.src = source.doc.imageUrl;
                 await new Promise(r => img.onload = r);
                 const rotBaseW = rotatedBounds(img.width, img.height, rotation).width;
                 const scale = Math.min(4, Math.max(1, targetSlicePx / (minRatio * rotBaseW)));

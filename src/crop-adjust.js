@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { getPageSource } from './documents.js';
 import { elements } from './dom.js';
 import { getPageConfig } from './editor.js';
 import { rotateCanvas, buildEraseOverlay } from './utils.js';
@@ -127,7 +128,7 @@ export async function renderCropPreview() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
-    if (!state.pdfDoc && !state.fileData) return;
+    if (!state.totalPages) return;
 
     let work;
     try {
@@ -333,9 +334,12 @@ async function renderPageContentCanvas() {
     const rotation = cfg.rotation || 0;
     const targetWidth = 900;
 
+    const source = getPageSource(state.currentPage);
+    if (!source) return null;
+
     let src;
-    if (state.isPdf) {
-        const page = await state.pdfDoc.getPage(state.currentPage);
+    if (source.isPdf) {
+        const page = await source.doc.pdfDoc.getPage(source.localPage);
         const base = page.getViewport({ scale: 1 });
         const scale = Math.min(2, targetWidth / base.width);
         const viewport = page.getViewport({ scale });
@@ -345,7 +349,7 @@ async function renderPageContentCanvas() {
         await page.render({ canvasContext: src.getContext('2d'), viewport }).promise;
     } else {
         const img = new Image();
-        img.src = state.fileData;
+        img.src = source.doc.imageUrl;
         await new Promise((resolve, reject) => {
             img.onload = resolve;
             img.onerror = reject;

@@ -435,7 +435,7 @@ function toPageRatio(clientX, clientY) {
  * 开始一次框选拖拽
  */
 function startRect(clientX, clientY, target) {
-    if (!state.pdfDoc && !state.fileData) return; // 未载入文件
+    if (!state.totalPages) return; // 未载入文件
 
     const p = toPageRatio(clientX, clientY);
     if (!p) return;
@@ -476,7 +476,7 @@ function startRect(clientX, clientY, target) {
  * 开始一次涂抹
  */
 function startBrush(clientX, clientY) {
-    if (!state.pdfDoc && !state.fileData) return;
+    if (!state.totalPages) return;
 
     const p = toPageRatio(clientX, clientY);
     if (!p) return;

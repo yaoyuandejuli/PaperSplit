@@ -11,6 +11,8 @@ import { renderThumbnails, renderCurrentPage, updatePageControls } from './viewe
 import { syncCropZoomUI, syncCropZoomFromPage } from './crop-adjust.js';
 import { exitMaskMode, renderMasks } from './mask-editor.js';
 import { getPageConfig, syncRotationUI } from './editor.js';
+import { appendDocument, collectionFingerprint } from './documents.js';
+import { renderFileList } from './file-list.js';
 import { fileFingerprint, loadEditConfig } from './storage.js';
 import { showToast } from './toast.js';
 
@@ -22,46 +24,92 @@ let cachedWorkerUrl = null;
 
 /**
  * 处理文件上传事件 (Change Event)
- * 支持 PDF 和 图片格式
+ * 支持一次选择多个 PDF 与图片，它们会被合并成一份连续文档
  */
 export async function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from((e.target && e.target.files) || []);
+    // 清空 input，允许连续两次选择同一个文件也能触发 change
+    if (e.target && 'value' in e.target) e.target.value = '';
+    if (!files.length) return;
 
-    resetState();
-    state.fileName = file.name.replace(/\.[^/.]+$/, "");
-    // 文件指纹：用于编辑配置的自动保存与恢复（仅存本机）
-    state.fileFingerprint = fileFingerprint(file);
-    // 每次重新载入文件都恢复自动保存（除非用户在本次会话中主动清除过）
-    state.saveDisabled = false;
+    const mode = importMode;
+    importMode = 'replace';
+    await importFiles(files, mode);
+}
 
-    if (file.type === 'application/pdf') {
-        state.isPdf = true;
-    } else if (file.type.startsWith('image/')) {
-        state.isPdf = false;
-    } else {
+/**
+ * 下一次导入的模式：replace 替换全部 / append 追加到现有集合末尾
+ * 由按钮在打开文件选择框前设置
+ */
+let importMode = 'replace';
+
+export function setImportMode(mode) {
+    importMode = mode === 'append' ? 'append' : 'replace';
+}
+
+/**
+ * 导入一批文件
+ * @param {File[]} files 文件列表
+ * @param {'replace'|'append'} mode replace 替换现有集合；append 追加到末尾
+ */
+async function importFiles(files, mode) {
+    // 只接受 PDF 与图片
+    const accepted = files.filter(f => f.type === 'application/pdf' || (f.type && f.type.startsWith('image/')));
+    if (!accepted.length) {
         alert('不支持的文件格式，请上传 PDF 或图片文件');
         return;
     }
 
-    elements.thumbnailsPanel.innerHTML = '';
-    elements.emptyState.style.display = 'none';
+    // 解析每一个文件（失败的文件跳过，不影响其它文件）
+    const docs = [];
+    for (const file of accepted) {
+        try {
+            const doc = await parseFile(file);
+            if (doc) docs.push(doc);
+        } catch (error) {
+            console.error(`解析文件失败：${file.name}`, error);
+            showToast(`「${file.name}」载入失败，已跳过`, 'error');
+        }
+    }
+    if (!docs.length) return;
 
-    // 显示缩略图面板（之前隐藏的）
-    const leftPanel = document.querySelector('.left-panel');
-    if (leftPanel) {
-        leftPanel.style.display = 'flex';
+    const isAppend = mode === 'append' && state.totalPages > 0;
+
+    if (!isAppend) {
+        // 全新导入：清空旧集合与旧配置
+        releaseDocuments();
+        resetState();
+        state.suppressSave = true;
     }
 
-    // 启用相关按钮（已确认是受支持的文件类型）
+    for (const doc of docs) {
+        appendDocument(doc);
+    }
+
+    // 存储指纹按「导入先后」计算，与排序无关 —— 重新打开同样这批文件即可恢复配置
+    state.fileFingerprint = collectionFingerprint(state.documents);
+    // 每次重新载入文件都恢复自动保存（除非用户在本次会话中主动清除过）
+    state.saveDisabled = false;
+    state.fileName = docs.length === 1
+        ? docs[0].name.replace(/\.[^/.]+$/, '')
+        : `${docs[0].name.replace(/\.[^/.]+$/, '')} 等 ${docs.length} 个文件`;
+
+    // 隐藏空状态、显示左侧面板
+    // 注意：首次渲染后 emptyState 会被 canvasWrapper 清空，这里必须做空值保护
+    if (elements.emptyState) elements.emptyState.style.display = 'none';
+    const leftPanel = document.querySelector('.left-panel');
+    if (leftPanel) leftPanel.style.display = 'flex';
+
+    // 启用相关操作按钮
     elements.toggleSealLineBtn.disabled = false;
-    elements.sealLeftBtn.disabled = true;   // 需先启用密封线
+    elements.sealLeftBtn.disabled = true;
     elements.sealRightBtn.disabled = true;
     elements.exportBtn.disabled = false;
-    elements.clearSaveBtn.disabled = false;   // 可清除本文件的保存记录
+    elements.clearSaveBtn.disabled = false;
+    if (elements.openSortBtn) elements.openSortBtn.disabled = false;
     elements.addSplitBtn.disabled = false;
-    elements.removeSplitBtn.disabled = false;   // 去除分割线（进入选择模式）
-    elements.resetDefaultsBtn.disabled = false; // 恢复当前页默认
+    elements.removeSplitBtn.disabled = false;
+    elements.resetDefaultsBtn.disabled = false;
     elements.splitHalfBtn.disabled = false;
     elements.splitThirdBtn.disabled = false;
     elements.applyToOddBtn.disabled = false;
@@ -82,9 +130,9 @@ export async function handleFileUpload(e) {
     elements.maskToggleBtn.disabled = false;
     elements.maskBrushBtn.disabled = false;
     elements.maskBrushSlider.disabled = false;
-    elements.maskUndoBtn.disabled = true;   // 尚无擦除内容
-    elements.clearMasksBtn.disabled = true; // 尚无擦除内容
-    elements.maskApplyBtn.disabled = true; // 尚无待应用的标记
+    elements.maskUndoBtn.disabled = true;
+    elements.clearMasksBtn.disabled = true;
+    elements.maskApplyBtn.disabled = true;
 
     // 「裁剪后调整」面板初始为 100%
     syncCropZoomUI();
@@ -93,12 +141,76 @@ export async function handleFileUpload(e) {
     exitMaskMode();
     renderMasks();
 
-    if (state.isPdf) {
-        // 先确定 worker 地址（服务器 MIME 异常时自动改用 Blob 方式）
+    if (!isAppend) {
+        // 首次导入：先确定 worker 地址（服务器 MIME 异常时自动改用 Blob 方式）
         pdfjsLib.GlobalWorkerOptions.workerSrc = await resolveWorkerUrl();
-        loadPdf(file);
-    } else {
-        loadImage(file);
+    }
+
+    state.currentPage = 1;
+    state.suppressSave = true;
+    restoreSavedConfig();
+    updatePageControls();
+    renderFileList();
+    await renderThumbnails();
+    await renderCurrentPage();
+    state.suppressSave = false;
+}
+
+/**
+ * 解析单个文件，生成文档条目
+ * @param {File} file 浏览器 File 对象
+ * @returns {Promise<Object|null>} 文档条目
+ */
+async function parseFile(file) {
+    const id = `doc${++state.docSeq}`;
+    const fingerprint = fileFingerprint(file);
+
+    if (file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdfDoc = await loadingTask.promise;
+        return {
+            id,
+            name: file.name,
+            type: 'pdf',
+            pdfDoc,
+            pageCount: pdfDoc.numPages,
+            fingerprint
+        };
+    }
+
+    // 图片：作为单页文档，用对象 URL 承载（比 DataURL 省内存）
+    const imageUrl = URL.createObjectURL(file);
+    const img = new Image();
+    try {
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error('图片解码失败'));
+            img.src = imageUrl;
+        });
+    } catch (e) {
+        try { URL.revokeObjectURL(imageUrl); } catch (err) { /* 忽略 */ }
+        throw e;
+    }
+
+    return {
+        id,
+        name: file.name,
+        type: 'image',
+        imageUrl,
+        width: img.width,
+        height: img.height,
+        pageCount: 1,
+        fingerprint
+    };
+}
+
+/** 释放所有图片的对象 URL（重新导入前调用） */
+function releaseDocuments() {
+    for (const doc of state.documents) {
+        if (doc.type === 'image' && doc.imageUrl) {
+            try { URL.revokeObjectURL(doc.imageUrl); } catch (e) { /* 忽略 */ }
+        }
     }
 }
 
@@ -200,33 +312,6 @@ async function buildBlobWorkerUrl() {
 }
 
 /**
- * 加载并解析 PDF 文件
- * @param {File} file 原始文件对象（失败重试时需要重新读取二进制）
- */
-async function loadPdf(file) {
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-        state.pdfDoc = await loadingTask.promise;
-        state.totalPages = state.pdfDoc.numPages;
-        state.currentPage = 1;
-
-        // 载入与首帧渲染期间不触发自动保存（用户还没做任何编辑）
-        state.suppressSave = true;
-        restoreSavedConfig();
-
-        updatePageControls();
-        renderThumbnails();
-        await renderCurrentPage();
-        state.suppressSave = false;
-    } catch (error) {
-        console.error('Error loading PDF:', error);
-        state.suppressSave = false;
-        showLoadFailure(error);
-    }
-}
-
-/**
  * 加载失败时给出可执行的排查提示
  *
  * 真实内网环境里最常见的两个原因：
@@ -284,38 +369,4 @@ function restoreSavedConfig() {
 
     const when = saved.at ? new Date(saved.at).toLocaleString('zh-CN', { hour12: false }) : '';
     showToast(`已恢复上次的编辑配置${when ? `（${when}）` : ''}`, 'success');
-}
-
-/**
- * 加载图片文件 (作为单页文档处理)
- * @param {File} file 图片文件对象
- */
-function loadImage(file) {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        state.fileData = e.target.result;
-        state.totalPages = 1;
-        state.currentPage = 1;
-        state.pdfDoc = null;
-
-        // 载入与首帧渲染期间不触发自动保存
-        state.suppressSave = true;
-
-        updatePageControls();
-        // 生成简单的图片缩略图
-        elements.thumbnailsPanel.innerHTML = '';
-        const thumb = document.createElement('div');
-        thumb.className = 'thumbnail-item active';
-        const img = document.createElement('img');
-        img.src = state.fileData;
-        img.style.width = '100%';
-        thumb.appendChild(img);
-        elements.thumbnailsPanel.appendChild(thumb);
-
-        restoreSavedConfig();
-
-        await renderCurrentPage();
-        state.suppressSave = false;
-    };
-    reader.readAsDataURL(file);
 }
