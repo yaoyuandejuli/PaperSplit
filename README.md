@@ -12,11 +12,12 @@
     </a>
     <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge">
     <img alt="Build with Vite" src="https://img.shields.io/badge/build-Vite-646cff?style=for-the-badge&logo=vite&logoColor=white">
+    <br>
     <img alt="纯前端 No Backend" src="https://img.shields.io/badge/%E7%BA%AF%E5%89%8D%E7%AB%AF%20%7C%20No%20Backend-0ea5e9?style=for-the-badge">
     <img alt="离线可用 Offline Ready" src="https://img.shields.io/badge/%E7%A6%BB%E7%BA%BF%E5%8F%AF%E7%94%A8%20%7C%20Offline-ready-8b5cf6?style=for-the-badge">
   </p>
 
-  <p><sub><i>A privacy-first A3 to A4 PDF splitter. 100% client-side processing.</i>（🚀 在线体验，无需安装，打开即用 &nbsp;·&nbsp; <i>Live demo — no install, runs in your browser</i>）</sub></p>
+  <p><sub><i>A privacy-first A3 to A4 PDF splitter. 100% client-side processing.</i><br>（🚀 在线体验，无需安装，打开即用 &nbsp;·&nbsp; <i>Live demo — no install, runs in your browser</i>）</sub></p>
 
   <p><a href="#chinese"><b>简体中文</b></a> · <a href="#english"><b>English</b></a></p>
 
@@ -38,7 +39,7 @@
 
 | 方式 | 操作 | 适合谁 |
 |---|---|---|
-| **① 在线体验（最推荐）** | 点 **[https://yaoyuandejuli.github.io/PaperSplit/](https://yaoyuandejuli.github.io/PaperSplit/)** | 只想用的人，零安装、零配置 |
+| **① 在线体验**<br>（最推荐） | 点 **[https://yaoyuandejuli.github.io/PaperSplit/](https://yaoyuandejuli.github.io/PaperSplit/)** | 只想用的人，零安装、零配置 |
 | **② 本地静态托管** | 下载 ZIP → 进入 **`dist/`** → 起一个静态服务器 | 内网 / 离线环境 |
 
 **方式② 的启动命令**
