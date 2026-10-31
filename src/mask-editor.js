@@ -406,6 +406,7 @@ export function initMaskInteractions() {
 function onPointerDown(e) {
     if (e.button !== 0) return;
     if (maskMode === MODE_BRUSH) {
+        updateBrushCursor(e.clientX, e.clientY);
         startBrush(e.clientX, e.clientY);
     } else if (maskMode === MODE_RECT) {
         startRect(e.clientX, e.clientY, e.target);
@@ -415,6 +416,7 @@ function onPointerDown(e) {
 function onTouchStart(e) {
     if (e.touches.length !== 1) return;
     if (maskMode === MODE_BRUSH) {
+        updateBrushCursor(e.touches[0].clientX, e.touches[0].clientY);
         startBrush(e.touches[0].clientX, e.touches[0].clientY);
     } else if (maskMode === MODE_RECT) {
         startRect(e.touches[0].clientX, e.touches[0].clientY, e.target);
@@ -628,8 +630,17 @@ function finishDrag() {
 /* ------------------------------------------------------------------ */
 
 /**
- * 更新涂抹光标（跟随鼠标的圆形指示器，直径 = 笔刷大小）
+ * 更新涂抹光标（跟随指针的圆形指示器，直径 = 笔刷大小）
+ *
+ * 关键：光标**不能**挂在 .canvas-wrapper 里面。
+ * wrapper 带着 CSS transform（translate + scale），它的 getBoundingClientRect()
+ * 返回的是**变换后**的视觉矩形，而子元素的 left / top 却按**变换前**的布局坐标解释 ——
+ * 于是光标被二次缩放，位置与真实落点对不上（手机上尤其明显）。
+ * 因此光标统一挂在 body 上，用 position:fixed + 视口坐标定位，
+ * 与指针严格重合，且不受画布缩放影响。
+ *
  * @param {number|null} clientX
+ * @param {number|null} clientY
  */
 function updateBrushCursor(clientX, clientY) {
     const wrapper = elements.canvasWrapper;
@@ -640,25 +651,28 @@ function updateBrushCursor(clientX, clientY) {
         return;
     }
 
-    if (!brushCursorEl || !brushCursorEl.isConnected) {
-        brushCursorEl = document.createElement('div');
-        brushCursorEl.className = 'brush-cursor';
-        wrapper.appendChild(brushCursorEl);
-    }
-
     const rect = wrapper.getBoundingClientRect();
     const inside = clientX >= rect.left && clientX <= rect.right
         && clientY >= rect.top && clientY <= rect.bottom;
     if (!inside) {
-        brushCursorEl.style.display = 'none';
+        if (brushCursorEl) brushCursorEl.style.display = 'none';
         return;
     }
 
+    if (!brushCursorEl || !brushCursorEl.isConnected) {
+        brushCursorEl = document.createElement('div');
+        brushCursorEl.className = 'brush-cursor';
+        // 挂在 body 上（而不是被 transform 缩放的 wrapper 内）
+        document.body.appendChild(brushCursorEl);
+    }
+
+    // 笔刷直径 = 笔刷比例 × 页面在屏幕上的实际宽度（视觉像素，与实际笔迹一致）
     const size = state.brushSize * rect.width;
     brushCursorEl.style.width = `${size}px`;
     brushCursorEl.style.height = `${size}px`;
-    brushCursorEl.style.left = `${clientX - rect.left}px`;
-    brushCursorEl.style.top = `${clientY - rect.top}px`;
+    // 视口坐标定位：光标中心严格落在指针上
+    brushCursorEl.style.left = `${clientX}px`;
+    brushCursorEl.style.top = `${clientY}px`;
     brushCursorEl.style.display = 'block';
 }
 

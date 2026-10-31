@@ -88,10 +88,10 @@ npx http-server dist -p 8080
 - **方向校正**：「左转 / 重置 / 右转」三个按钮并排一行，再用 ±15° 滑块微调（滑块两侧的「−」「+」可逐 0.5° 增减，抵达 ±15° 时按钮自动禁用），角度实时显示，每页独立生效；滑块下方的「应用当前页 / 应用所有页」可把角度保存到本页或一键复制到所有页面。
 - **密封线调整 · 标题行状态标签**：「已启用 · X 处」直接跟在「密封线调整（可选）」标题**右侧同行**显示，不再单独占一行，纵向更紧凑。
 - **密封线调整 · 「去除密封线」按钮**：文字**恒为「去除密封线」**（不再切换成「取消密封线」），默认配色与旁边的「重置」完全一致；启用后**变为蓝色**，仅用颜色区分「已启用 / 未启用」状态。
-- **密封线调整 · 一键双边启用**：点「去除密封线」默认**同时打开「靠左」和「靠右」**两个方向（各占 15%），两个按钮同步点亮；之后仍可单独开关任一方向。
+- **密封线调整 · 一键双边启用**：点「去除密封线」默认**同时打开「左侧」和「右侧」**两个方向（各占 15%），两个按钮同步点亮；之后仍可单独开关任一方向。
 - **密封线调整**（独立分区）：密封区域**位置不限** —— 点「去除密封线」默认同时贴左、贴右（各占 15%）；开启后**直接拖动斜纹区即可整体平移**，拖动两侧虚线可调整范围。画布上用斜纹阴影标出**导出时会被裁掉**的区域。「去除密封线 / 重置」两个按钮并排一行，「重置」可清除本页全部密封区域。
-- **密封线支持四个方向**：**「靠左 / 靠右 / 靠上 / 靠下」**四个按钮可独立开关、可同时存在 —— 左右是竖向密封带（裁掉页面左 / 右），上下是**横向密封带**（裁掉页面顶部 / 底部）。界面上两行两列排布，配水平线图标（`align_vertical_top` / `align_vertical_bottom`）一眼可辨；上下密封带同样可拖动平移、拖虚线调厚度。状态徽标统一显示**四个方向合计**的遮罩数量（如「已启用 · 4 处」）。
-- **左右密封区可并存**：「靠左」「靠右」是可独立开关的按钮 —— 点一次出现、再点一次消失，**左右两侧可以同时存在**（适合双侧装订），宽度沿用另一侧的设置，也可拖动虚线单独调整。
+- **密封线支持四个方向**：**「左侧 / 右侧 / 上侧 / 下侧」**四个按钮可独立开关、可同时存在 —— 左右是竖向密封带（裁掉页面左 / 右），上下是**横向密封带**（裁掉页面顶部 / 底部）。界面上两行两列排布（电脑版压缩为一行四列），配水平线图标（`align_vertical_top` / `align_vertical_bottom`）一眼可辨；上下密封带同样可拖动平移、拖虚线调厚度。状态徽标统一显示**四个方向合计**的遮罩数量（如「已启用 · 4 处」）。
+- **左右密封区可并存**：「左侧」「右侧」是可独立开关的按钮 —— 点一次出现、再点一次消失，**左右两侧可以同时存在**（适合双侧装订），宽度沿用另一侧的设置，也可拖动虚线单独调整。
 - **密封区与分割线互不限制**：密封区域挖掉后，其余部分再按分割线分栏，两者可同时使用。
 - **擦除内容**：框选矩形或涂抹笔刷擦除多余内容，点「应用」后画布直接显示擦除效果，导出 PDF 时真实擦除。
 - **输出比例调整**（原「裁剪后调整」）：某栏太小看不清时，放大 / 缩小 / 重置，或直接拖滑块，「应用当前页」与「应用所有页」并排一行，比例在导出时真实生效。滑块做了**移动端防误触**处理：在控制面板里上下滑动页面时不会误改滑块值。
@@ -99,7 +99,7 @@ npx http-server dist -p 8080
   - **原图编辑态**（默认）：带红框、分割线、密封线的原图，用于排版操作。
   - **结果预览态**：处理后的**最终 A4 成品页（双页效果）**，多页时自动换行排版、每页尽可能放大。
   - **自动联动**：在「输出比例调整」里操作（放大 / 缩小 / 重置 / 拖滑块）自动切到**结果预览态**，并**实时响应缩放比例**；点击其它模块（方向调整 / 编辑工具 / 擦除内容 / 密封线调整）自动切回**原图编辑态**。
-  - **左上角状态标签**：画布左上角始终显示 `[ 原图编辑 ]` / `[ 结果预览 ]`，一眼看清当前看到的是什么，杜绝混淆。
+  - **左上角状态标签**：画布左上角始终显示 `[ 原图编辑 ]` / `[ 打印结果预览 ]`，一眼看清当前看到的是什么，杜绝混淆。
   - **平滑不闪烁**：两种形态共用同一个 A3 比例容器（尺寸不变、画面不跳动），用 `opacity` **交叉淡入淡出**（220ms）；预览画面**画好之后才淡入**，绝不出现"切过去是一片空白"。
 - **多文件合并** — 一次选择多个 PDF 与图片，合并成一份连续文档；左栏顶部显示已导入的文件（可移除单个文件、继续追加、点击跳转），下方是页面缩略图
 - **导出前排序** — 页面先后的唯一调整入口：导出前逐页拖动微调最终顺序，支持上下按钮与一键恢复默认，跨文件同样适用
@@ -307,6 +307,22 @@ PDF、JPG、PNG。图片按单页处理。
 
 ### 2026-10-31
 
+- **修复涂抹光标与实际落点不一致（电脑版 / 手机版通用）**：`.canvas-wrapper` 带着 CSS `transform`（translate + scale），其 `getBoundingClientRect()` 返回的是**变换后**的视觉矩形，而光标作为它的子元素却按**变换前**的布局坐标解释 `left/top` —— 于是光标被二次缩放，位置与真实落点明显对不上。修复方式是把光标移到 `body` 下，用 `position: fixed` + 视口坐标（`clientX/clientY`）定位，**圆心与指针严格重合**，且完全不受画布缩放 / 平移影响；笔刷直径仍按页面在屏幕上的实际宽度计算，与真实笔迹一致。同时在 `mousedown` / `touchstart` 时也立即刷新光标，手指落下的瞬间就能看到圈。
+- **手机版文案与间距调整**：
+  - 「擦除内容」分区笔刷大小下方的「**擦除**」按钮改为「**重置**」（图标同步换成 `restart_alt`），语义更清晰 —— 清除的是擦除标记、恢复已擦除区域。
+  - 密封线四个方向改名：「靠左 / 靠右 / 靠上 / 靠下」→「**左侧 / 右侧 / 上侧 / 下侧**」，功能完全不变。
+  - 底部「**清除记录**」改为「**清除本文件保存记录**」全称（去掉手机端的短文案变体）。
+  - 画布左上角状态标签「[ 结果预览 ]」改为「**[ 打印结果预览 ]**」。
+  - 「操作指南」与下方「方向调整」之间原本隔着近 40px，收紧到约 20px。
+- **电脑版右栏一屏显示**：右侧控制面板原本总高 1319px，需要滚动才能看到「导出为 PDF」。现在通过**加宽面板到 344px + 收紧内边距/行距/字号 + 密封线四方向并排成一行 + 滑块标题与滑块同行 + 状态徽标移到标题行**，总高压到 **986px = 可视高度**，全部模块一屏可见、无需滚动。
+- **电脑版左栏「已导入文件」区放大**：去掉下方「点击卡片跳转」提示文字；标题字号 13px / 加粗；文件卡片字号 13px、内边距加大；「×」删除按钮从 18px 放大到 **24px**（更好点）；左栏宽度 240 → 260px，列表可视高度 210 → 260px。
+- **电脑版左上角新增「导入新文件」入口**：原「＋」小图标改为**带文字的独立按钮**，独占一行放在「已导入文件」标题下方，常驻可见（此前只有一个文件时隐藏），点击即追加导入新文件。
+- **文件过多时左侧预览图自动缩小**：缩略图按总页数分三档密度 —— `normal`（≤8 页，单列大图）/ `compact`（≤24 页，两列）/ `dense`（>24 页，三列）。面板**始终保持纵向滚动**，页数再多也能上下滑动选择任意一页。
+- **导出模式下拉框移位**：原「文件导出」分区（含「标准 A4 · 等比留白」等选项）从导出区顶部移到**「导出为 PDF」按钮的正上方**，选完模式即可直接导出。
+- **滑块可用性保障**：桌面端压缩布局时隐藏滑块标签的补充说明（「（±15°）」「（相对页宽）」「（成品页大小）」），给滑块本体留出足够宽度（输出比例滑块从 73px 恢复到 153px），拖动更顺手；微调滑块的 range 与两侧「− / +」按钮保持等高对齐。
+
+### 2026-10-31
+
 - **主画布双态切换（结果预览上移）**：原先独立在控制面板底部的「🖼️ 修改后文件预览」模块**已整块移除**，其内容**上移到中间主画布**，主画布由此具备两种形态：
   - **原图编辑态**（默认）：带红框、分割线、密封线的原图，用于排版操作；
   - **结果预览态**：处理后的**最终 A4 成品页（双页效果）**，与导出所见完全一致。
@@ -408,8 +424,13 @@ Everything happens inside your browser: files are never uploaded, and the app ke
 - **Post-crop zoom** — enlarge, shrink or reset a column that came out too small; "Apply to Current Page" and "Apply to All Pages" sit side by side.
 - **Dual-state main canvas** — the standalone "Modified File Preview" section has been **removed from the bottom of the control panel** and moved **into the main canvas**, which now has two states:
   - **Original editing** (default) — the source page with its red frame, split lines and seal areas, used for layout work;
-  - **Result preview** — the final A4 pages (double-page view) exactly as they will be exported.
-  Working in the post-crop zoom module switches the canvas to the result preview automatically and updates it live as you drag the slider; touching any other module switches it back to the original. A badge in the top-left corner always says which state you are looking at (`[ Original ]` / `[ Result preview ]`). Both states share the same A3-proportioned frame and cross-fade smoothly — no flashing, no jumping.
+  - **Print result preview** — the final A4 pages (double-page view) exactly as they will be exported.
+  Working in the post-crop zoom module switches the canvas to the result preview automatically and updates it live as you drag the slider; touching any other module switches it back to the original. A badge in the top-left corner always says which state you are looking at (`[ Original ]` / `[ Print result preview ]`). Both states share the same A3-proportioned frame and cross-fade smoothly — no flashing, no jumping.
+- **Brush cursor now tracks the pointer exactly** (desktop and mobile) — the canvas wrapper carries a CSS `transform`, so its bounding rect is the *transformed* one while a child element's `left/top` are interpreted in the *untransformed* layout space; the circle was therefore scaled twice and drifted away from the real stroke position. The cursor now lives on `<body>` and is positioned with `position: fixed` + viewport coordinates, so its centre sits exactly under the pointer no matter how far the canvas is zoomed or panned.
+- **Desktop control panel fits on one screen** — the right-hand panel used to be 1319px tall and needed scrolling to reach the export button. It is now compacted to exactly the available height (986px): slightly wider panel, tighter padding/leading/font sizes, the four seal directions in a single row, slider labels sharing a line with their slider, and status chips moved into the section titles.
+- **Bigger "imported files" area + a dedicated import entry** — the "click a card to jump" hint is gone, cards and the `×` remove button are noticeably larger, and a clearly labelled **"Import new file"** button now sits permanently at the top-left.
+- **Left previews shrink when many files are loaded** — thumbnails switch between one, two and three columns depending on the page count, while the panel stays vertically scrollable so any page can still be reached.
+- **Export mode dropdown moved** — the fit-mode selector (including "Standard A4 · proportional with margins") now sits directly above the **Export as PDF** button.
 - **Apply per section** — every panel (orientation, editing tools, seal, post-crop zoom) offers "Apply to Current Page" and "Apply to All Pages" side by side: the first confirms and stores the current page's setup, the second copies it to every page (seal regions are mirrored across odd/even pages to keep the odd-left / even-right symmetry).
 - **A4 export at 2× resolution** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page. Pages are rendered at **400 DPI** (twice the previous 200 DPI) so a half of an A3 sheet comes out at 3255 × 4604 px — crisp when printed. Built-in pixel and dimension guards keep large canvases from crashing phones.
 - **Auto-save** — split lines, seal line, orientation, zoom ratio and erase marks are stored in your browser's `localStorage` and restored automatically when you reopen the same file.

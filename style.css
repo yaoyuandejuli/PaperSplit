@@ -158,17 +158,17 @@ body {
 
 /* Left Panel: Thumbnails */
 .left-panel {
-    width: 240px;
+    width: 260px;
     background: var(--surface-color);
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
-    padding: 20px;
+    padding: 16px 14px;
     display: none;
     /* 初始隐藏，上传文件后显示 */
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
     flex-shrink: 0;
-    min-width: 240px;
+    min-width: 260px;
 }
 
 .thumbnail-item {
@@ -1380,16 +1380,19 @@ a:focus-visible {
     pointer-events: none;
 }
 
-/* 涂抹模式的圆形光标（跟随鼠标，直径 = 笔刷大小） */
+/* 涂抹模式的圆形光标（跟随指针，直径 = 笔刷大小）
+   · 用 position:fixed + 视口坐标定位 —— 挂在 body 上，不受画布 transform 缩放影响，
+     光标圆心与真实落点严格重合（否则缩放后会明显偏移）
+   · translate(-50%,-50%) 让圆心对准指针，而不是左上角对准指针 */
 .brush-cursor {
-    position: absolute;
+    position: fixed;
     display: none;
     border: 2px dashed rgba(220, 38, 38, 0.95);
     background: rgba(239, 68, 68, 0.12);
     border-radius: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
-    z-index: 170;
+    z-index: 500;
     box-sizing: border-box;
 }
 
@@ -1618,6 +1621,11 @@ body.mask-rect-dragging {
         width: 100%;
     }
 
+    /* 手机端「＋」按钮只留图标，文字隐藏（横向平铺条空间有限） */
+    .left-panel .file-add-text {
+        display: none;
+    }
+
     .left-panel .file-list-head {
         flex-direction: row;
         gap: 6px;
@@ -1687,11 +1695,7 @@ body.mask-rect-dragging {
         width: 28px;
         height: 28px;
         flex-shrink: 0;
-    }
-
-    /* 提示文字在手机端省略（卡片含义一目了然） */
-    .left-panel .file-list-tip {
-        display: none;
+        padding: 0;
     }
 
     /* 桌面端遗留的「展开浮层」样式在手机端不再需要：
@@ -1829,6 +1833,11 @@ body.mask-rect-dragging {
         width: 100%;
     }
 
+    /* 「操作指南」与下方「方向调整」之间原本隔着近 40px，这里收到 ~20px */
+    .right-panel .panel-divider {
+        margin: 0;
+    }
+
     /* ==========================================================================
        手机版「文件导出」区紧凑化
        桌面端该区域约 285px 高，在 844px 高的手机屏幕上会长期占据 1/3 的可视区，
@@ -1842,10 +1851,10 @@ body.mask-rect-dragging {
         padding: 10px 12px;
     }
 
-    /* 下拉框：整行独占，缩小字号与内边距 */
+    /* 下拉框：整行独占，缩小字号与内边距（紧挨导出按钮） */
     .footer-actions .export-options {
         grid-column: 1 / -1;
-        grid-row: 1;
+        grid-row: 2;
         margin-bottom: 0;
     }
 
@@ -1874,31 +1883,33 @@ body.mask-rect-dragging {
         letter-spacing: .3px;
     }
 
-    /* 「导出前排序」+「清除记录」并排一行（两个都是次级操作） */
+    /* 「导出前排序」+「清除本文件保存记录」并排一行（两个都是次级操作） */
     .footer-actions #openSortBtn {
-        grid-row: 2;
+        grid-row: 1;
         grid-column: 1;
     }
 
     .footer-actions #clearSaveBtn {
-        grid-row: 2;
+        grid-row: 1;
         grid-column: 2;
     }
 
     .footer-actions #openSortBtn,
     .footer-actions #clearSaveBtn {
-        padding: 8px 6px;
-        font-size: 0.8rem;
-        gap: 4px;
+        padding: 8px 5px;
+        font-size: 0.74rem;
+        gap: 3px;
     }
 
-    /* 手机版用短文案，避免「清除本文件保存记录」把按钮撑破 */
-    .footer-actions .btn-label-long {
-        display: none;
+    /* 「清除本文件保存记录」文案较长，字号再收一档并允许换行 */
+    .footer-actions #clearSaveBtn {
+        font-size: 0.68rem;
+        line-height: 1.3;
+        padding: 8px 4px;
     }
 
-    .footer-actions .btn-label-short {
-        display: inline;
+    .footer-actions #clearSaveBtn .material-icons {
+        font-size: 17px;
     }
 
     /* 「导出为 PDF (A4)」：仍然独占整行、保持主操作视觉权重，只压缩高度 */
@@ -2154,22 +2165,58 @@ body.mask-rect-dragging {
     min-height: 0;
 }
 
+/* ------------------------------------------------------------------
+   缩略图密度分级（桌面端）
+   导入的文件越多，预览图越小，一屏能看到更多页；
+   面板保持纵向滚动，随时可以上下滑动选择任意一页。
+   ------------------------------------------------------------------ */
+@media (min-width: 769px) {
+    .thumbnails-panel[data-tier="compact"] {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        align-content: start;
+    }
+
+    .thumbnails-panel[data-tier="dense"] {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        align-content: start;
+    }
+
+    /* 网格布局下缩略图按比例缩放（保持原始宽高比） */
+    .thumbnails-panel[data-tier="compact"] .thumbnail-item,
+    .thumbnails-panel[data-tier="dense"] .thumbnail-item {
+        width: 100%;
+    }
+
+    .thumbnails-panel[data-tier="compact"] .thumbnail-item canvas,
+    .thumbnails-panel[data-tier="dense"] .thumbnail-item canvas {
+        width: 100%;
+        height: auto;
+    }
+}
+
 .file-list-box {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 10px;
+    padding: 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     background: var(--bg-color);
     flex-shrink: 0;
 }
 
-/* 标题行 + 添加按钮的容器 */
+/* 标题行 + 添加按钮的容器
+   桌面端：标题一行、「导入新文件」按钮独占下一行（按钮更宽、文字完整可见）
+   手机端：标题与按钮同一行（横向平铺，见手机端媒体查询） */
 .file-list-top {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
     width: 100%;
 }
 
@@ -2186,9 +2233,9 @@ body.mask-rect-dragging {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-main);
+    font-weight: 700;
     flex-wrap: nowrap;
     overflow: hidden;
     flex: 1 1 auto;
@@ -2221,23 +2268,29 @@ body.mask-rect-dragging {
     flex-shrink: 0;
 }
 
+/* 「导入新文件」入口：左上角显眼的按钮，带文字方便识别 */
 .file-add-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background: var(--surface-color);
+    gap: 5px;
+    width: 100%;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--primary-color);
+    border-radius: 8px;
+    background: var(--primary-light);
     color: var(--primary-color);
     cursor: pointer;
-    padding: 0;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition: background .15s, border-color .15s;
 }
 
 .file-add-btn:hover {
-    background: var(--primary-light);
+    background: #e0e7ff;
     border-color: var(--primary-color);
 }
 
@@ -2245,27 +2298,28 @@ body.mask-rect-dragging {
     font-size: 16px;
 }
 
+
 .file-list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    max-height: 210px;
+    gap: 7px;
+    max-height: 260px;
     overflow-y: auto;
 }
 
 .file-card {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 5px 6px;
+    gap: 5px;
+    padding: 7px 8px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--surface-color);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
     transition: border-color .15s, box-shadow .15s;
     user-select: none;
 }
@@ -2311,17 +2365,17 @@ body.mask-rect-dragging {
 
 .file-remove {
     flex-shrink: 0;
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
     border: none;
     border-radius: 50%;
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 15px;
+    font-size: 18px;
     line-height: 1;
     padding: 0;
-    opacity: .55;
+    opacity: .6;
     transition: background .15s, opacity .15s, color .15s;
 }
 
@@ -2329,14 +2383,6 @@ body.mask-rect-dragging {
     background: #fee2e2;
     color: #dc2626;
     opacity: 1;
-}
-
-.file-list-tip {
-    margin: 0;
-    font-size: 10px;
-    color: var(--text-secondary);
-    opacity: .75;
-    line-height: 1.5;
 }
 
 /* ==================================================================
@@ -2599,4 +2645,251 @@ body.modal-open {
     margin-left: auto;
     display: flex;
     gap: 8px;
+}
+
+/* ==========================================================================
+   电脑版 · 右侧控制面板紧凑化（min-width: 769px）
+   目标：指南 / 方向 / 编辑 / 擦除 / 密封 / 比例 / 导出 全部在一屏内显示。
+   做法：整体收紧内边距、行距、字号与滑块高度，但不改变功能与操作顺序。
+   ========================================================================== */
+@media (min-width: 769px) {
+
+    .right-panel {
+        /* 略微加宽：按钮组能多并排几个，行数自然减少 */
+        width: 344px;
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+    /* 导出区：两个次级按钮并排一行，下拉框与导出按钮各占一行 */
+    .footer-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+        align-items: center;
+    }
+
+    .footer-actions #openSortBtn {
+        grid-row: 1;
+        grid-column: 1;
+    }
+
+    .footer-actions #clearSaveBtn {
+        grid-row: 1;
+        grid-column: 2;
+    }
+
+    .footer-actions .export-options {
+        grid-row: 2;
+        grid-column: 1 / -1;
+    }
+
+    .footer-actions #exportBtn {
+        grid-row: 3;
+        grid-column: 1 / -1;
+    }
+
+    .panel-section {
+        gap: 3px;
+    }
+
+    .panel-section h3 {
+        font-size: 0.82rem;
+        margin-bottom: 0;
+    }
+
+    .panel-divider {
+        margin: 2px 0;
+    }
+
+    /* 每个模块的卡片内边距与行距收紧 */
+    .tools-grid {
+        padding: 6px 7px;
+        gap: 5px;
+    }
+
+    .btn {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+
+    .btn-group {
+        gap: 6px;
+    }
+
+    .btn-group .btn {
+        font-size: 0.78rem;
+        padding: 5px 6px;
+        gap: 4px;
+    }
+
+    .rotate-group .btn,
+    .split-preset-group .btn {
+        font-size: 0.72rem;
+        padding: 5px 3px;
+    }
+
+    .rotate-apply-row .btn,
+    .edit-apply-row .btn,
+    .seal-apply-row .btn,
+    .seal-action-row .btn,
+    .crop-apply-row .btn {
+        font-size: 0.75rem;
+        padding: 5px 6px;
+    }
+
+    /* 滑块区：标题不再独占一行，标题 / 滑块 / 数值挤在同一行（省一行高度） */
+    .rotate-slider {
+        gap: 6px;
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .rotate-fine-label {
+        font-size: 0.72rem;
+        line-height: 1.25;
+        flex: 0 0 auto;
+        width: auto;
+        gap: 4px;
+    }
+
+    /* 桌面端隐藏滑块标签的补充说明（「（±15°）」「（相对页宽）」「（成品页大小）」），
+       给滑块本体留出足够宽度 —— 滑块太窄会不好拖 */
+    .right-panel .label-extra {
+        display: none;
+    }
+
+    /* 只压缩「独立成行」的滑块（笔刷大小 / 输出比例）；
+       带「− / +」步进按钮的微调滑块另作处理，保证三者上下对齐 */
+    .rotate-slider > input[type="range"] {
+        height: 12px;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    /* 微调滑块：range 与两侧圆形按钮等高，避免上下错位 */
+    .fine-stepper input[type="range"] {
+        height: 22px;
+    }
+
+    .right-panel .fine-step-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 0.95rem;
+    }
+
+    .rotate-slider-val {
+        font-size: 0.72rem;
+        flex: 0 0 auto;
+    }
+
+    /* 微调滑块带「− / +」步进按钮，桌面端让它占满一行 */
+    .right-panel .fine-stepper {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    /* 「应用当前页 / 应用所有页」两枚按钮改为一行并排（原来就并排，这里只是压扁） */
+    .rotate-apply-row .btn,
+    .edit-apply-row .btn,
+    .seal-apply-row .btn,
+    .crop-apply-row .btn {
+        padding: 4px 5px;
+    }
+
+    .status-line {
+        min-height: 18px;
+    }
+
+    .status-chip {
+        font-size: 0.68rem;
+        padding: 1px 8px;
+    }
+
+    .seal-title-row .status-chip {
+        font-size: 0.64rem;
+    }
+
+    .seal-direction-block {
+        gap: 5px;
+        /* 四个方向并排成一行，省下一行高度 */
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .seal-side-row {
+        display: contents;
+    }
+
+    .seal-side-row .btn {
+        font-size: 0.72rem;
+        padding: 4px 2px;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .seal-side-row .btn .material-icons {
+        font-size: 15px;
+    }
+
+    /* 导出区：标题与下拉框紧凑 */
+    .export-options {
+        margin-bottom: 4px;
+    }
+
+    .export-head {
+        margin-bottom: 3px;
+    }
+
+    .export-title {
+        font-size: 0.88rem;
+        letter-spacing: 2px;
+    }
+
+    .export-size-note {
+        font-size: 0.62rem;
+    }
+
+    .select-input {
+        padding: 5px 28px 5px 9px;
+        font-size: 0.82rem;
+    }
+
+    .spacer {
+        height: 0;
+    }
+
+    /* 操作指南标题更矮 */
+    .guide-toggle {
+        padding: 6px 9px;
+    }
+
+    .guide-toggle-title {
+        font-size: 0.82rem;
+    }
+
+    /* 导出区三个次级按钮压扁 */
+    .footer-actions .btn {
+        padding: 4px 8px;
+        font-size: 0.78rem;
+        gap: 5px;
+    }
+
+    .footer-actions #exportBtn.btn.success.large {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+
+    /* 「导出前排序」与「清除本文件保存记录」并排一行 */
+    .footer-actions #openSortBtn,
+    .footer-actions #clearSaveBtn {
+        width: auto;
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .footer-actions .panel-divider,
+    .footer-actions .spacer {
+        display: none;
+    }
 }

@@ -51,8 +51,8 @@ export function renderFileList() {
             : '';
     }
     if (elements.addFilesBtn) {
-        // 「＋」始终可用 —— 只有一个文件时也能继续追加更多文件
-        elements.addFilesBtn.hidden = docs.length === 0;
+        // 「导入新文件」入口常驻 —— 即使只导入了一个文件，也能继续追加
+        elements.addFilesBtn.hidden = false;
     }
 
     elements.fileList.innerHTML = '';

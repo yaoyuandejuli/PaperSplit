@@ -293,10 +293,37 @@ export function refitCanvas() {
 }
 
 /**
+ * 缩略图密度分级
+ *
+ * 导入的文件越多，左侧预览图就越小，否则纵向堆叠后需要滚动很久才能看完。
+ * 分三档：
+ *   normal  —— 页数不多，缩略图占满整列（看得最清楚）
+ *   compact —— 页数较多，两列并排（预览图缩小，仍可上下滑动选择）
+ *   dense   —— 页数很多，三列并排（大幅缩小，一屏能看到更多页）
+ *
+ * 注意：这里只改**列数**，不改变缩略图的宽高比，
+ * 面板依然是纵向滚动容器，页面足够多时仍能上下滑动选择任意一页。
+ */
+const THUMB_TIERS = [
+    { max: 8, tier: 'normal' },
+    { max: 24, tier: 'compact' },
+    { max: Infinity, tier: 'dense' }
+];
+
+/** 按当前总页数决定缩略图密度档位 */
+function pickThumbTier(totalPages) {
+    for (const t of THUMB_TIERS) {
+        if (totalPages <= t.max) return t.tier;
+    }
+    return 'dense';
+}
+
+/**
  * 渲染左侧缩略图列表
  */
 export async function renderThumbnails() {
     elements.thumbnailsPanel.innerHTML = '';
+    elements.thumbnailsPanel.dataset.tier = pickThumbTier(state.totalPages);
 
     // 先按顺序建好占位容器（保证缩略图顺序与页码一致），再并行渲染各自内容
     const slots = [];

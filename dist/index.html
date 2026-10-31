@@ -15,9 +15,9 @@
     <title>PaperSplit - 试卷本地拆分，一键适配A4打印</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-89N8g8IJ.js"></script>
+  <script type="module" crossorigin src="./assets/index-B2v_-D3_.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-TT_N9QEv.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-BzlfkMGx.css">
 </head>
 
 <body>
@@ -72,13 +72,14 @@
                             <span class="file-list-count" id="fileListCount"></span>
                             <span class="material-icons file-list-caret" aria-hidden="true">chevron_left</span>
                         </button>
-                        <button type="button" class="file-add-btn" id="addFilesBtn" title="继续添加文件（追加到末尾）" hidden>
+                        <button type="button" class="file-add-btn" id="addFilesBtn"
+                            title="导入新文件（追加到已导入文件末尾）">
                             <span class="material-icons" aria-hidden="true">add</span>
-                            <span class="sr-only">继续添加文件</span>
+                            <span class="file-add-text">导入新文件</span>
+                            <span class="sr-only">导入新文件</span>
                         </button>
                     </div>
                     <ul class="file-list" id="fileList"></ul>
-                    <p class="file-list-tip">点击卡片跳转</p>
                 </div>
 
                 <!-- 缩略图动态生成（手机端为主区域，放大展示） -->
@@ -153,7 +154,7 @@
                             <div class="step-num">1</div>
                             <div class="step-text">
                                 <strong>导入试卷</strong>
-                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；「已导入文件」清单在顶部横向平铺，可滑动查看、继续添加（＋）、移除单个文档（×）</p>
+                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；左上角「已导入文件」区可滑动查看全部文档，点「导入新文件」继续追加，点「×」移除单个文档</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -174,14 +175,14 @@
                             <div class="step-num">4</div>
                             <div class="step-text">
                                 <strong>擦除内容（可选）</strong>
-                                <p>框选或涂抹要擦除的内容，点「应用」后画布直接显示擦除后的效果</p>
+                                <p>框选或涂抹要擦除的内容，点「应用」后画布直接显示擦除后的效果；点「重置」可清除本页全部擦除痕迹</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">5</div>
                             <div class="step-text">
                                 <strong>密封线调整（可选）</strong>
-                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；开启后<strong>直接拖动斜纹区即可整体平移</strong>，拖动两侧虚线可调整范围（位置不限）。<strong>「靠左」「靠右」「靠上」「靠下」四个方向可独立开关、可同时存在</strong> —— 左右是竖向密封带，上下是横向密封带（裁掉顶部 / 底部）。「重置」可清除本页全部密封区域</p>
+                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；开启后<strong>直接拖动斜纹区即可整体平移</strong>，拖动两侧虚线可调整范围（位置不限）。<strong>「左侧」「右侧」「上侧」「下侧」四个方向可独立开关、可同时存在</strong> —— 左右是竖向密封带，上下是横向密封带（裁掉顶部 / 底部）。「重置」可清除本页全部密封区域</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -233,8 +234,8 @@
                                 <strong>主画布双态</strong>
                                 <p>主画布有<strong>两种形态</strong>，左上角始终有标签提示当前看到的是什么：</p>
                                 <p>· <strong>[ 原图编辑 ]</strong> —— 带红框、分割线、密封线的原图，用于排版操作（默认状态）</p>
-                                <p>· <strong>[ 结果预览 ]</strong> —— 处理后的最终 A4 成品页（双页效果），用于确认输出比例</p>
-                                <p>在「输出比例调整」里操作会自动切到<strong>结果预览</strong>；点击其它模块（方向调整 / 编辑工具 / 擦除 / 密封线）则自动切回<strong>原图编辑</strong>，两种形态之间平滑淡入淡出，不会闪烁。</p>
+                                <p>· <strong>[ 打印结果预览 ]</strong> —— 处理后的最终 A4 成品页（双页效果），用于确认输出比例</p>
+                                <p>在「输出比例调整」里操作会自动切到<strong>打印结果预览</strong>；点击其它模块（方向调整 / 编辑工具 / 擦除 / 密封线）则自动切回<strong>原图编辑</strong>，两种形态之间平滑淡入淡出，不会闪烁。</p>
                             </div>
                         </div>
                     </div>
@@ -258,7 +259,7 @@
                         </div>
                         <div class="rotate-slider">
                             <div class="rotate-fine-label">
-                                <span>微调纠偏（±15°）</span>
+                                <span>微调纠偏<span class="label-extra">（±15°）</span></span>
                                 <span class="status-chip" id="rotateAngle">0°</span>
                             </div>
                             <div class="fine-stepper">
@@ -324,7 +325,10 @@
                 </div>
 
                 <div class="panel-section" data-canvas-mode="edit">
-                    <h3>🧽 擦除内容（可选）</h3>
+                    <h3 class="seal-title-row">
+                        <span>🧽 擦除内容（可选）</span>
+                        <span class="status-chip" id="maskCount">尚未擦除</span>
+                    </h3>
                     <div class="tools-grid">
                         <div class="btn-group erase-mode-group">
                             <button id="maskToggleBtn" class="btn secondary" disabled
@@ -338,21 +342,18 @@
                         </div>
 
                         <div class="rotate-slider">
-                            <div class="rotate-fine-label">笔刷大小（相对页宽）</div>
+                            <div class="rotate-fine-label">笔刷大小<span class="label-extra">（相对页宽）</span></div>
                             <input type="range" id="maskBrushSlider" min="1" max="20" step="1" value="6" disabled />
                             <span class="rotate-slider-val"><span id="maskBrushVal">6</span>%</span>
-                        </div>
-
-                        <div class="status-line">
-                            <span class="status-chip" id="maskCount">尚未擦除</span>
                         </div>
 
                         <div class="btn-group">
                             <button id="maskUndoBtn" class="btn secondary" disabled title="撤销上一次擦除操作">
                                 <span class="material-icons">undo</span> 撤销
                             </button>
-                            <button id="clearMasksBtn" class="btn secondary" disabled title="清除当前页所有擦除标记，并恢复已擦除区域">
-                                <span class="material-icons">layers_clear</span> 擦除
+                            <button id="clearMasksBtn" class="btn secondary" disabled
+                                title="重置擦除：清除当前页所有擦除标记，并恢复已擦除区域">
+                                <span class="material-icons">restart_alt</span> 重置
                             </button>
                         </div>
 
@@ -385,19 +386,19 @@
                         <div class="seal-direction-block">
                             <div class="btn-group seal-side-row">
                                 <button id="sealLeftBtn" class="btn secondary" disabled title="把密封区域贴到页面左边缘（保持当前宽度）">
-                                    <span class="material-icons">align_horizontal_left</span> 靠左
+                                    <span class="material-icons">align_horizontal_left</span> 左侧
                                 </button>
                                 <button id="sealRightBtn" class="btn secondary" disabled title="把密封区域贴到页面右边缘（保持当前宽度）">
-                                    <span class="material-icons">align_horizontal_right</span> 靠右
+                                    <span class="material-icons">align_horizontal_right</span> 右侧
                                 </button>
                             </div>
 
                             <div class="btn-group seal-side-row">
                                 <button id="sealTopBtn" class="btn secondary" disabled title="把密封区域贴到页面顶部（保持当前高度）">
-                                    <span class="material-icons">align_vertical_top</span> 靠上
+                                    <span class="material-icons">align_vertical_top</span> 上侧
                                 </button>
                                 <button id="sealBottomBtn" class="btn secondary" disabled title="把密封区域贴到页面底部（保持当前高度）">
-                                    <span class="material-icons">align_vertical_bottom</span> 靠下
+                                    <span class="material-icons">align_vertical_bottom</span> 下侧
                                 </button>
                             </div>
 
@@ -417,7 +418,10 @@
                 </div>
 
                 <div class="panel-section" data-canvas-mode="preview">
-                    <h3>📐 输出比例调整（可选）</h3>
+                    <h3 class="seal-title-row">
+                        <span>📐 输出比例调整（可选）</span>
+                        <span class="status-chip" id="cropZoomState">已应用</span>
+                    </h3>
                     <div class="tools-grid">
                         <div class="btn-group crop-zoom-group">
                             <button id="cropZoomOutBtn" class="btn secondary" disabled title="调小裁剪结果">
@@ -432,14 +436,11 @@
                         </div>
                         <div class="rotate-slider">
                             <div class="rotate-fine-label">
-                                <span>输出比例（成品页大小）</span>
+                                <span>输出比例<span class="label-extra">（成品页大小）</span></span>
                                 <span class="status-chip" id="cropZoomApplied">100%</span>
                             </div>
                             <input type="range" id="cropZoomSlider" min="50" max="200" step="5" value="100" disabled />
                             <span class="rotate-slider-val"><span id="cropZoomVal">100</span>%</span>
-                        </div>
-                        <div class="status-line">
-                            <span class="status-chip" id="cropZoomState" class="crop-zoom-state">已应用</span>
                         </div>
                         <div class="btn-group crop-apply-row">
                             <button id="applyCropZoomBtn" class="btn primary" disabled
@@ -461,6 +462,18 @@
                     <!-- Hidden File Input（支持多选） -->
                     <input type="file" id="fileInput" accept="application/pdf,image/*" multiple hidden>
 
+                    <button id="openSortBtn" class="btn secondary full-width" disabled
+                        title="导出前逐页调整顺序：拖动页面卡片或用上下按钮移动，确定后再导出">
+                        <span class="material-icons">sort</span> 导出前排序
+                    </button>
+
+                    <button id="clearSaveBtn" class="btn secondary full-width" disabled
+                        title="清除本文件已保存的编辑配置（分割线 / 旋转 / 擦除 / 裁剪比例），下次打开时不再自动恢复">
+                        <span class="material-icons">delete_sweep</span>
+                        <span class="btn-label-long">清除本文件保存记录</span>
+                    </button>
+
+                    <!-- 导出模式（含「等比留白」）紧挨导出按钮，选择完即可直接导出 -->
                     <div class="export-options">
                         <div class="export-head">
                             <label class="sub-label export-title" for="exportFitSelect">文件导出</label>
@@ -472,18 +485,6 @@
                             <option value="a4-cover">标准 A4 · 等比填满（超出裁切）</option>
                         </select>
                     </div>
-
-                    <button id="openSortBtn" class="btn secondary full-width" disabled
-                        title="导出前逐页调整顺序：拖动页面卡片或用上下按钮移动，确定后再导出">
-                        <span class="material-icons">sort</span> 导出前排序
-                    </button>
-
-                    <button id="clearSaveBtn" class="btn secondary full-width" disabled
-                        title="清除本文件已保存的编辑配置（分割线 / 旋转 / 擦除 / 裁剪比例），下次打开时不再自动恢复">
-                        <span class="material-icons">delete_sweep</span>
-                        <span class="btn-label-long">清除本文件保存记录</span>
-                        <span class="btn-label-short">清除记录</span>
-                    </button>
 
                     <button id="exportBtn" class="btn success full-width large shadow-btn" disabled>
                         <span class="material-icons">save_alt</span> 导出为 PDF (A4)
