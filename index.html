@@ -332,21 +332,21 @@
                 </div>
 
                 <div class="panel-section">
-                    <h3>🔒 密封线调整（可选）</h3>
+                    <!-- 标题与状态标签同行：状态紧跟在标题右侧，不再单独占一行 -->
+                    <h3 class="seal-title-row">
+                        <span>🔒 密封线调整（可选）</span>
+                        <span class="status-chip seal-state" id="sealStatus">未启用</span>
+                    </h3>
                     <div class="tools-grid">
                         <div class="btn-group seal-action-row">
                             <button id="toggleSealLineBtn" class="btn secondary" disabled
-                                title="开启/取消全部方向的密封区域（默认奇数页靠左、偶数页靠右，各占 15%）">
+                                title="开启密封区域（默认同时打开靠左与靠右，各占 15%）；再次点击取消全部密封区域">
                                 <span class="material-icons">format_shapes</span> 去除密封线
                             </button>
                             <button id="resetSealBtn" class="btn secondary" disabled
                                 title="清除当前页所有密封区域（左右 + 上下，不影响分割线）">
                                 <span class="material-icons">restart_alt</span> 重置
                             </button>
-                        </div>
-
-                        <div class="status-line">
-                            <span class="status-chip seal-state" id="sealStatus">未启用</span>
                         </div>
 
                         <!-- 四个方向：左右（竖向密封带）与上下（横向密封带），可独立开关、可同时存在 -->
@@ -369,29 +369,6 @@
                                 </button>
                             </div>
 
-                            <!-- 手动调整：上下密封带的厚度（精确到 1%），免去在画布上拖细虚线 -->
-                            <div class="seal-thickness-block" id="sealThicknessBlock">
-                                <div class="seal-thickness-row" data-edge="top">
-                                    <span class="seal-thickness-label">上边厚度</span>
-                                    <div class="seal-thickness-ctrl">
-                                        <button type="button" class="seal-step-btn" data-edge="top" data-delta="-0.01"
-                                            aria-label="减少顶部密封带厚度" title="减少顶部密封带厚度">−</button>
-                                        <span class="seal-thickness-val" id="sealTopThicknessVal">—</span>
-                                        <button type="button" class="seal-step-btn" data-edge="top" data-delta="0.01"
-                                            aria-label="增加顶部密封带厚度" title="增加顶部密封带厚度">+</button>
-                                    </div>
-                                </div>
-                                <div class="seal-thickness-row" data-edge="bottom">
-                                    <span class="seal-thickness-label">下边厚度</span>
-                                    <div class="seal-thickness-ctrl">
-                                        <button type="button" class="seal-step-btn" data-edge="bottom" data-delta="-0.01"
-                                            aria-label="减少底部密封带厚度" title="减少底部密封带厚度">−</button>
-                                        <span class="seal-thickness-val" id="sealBottomThicknessVal">—</span>
-                                        <button type="button" class="seal-step-btn" data-edge="bottom" data-delta="0.01"
-                                            aria-label="增加底部密封带厚度" title="增加底部密封带厚度">+</button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <div class="btn-group seal-apply-row">

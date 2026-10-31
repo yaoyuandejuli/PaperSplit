@@ -11,7 +11,7 @@ import { handleFileUpload, setImportMode } from './file-handler.js';
 import { toggleFileList } from './file-list.js';
 import { openSortPanel, closeSortPanel, applySort, resetSort } from './page-sort.js';
 import { changePage, renderCurrentPage, refitCanvas, rotatePage, setPageRotation, resetRotation, applyRotationToCurrent, applyRotationToAll } from './viewer.js';
-import { toggleSealLine, setSealSide, adjustSealThickness, applySplitToCurrent, applySplitToAll, applySealToCurrent, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetSplitLayout, resetSealAreas, getPageConfig, syncFineStepperUI } from './editor.js';
+import { toggleSealLine, setSealSide, applySplitToCurrent, applySplitToAll, applySealToCurrent, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetSplitLayout, resetSealAreas, getPageConfig, syncFineStepperUI } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
 import { initViewportGestures } from './viewport.js';
@@ -207,16 +207,6 @@ function initEventListeners() {
     elements.sealTopBtn.addEventListener('click', () => setSealSide('top'));
     elements.sealBottomBtn.addEventListener('click', () => setSealSide('bottom'));
 
-    // 「靠上 / 靠下」的手动厚度调整：± 按钮精确到 1%
-    // 免去在画布上反复拖那条很细的水平虚线（手机上尤其难拖）
-    document.querySelectorAll('.seal-step-btn[data-edge]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const edge = btn.dataset.edge;
-            const delta = Number(btn.dataset.delta) || 0;
-            if (!edge || !delta) return;
-            adjustSealThickness(edge, delta);
-        });
-    });
     elements.addSplitBtn.addEventListener('click', addSplitLine);
 
     // 「去除分割线」：进入选择模式 → 点击分割线即直接删除

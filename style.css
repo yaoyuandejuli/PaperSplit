@@ -330,6 +330,27 @@ body {
     gap: 8px;
 }
 
+/* ------------------------------------------------------------------
+   密封线分区：标题与状态标签同行
+   「已启用 · X 处」紧跟在标题右侧，不再单独占一行，节省纵向空间
+   ------------------------------------------------------------------ */
+.panel-section h3.seal-title-row {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.seal-title-row > span:first-child {
+    flex: 0 0 auto;
+}
+
+.seal-title-row .status-chip {
+    flex: 0 0 auto;
+    /* 标题行里字号略小一点，避免抢标题的视觉重心 */
+    font-size: 0.68rem;
+    padding: 1px 8px;
+    line-height: 1.45;
+}
+
 .panel-section h3 {
     font-size: 0.95rem;
     font-weight: 600;
@@ -573,95 +594,6 @@ a:focus-visible {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     background: var(--bg-color);
-}
-
-/* ------------------------------------------------------------------
-   密封带「手动调整」：上边厚度 / 下边厚度
-   用 ± 按钮精确到 1%，免去在画布上拖那条很细的水平虚线
-   （手机上那条线几乎拖不动，热区虽已放大但仍不易命中）
-   ------------------------------------------------------------------ */
-.seal-thickness-block {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 2px;
-    padding-top: 6px;
-    border-top: 1px dashed var(--border-color);
-}
-
-.seal-thickness-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-height: 26px;
-}
-
-.seal-thickness-row.disabled {
-    opacity: 0.42;
-}
-
-.seal-thickness-label {
-    flex: 0 0 auto;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    white-space: nowrap;
-}
-
-.seal-thickness-ctrl {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: 0 0 auto;
-}
-
-.seal-thickness-val {
-    min-width: 42px;
-    text-align: center;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--text-main);
-    font-variant-numeric: tabular-nums;
-}
-
-.seal-step-btn {
-    flex: 0 0 auto;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border-radius: 50%;
-    border: 1px solid var(--border-color);
-    background: #fff;
-    color: var(--text-main);
-    font-family: inherit;
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.seal-step-btn:hover:not(:disabled) {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-    background: #f8fafc;
-}
-
-.seal-step-btn:active:not(:disabled) {
-    transform: scale(0.92);
-}
-
-.seal-step-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    filter: grayscale(1);
-    background: #e2e8f0 !important;
-    color: #94a3b8 !important;
 }
 
 .seal-side-row .btn {

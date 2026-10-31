@@ -112,15 +112,7 @@ export function normalizeSealBand(band) {
     // 高度封顶，并把区域收进 [0, 1] 之内
     const h = Math.min(hi - lo, SEAL_MAX_W);
     const y0 = Math.min(Math.max(lo, 0), 1 - h);
-    // edge 记录该密封带「属于哪个方向」（'top' / 'bottom'），
-    // 供「手动调整」精确定位用；老数据没有该字段时按贴边情况推断。
-    let edge = (band.edge === 'top' || band.edge === 'bottom') ? band.edge : null;
-    if (!edge) {
-        if (y0 <= 0.001) edge = 'top';
-        else if (y0 + h >= 0.999) edge = 'bottom';
-    }
-
-    return { y0, y1: y0 + h, edge };
+    return { y0, y1: y0 + h };
 }
 
 /**

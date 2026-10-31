@@ -239,7 +239,7 @@ function bindSealZoneDrag(zone) {
                 const bands = getSealBands(cfg);
                 if (bands[idx]) {
                     // 保留 edge（方向归属），手动调整才能继续定位到它
-                    cfg.sealBands[idx] = { y0: draft.start, y1: draft.end, edge: bands[idx].edge || null };
+                    cfg.sealBands[idx] = { y0: draft.start, y1: draft.end };
                     cfg.sealBands = getSealBands(cfg);
                 }
             } else {
@@ -386,34 +386,6 @@ function updateSealUI(config) {
     toggle(elements.sealTopBtn, atTop);
     toggle(elements.sealBottomBtn, atBottom);
 
-    // 「手动调整」：同步上下密封带的当前厚度，并按是否启用置灰
-    syncSealThicknessUI(config);
-}
-
-/**
- * 同步「上边厚度 / 下边厚度」微调控件
- * 未启用对应方向时整行置灰（按钮 disabled），并显示占位符。
- * @param {Object} config 当前页配置
- */
-function syncSealThicknessUI(config) {
-    const top = getSealThickness('top');
-    const bottom = getSealThickness('bottom');
-
-    const syncRow = (edge, value, valEl) => {
-        const row = elements.sealThicknessBlock
-            ? elements.sealThicknessBlock.querySelector(`.seal-thickness-row[data-edge="${edge}"]`)
-            : null;
-        const enabled = value !== null;
-        if (row) row.classList.toggle('disabled', !enabled);
-        if (valEl) valEl.textContent = enabled ? `${Math.round(value * 100)}%` : '—';
-        // 按钮的可用状态跟着该方向是否启用走
-        document.querySelectorAll(`.seal-step-btn[data-edge="${edge}"]`).forEach((btn) => {
-            btn.disabled = !enabled;
-        });
-    };
-
-    syncRow('top', top, elements.sealTopThicknessVal);
-    syncRow('bottom', bottom, elements.sealBottomThicknessVal);
 }
 
 /**
@@ -486,7 +458,7 @@ export function renderSplitLines() {
             const cur = getSealBands(config)[i];
             if (!cur) return;
             const y0 = Math.min(Math.max(v, 0), cur.y1 - SEAL_MIN_W);
-            config.sealBands[i] = { y0, y1: cur.y1, edge: cur.edge || null };
+            config.sealBands[i] = { y0, y1: cur.y1 };
             syncSealVisuals(config);
         }, (pct) => {
             const cur = getSealBands(config)[i];
@@ -498,7 +470,7 @@ export function renderSplitLines() {
             const cur = getSealBands(config)[i];
             if (!cur) return;
             const y1 = Math.min(Math.max(v, cur.y0 + SEAL_MIN_W), 1);
-            config.sealBands[i] = { y0: cur.y0, y1, edge: cur.edge || null };
+            config.sealBands[i] = { y0: cur.y0, y1 };
             syncSealVisuals(config);
         }, (pct) => {
             const cur = getSealBands(config)[i];
@@ -506,16 +478,11 @@ export function renderSplitLines() {
         }, { sealIndex: i, sealEdge: 1, axis: 'y' });
     });
 
-    // 更新按钮状态：显示取消（四个方向任一存在即视为已启用）
+    // 更新按钮状态：文字恒为「去除密封线」（不随状态变化），
+    // 只用颜色区分「已启用 / 未启用」—— 启用时呈蓝色（active-state）。
     const anySeal = seals.length + bands.length > 0;
-    if (anySeal) {
-        elements.toggleSealLineBtn.innerHTML = '<span class="material-icons">close</span> 取消密封线';
-        elements.toggleSealLineBtn.classList.add('active-state');
-    } else {
-        // 更新按钮状态：显示添加
-        elements.toggleSealLineBtn.innerHTML = '<span class="material-icons">format_shapes</span> 去除密封线';
-        elements.toggleSealLineBtn.classList.remove('active-state');
-    }
+    elements.toggleSealLineBtn.innerHTML = '<span class="material-icons">format_shapes</span> 去除密封线';
+    elements.toggleSealLineBtn.classList.toggle('active-state', anySeal);
 
     // 遮罩与状态显示
     renderSealZones(config);
@@ -1050,8 +1017,8 @@ export function setSealSide(side) {
 
     const next = isY
         ? (side === 'top'
-            ? { y0: 0, y1: width, edge: 'top' }
-            : { y0: 1 - width, y1: 1, edge: 'bottom' })
+            ? { y0: 0, y1: width }
+            : { y0: 1 - width, y1: 1 })
         : (side === 'left'
             ? { x0: 0, x1: width }
             : { x0: 1 - width, x1: 1 });
@@ -1070,86 +1037,11 @@ export function setSealSide(side) {
 }
 
 /**
- * 手动调整某一个方向密封带的「厚度 / 宽度」
- *
- * 「靠上 / 靠下」只负责把密封带贴到页面边缘并给一个默认厚度（15%），
- * 用户往往还需要精确控制裁掉多少 —— 本函数提供数值级的精确调整，
- * 不必在画布上反复拖动那条很细的虚线（手机上尤其难拖）。
- *
- * · top    → 调整顶部密封带：保持贴上边，向下扩展
- * · bottom → 调整底部密封带：保持贴下边，向上扩展
- * · left   → 调整左侧密封带：保持贴左边，向右扩展
- * · right  → 调整右侧密封带：保持贴右边，向左扩展
- *
- * @param {'top'|'bottom'|'left'|'right'} edge 方向
- * @param {number} delta 增量（比例，正数=更厚，负数=更薄）
- */
-export function adjustSealThickness(edge, delta) {
-    const config = getPageConfig(state.currentPage);
-    const isY = (edge === 'top' || edge === 'bottom');
-    const list = isY ? getSealBands(config) : getSealRanges(config);
-
-    // 找到属于该方向的密封带
-    let idx = -1;
-    for (let i = 0; i < list.length; i++) {
-        const item = list[i];
-        if (isY) {
-            if (item.edge === edge) { idx = i; break; }
-        } else {
-            // 左右密封带没有 edge 字段，按贴边情况判定
-            if (edge === 'left' && item.x0 <= 0.001) { idx = i; break; }
-            if (edge === 'right' && item.x1 >= 0.999) { idx = i; break; }
-        }
-    }
-    if (idx < 0) {
-        showToast(`当前页没有${edge === 'top' ? '顶部' : edge === 'bottom' ? '底部' : edge === 'left' ? '左侧' : '右侧'}密封带`, 'warn');
-        return;
-    }
-
-    const cur = list[idx];
-    const curSize = isY ? (cur.y1 - cur.y0) : (cur.x1 - cur.x0);
-    const nextSize = Math.min(Math.max(curSize + delta, SEAL_MIN_W), SEAL_MAX_W);
-    if (Math.abs(nextSize - curSize) < 1e-6) return;
-
-    if (isY) {
-        const y0 = edge === 'top' ? 0 : cur.y1 - nextSize;
-        const y1 = edge === 'top' ? nextSize : 1;
-        config.sealBands[idx] = { y0, y1, edge };
-    } else {
-        const x0 = edge === 'left' ? 0 : cur.x1 - nextSize;
-        const x1 = edge === 'left' ? nextSize : 1;
-        config.sealRanges[idx] = { x0, x1 };
-    }
-
-    renderSplitLines();
-    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
-}
-
-/**
- * 读取某个方向密封带的当前厚度（比例），没有则返回 null
- * @param {'top'|'bottom'|'left'|'right'} edge 方向
- * @returns {number|null}
- */
-export function getSealThickness(edge) {
-    const config = getPageConfig(state.currentPage);
-    const isY = (edge === 'top' || edge === 'bottom');
-    const list = isY ? getSealBands(config) : getSealRanges(config);
-
-    for (const item of list) {
-        if (isY) {
-            if (item.edge === edge) return item.y1 - item.y0;
-        } else {
-            if (edge === 'left' && item.x0 <= 0.001) return item.x1 - item.x0;
-            if (edge === 'right' && item.x1 >= 0.999) return item.x1 - item.x0;
-        }
-    }
-    return null;
-}
-
-/**
  * 切换密封线状态（启用 / 取消）
- * 首次启用时给出贴合书页习惯的默认区域：奇数页靠左、偶数页靠右，各占 15%
- * 四个方向（左右 / 上下）任一存在即视为已启用，再次点击全部取消
+ *
+ * 首次启用时**同时打开「靠左」与「靠右」**两个方向（各占 15%）——
+ * 用户点一下就能拿到完整的双边密封带，之后仍可用「靠左 / 靠右 / 靠上 / 靠下」
+ * 单独开关任一方向。再次点击则取消全部密封区域。
  */
 export function toggleSealLine() {
     const config = getPageConfig(state.currentPage);
@@ -1158,10 +1050,11 @@ export function toggleSealLine() {
         config.sealRanges = [];
         config.sealBands = [];
     } else {
-        const isOdd = state.currentPage % 2 !== 0;
-        config.sealRanges = [isOdd
-            ? { x0: 0, x1: SEAL_DEFAULT_W }
-            : { x0: 1 - SEAL_DEFAULT_W, x1: 1 }];
+        // 默认同时贴左、贴右（各 15%），与「靠左 / 靠右」两个按钮的初始状态一致
+        config.sealRanges = [
+            { x0: 0, x1: SEAL_DEFAULT_W },
+            { x0: 1 - SEAL_DEFAULT_W, x1: 1 }
+        ];
         config.sealBands = [];
     }
 
