@@ -499,12 +499,22 @@ a:focus-visible {
     padding: 8px;
 }
 
-/* 自定义角度滑块 */
+/* ------------------------------------------------------------------
+   滑块（输出比例 / 微调纠偏 / 笔刷大小）的移动端触摸策略
+   · touch-action: pan-y
+     浏览器只接管【垂直】方向的平移手势并把它交给页面滚动；
+     横向手势不被浏览器消费，滑块可以正常跟手。
+     这是解决「滑动页面时误改滑块」的第一道防线。
+   · 滑块上下留白
+     手指落在滑块上下留白处时，即使点到 range 元素也能正常滚动页面。
+   ------------------------------------------------------------------ */
 .rotate-slider {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
+    /* 让浏览器把垂直滚动优先交给页面 */
+    touch-action: pan-y;
 }
 
 .rotate-fine-label {
@@ -563,6 +573,95 @@ a:focus-visible {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     background: var(--bg-color);
+}
+
+/* ------------------------------------------------------------------
+   密封带「手动调整」：上边厚度 / 下边厚度
+   用 ± 按钮精确到 1%，免去在画布上拖那条很细的水平虚线
+   （手机上那条线几乎拖不动，热区虽已放大但仍不易命中）
+   ------------------------------------------------------------------ */
+.seal-thickness-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 2px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.seal-thickness-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 26px;
+}
+
+.seal-thickness-row.disabled {
+    opacity: 0.42;
+}
+
+.seal-thickness-label {
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.seal-thickness-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.seal-thickness-val {
+    min-width: 42px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-main);
+    font-variant-numeric: tabular-nums;
+}
+
+.seal-step-btn {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.seal-step-btn:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: #f8fafc;
+}
+
+.seal-step-btn:active:not(:disabled) {
+    transform: scale(0.92);
+}
+
+.seal-step-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(1);
+    background: #e2e8f0 !important;
+    color: #94a3b8 !important;
 }
 
 .seal-side-row .btn {
@@ -633,6 +732,11 @@ a:focus-visible {
     width: 100%;
     accent-color: var(--primary-color);
     cursor: pointer;
+    /* 移动端触摸策略：只把「垂直」平移交给浏览器（页面滚动），
+       横向手势留给滑块本身，避免滑动页面时误改滑块值。
+       配合 src/slider-touch.js 的方向守卫效果最佳 —— 原生 range
+       在 touchstart 瞬间就会吸附跳值，CSS 单独使用挡不住。 */
+    touch-action: pan-y;
 }
 
 /* 微调纠偏：滑块 + 左右「− / +」微调按钮 */
@@ -1084,11 +1188,25 @@ a:focus-visible {
     border-left: none;
     border-top: 2px dashed #64748b;
     cursor: row-resize;
+    /* 基类的 translateX(-50%) 是给「竖线」居中用的；
+       水平线本身已用 left:0/right:0 铺满宽度，再平移会导致整体左偏半个画布 */
+    transform: none;
+}
+
+/* 水平密封线的触摸热区：改为上下各扩 15px（竖线的热区是左右扩展，这里要转过来） */
+.split-line.seal.horizontal::before {
+    top: -15px;
+    bottom: -15px;
+    left: 0;
+    right: 0;
 }
 
 /* 水平密封线的拖拽手柄：↕ 箭头 */
 .split-line.seal.horizontal::after {
     content: '↕';
+    /* 手柄移到线条左端，避免与页面中央的红色分割线手柄重叠 */
+    left: 14px;
+    transform: translate(-50%, -50%);
 }
 
 /* 拖拽手柄: ↔ 箭头样式 */

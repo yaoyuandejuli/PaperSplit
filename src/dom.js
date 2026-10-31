@@ -50,6 +50,9 @@ export const elements = {
     // 上下（横向密封带）
     sealTopBtn: document.getElementById('sealTopBtn'),
     sealBottomBtn: document.getElementById('sealBottomBtn'),
+    sealThicknessBlock: document.getElementById('sealThicknessBlock'),
+    sealTopThicknessVal: document.getElementById('sealTopThicknessVal'),
+    sealBottomThicknessVal: document.getElementById('sealBottomThicknessVal'),
     // 密封线 · 重置：清除当前页所有密封区域
     resetSealBtn: document.getElementById('resetSealBtn'),
     // 密封线 · 应用：当前页 / 所有页（并排一行）

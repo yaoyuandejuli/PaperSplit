@@ -15,9 +15,9 @@
     <title>PaperSplit - 试卷本地拆分，一键适配A4打印</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-D3CtCX6w.js"></script>
+  <script type="module" crossorigin src="./assets/index-BaymfuN-.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-BkQt68Bj.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-D2-gRMcH.css">
 </head>
 
 <body>
@@ -168,8 +168,8 @@
                         <div class="step-item">
                             <div class="step-num">6</div>
                             <div class="step-text">
-                                <strong>裁剪后调整（可选）</strong>
-                                <p>裁剪后的文字过小，使用「放大/缩小/重置」调整大小，再用「应用当前页」或「应用所有页」写入。</p>
+                                <strong>输出比例调整（可选）</strong>
+                                <p>裁剪后的文字过小，使用「放大/缩小/重置」或下方滑块调整成品页上的大小，再用「应用当前页」或「应用所有页」写入。</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -370,6 +370,30 @@
                                     <span class="material-icons">align_vertical_bottom</span> 靠下
                                 </button>
                             </div>
+
+                            <!-- 手动调整：上下密封带的厚度（精确到 1%），免去在画布上拖细虚线 -->
+                            <div class="seal-thickness-block" id="sealThicknessBlock">
+                                <div class="seal-thickness-row" data-edge="top">
+                                    <span class="seal-thickness-label">上边厚度</span>
+                                    <div class="seal-thickness-ctrl">
+                                        <button type="button" class="seal-step-btn" data-edge="top" data-delta="-0.01"
+                                            aria-label="减少顶部密封带厚度" title="减少顶部密封带厚度">−</button>
+                                        <span class="seal-thickness-val" id="sealTopThicknessVal">—</span>
+                                        <button type="button" class="seal-step-btn" data-edge="top" data-delta="0.01"
+                                            aria-label="增加顶部密封带厚度" title="增加顶部密封带厚度">+</button>
+                                    </div>
+                                </div>
+                                <div class="seal-thickness-row" data-edge="bottom">
+                                    <span class="seal-thickness-label">下边厚度</span>
+                                    <div class="seal-thickness-ctrl">
+                                        <button type="button" class="seal-step-btn" data-edge="bottom" data-delta="-0.01"
+                                            aria-label="减少底部密封带厚度" title="减少底部密封带厚度">−</button>
+                                        <span class="seal-thickness-val" id="sealBottomThicknessVal">—</span>
+                                        <button type="button" class="seal-step-btn" data-edge="bottom" data-delta="0.01"
+                                            aria-label="增加底部密封带厚度" title="增加底部密封带厚度">+</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="btn-group seal-apply-row">
@@ -386,7 +410,7 @@
                 </div>
 
                 <div class="panel-section">
-                    <h3>📐 裁剪后调整（可选）</h3>
+                    <h3>📐 输出比例调整（可选）</h3>
                     <div class="tools-grid">
                         <div class="btn-group crop-zoom-group">
                             <button id="cropZoomOutBtn" class="btn secondary" disabled title="调小裁剪结果">

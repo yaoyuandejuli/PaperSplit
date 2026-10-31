@@ -238,7 +238,8 @@ function bindSealZoneDrag(zone) {
             if (isY) {
                 const bands = getSealBands(cfg);
                 if (bands[idx]) {
-                    cfg.sealBands[idx] = { y0: draft.start, y1: draft.end };
+                    // 保留 edge（方向归属），手动调整才能继续定位到它
+                    cfg.sealBands[idx] = { y0: draft.start, y1: draft.end, edge: bands[idx].edge || null };
                     cfg.sealBands = getSealBands(cfg);
                 }
             } else {
@@ -384,6 +385,35 @@ function updateSealUI(config) {
     toggle(elements.sealRightBtn, atRight);
     toggle(elements.sealTopBtn, atTop);
     toggle(elements.sealBottomBtn, atBottom);
+
+    // 「手动调整」：同步上下密封带的当前厚度，并按是否启用置灰
+    syncSealThicknessUI(config);
+}
+
+/**
+ * 同步「上边厚度 / 下边厚度」微调控件
+ * 未启用对应方向时整行置灰（按钮 disabled），并显示占位符。
+ * @param {Object} config 当前页配置
+ */
+function syncSealThicknessUI(config) {
+    const top = getSealThickness('top');
+    const bottom = getSealThickness('bottom');
+
+    const syncRow = (edge, value, valEl) => {
+        const row = elements.sealThicknessBlock
+            ? elements.sealThicknessBlock.querySelector(`.seal-thickness-row[data-edge="${edge}"]`)
+            : null;
+        const enabled = value !== null;
+        if (row) row.classList.toggle('disabled', !enabled);
+        if (valEl) valEl.textContent = enabled ? `${Math.round(value * 100)}%` : '—';
+        // 按钮的可用状态跟着该方向是否启用走
+        document.querySelectorAll(`.seal-step-btn[data-edge="${edge}"]`).forEach((btn) => {
+            btn.disabled = !enabled;
+        });
+    };
+
+    syncRow('top', top, elements.sealTopThicknessVal);
+    syncRow('bottom', bottom, elements.sealBottomThicknessVal);
 }
 
 /**
@@ -456,7 +486,7 @@ export function renderSplitLines() {
             const cur = getSealBands(config)[i];
             if (!cur) return;
             const y0 = Math.min(Math.max(v, 0), cur.y1 - SEAL_MIN_W);
-            config.sealBands[i] = { y0, y1: cur.y1 };
+            config.sealBands[i] = { y0, y1: cur.y1, edge: cur.edge || null };
             syncSealVisuals(config);
         }, (pct) => {
             const cur = getSealBands(config)[i];
@@ -468,7 +498,7 @@ export function renderSplitLines() {
             const cur = getSealBands(config)[i];
             if (!cur) return;
             const y1 = Math.min(Math.max(v, cur.y0 + SEAL_MIN_W), 1);
-            config.sealBands[i] = { y0: cur.y0, y1 };
+            config.sealBands[i] = { y0: cur.y0, y1, edge: cur.edge || null };
             syncSealVisuals(config);
         }, (pct) => {
             const cur = getSealBands(config)[i];
@@ -1006,19 +1036,22 @@ export function setSealSide(side) {
     }
 
     // 尚未贴在这一侧 —— 新增一个贴边区域
-    // 宽度沿用「另一侧已有的贴边区域」，没有则用默认值
-    const other = seals.find(s => (isAtStart
-        ? (isY ? s.y1 >= 0.999 : s.x1 >= 0.999)
-        : (isY ? s.y0 <= 0.001 : s.x0 <= 0.001)));
-    const w = other
-        ? (isY ? (other.y1 - other.y0) : (other.x1 - other.x0))
-        : SEAL_DEFAULT_W;
+    //
+    // 宽度来源按轴区分：
+    //  · 左右（x 轴）：沿用「另一侧已有的贴边区域」—— 装订线左右等宽才对称
+    //  · 上下（y 轴）：各自独立，统一用默认值 —— 顶部与底部是两个互不相干的
+    //    裁切区域，若互相继承会把「上边 20%」悄悄带到「下边」，容易误解
+    let w = SEAL_DEFAULT_W;
+    if (!isY) {
+        const other = seals.find(s => (isAtStart ? s.x1 >= 0.999 : s.x0 <= 0.001));
+        if (other) w = other.x1 - other.x0;
+    }
     const width = Math.min(Math.max(w, SEAL_MIN_W), SEAL_MAX_W);
 
     const next = isY
         ? (side === 'top'
-            ? { y0: 0, y1: width }
-            : { y0: 1 - width, y1: 1 })
+            ? { y0: 0, y1: width, edge: 'top' }
+            : { y0: 1 - width, y1: 1, edge: 'bottom' })
         : (side === 'left'
             ? { x0: 0, x1: width }
             : { x0: 1 - width, x1: 1 });
@@ -1034,6 +1067,83 @@ export function setSealSide(side) {
     else config.sealRanges = kept;
 
     renderSplitLines();
+}
+
+/**
+ * 手动调整某一个方向密封带的「厚度 / 宽度」
+ *
+ * 「靠上 / 靠下」只负责把密封带贴到页面边缘并给一个默认厚度（15%），
+ * 用户往往还需要精确控制裁掉多少 —— 本函数提供数值级的精确调整，
+ * 不必在画布上反复拖动那条很细的虚线（手机上尤其难拖）。
+ *
+ * · top    → 调整顶部密封带：保持贴上边，向下扩展
+ * · bottom → 调整底部密封带：保持贴下边，向上扩展
+ * · left   → 调整左侧密封带：保持贴左边，向右扩展
+ * · right  → 调整右侧密封带：保持贴右边，向左扩展
+ *
+ * @param {'top'|'bottom'|'left'|'right'} edge 方向
+ * @param {number} delta 增量（比例，正数=更厚，负数=更薄）
+ */
+export function adjustSealThickness(edge, delta) {
+    const config = getPageConfig(state.currentPage);
+    const isY = (edge === 'top' || edge === 'bottom');
+    const list = isY ? getSealBands(config) : getSealRanges(config);
+
+    // 找到属于该方向的密封带
+    let idx = -1;
+    for (let i = 0; i < list.length; i++) {
+        const item = list[i];
+        if (isY) {
+            if (item.edge === edge) { idx = i; break; }
+        } else {
+            // 左右密封带没有 edge 字段，按贴边情况判定
+            if (edge === 'left' && item.x0 <= 0.001) { idx = i; break; }
+            if (edge === 'right' && item.x1 >= 0.999) { idx = i; break; }
+        }
+    }
+    if (idx < 0) {
+        showToast(`当前页没有${edge === 'top' ? '顶部' : edge === 'bottom' ? '底部' : edge === 'left' ? '左侧' : '右侧'}密封带`, 'warn');
+        return;
+    }
+
+    const cur = list[idx];
+    const curSize = isY ? (cur.y1 - cur.y0) : (cur.x1 - cur.x0);
+    const nextSize = Math.min(Math.max(curSize + delta, SEAL_MIN_W), SEAL_MAX_W);
+    if (Math.abs(nextSize - curSize) < 1e-6) return;
+
+    if (isY) {
+        const y0 = edge === 'top' ? 0 : cur.y1 - nextSize;
+        const y1 = edge === 'top' ? nextSize : 1;
+        config.sealBands[idx] = { y0, y1, edge };
+    } else {
+        const x0 = edge === 'left' ? 0 : cur.x1 - nextSize;
+        const x1 = edge === 'left' ? nextSize : 1;
+        config.sealRanges[idx] = { x0, x1 };
+    }
+
+    renderSplitLines();
+    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
+}
+
+/**
+ * 读取某个方向密封带的当前厚度（比例），没有则返回 null
+ * @param {'top'|'bottom'|'left'|'right'} edge 方向
+ * @returns {number|null}
+ */
+export function getSealThickness(edge) {
+    const config = getPageConfig(state.currentPage);
+    const isY = (edge === 'top' || edge === 'bottom');
+    const list = isY ? getSealBands(config) : getSealRanges(config);
+
+    for (const item of list) {
+        if (isY) {
+            if (item.edge === edge) return item.y1 - item.y0;
+        } else {
+            if (edge === 'left' && item.x0 <= 0.001) return item.x1 - item.x0;
+            if (edge === 'right' && item.x1 >= 0.999) return item.x1 - item.x0;
+        }
+    }
+    return null;
 }
 
 /**
