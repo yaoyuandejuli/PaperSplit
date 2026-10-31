@@ -94,7 +94,7 @@ npx http-server dist -p 8080
 - **分区应用**：方向、编辑工具、密封线、裁剪后调整四个分区都提供「应用当前页 / 应用所有页」两个并排按钮 —— 前者确认并保存本页设置，后者一键把设置复制到所有页面（密封线跨奇偶时自动镜像到另一侧，保持书页左右对称）。
 - **高清导出**：基于 `jsPDF` 生成标准 **A4（210×297mm）** PDF，可选等比留白 / 拉伸填满 / 等比填满三种排版方式。
 - **编辑自动保存**：分割线、密封线、角度、缩放比例与擦除标记自动存在本机浏览器（localStorage），重开同一文件自动恢复，可一键清除。
-- **离线可用 & 响应式**：PDF worker、图标与字体全部本地打包，断网 / 内网照常使用；PC 与手机都能操作。**手机端左面板横向重排** —— 左侧放大展示页面缩略图（108px，可横向滑动），右侧是「已导入文件」竖条，点击标题即可展开文件清单，收起时不占用任何空间。
+- **离线可用 & 响应式**：PDF worker、图标与字体全部本地打包，断网 / 内网照常使用；PC 与手机都能操作。**手机端面板重排** —— 顶部是「已导入文件」**横向平铺条**（文件卡片左右滑动即可看全，「＋」继续添加、「×」移除某个文档），下方是页面缩略图；下滑使用右侧调整功能时，**顶部始终吸着一行迷你预览**，实时显示当前页的分割线与密封区，改完一眼就能看到结果；「文件导出」区不再固定在屏幕底部，回到文档流末尾，滚到底才出现。
 
 <a id="dev"></a>
 
@@ -286,6 +286,9 @@ PDF、JPG、PNG。图片按单页处理。
 
 ### 2026-10-31
 
+- **手机端「已导入文件」移到最上方，改为横向平铺条**：原先文件清单收在右侧竖条里，要点标题展开浮层才能看到多份文件。现在整条清单提到页面**最上方**，文件卡片**横向平铺、左右滑动**即可看全；标题行右侧的「**＋**」随时可以继续添加更多文件（此前只有多文件时才出现），每张卡片上的「**×**」可直接移除该文档，点击卡片跳转到该文件首页。下方是页面缩略图（横向滑动）。
+- **手机端新增置顶迷你预览**：要调分割 / 密封 / 方向必须下滑到功能区，此时主画布已滚出视口，看不到改动效果。现在右面板最上方多了一条**吸顶迷你预览**（78px），实时显示当前页并叠加**红色虚线分割线**与**半透明密封区**，下滑调参数时结果始终顶在最上面，边调边看。
+- **手机端取消导出区底部固定**：「文件导出」区原先 `position: sticky; bottom: 0` 长期占据屏幕底部，压缩了画布与工具区空间。现改为回归文档流末尾 —— **只有滚动到底部才会出现**，滑到底即可看到当前的调整功能区并完成导出。
 - **密封线区去掉「手动选区域」按钮**：删除该按钮及其「在画布上框选新建区域」的全部代码（框选模式、`state.sealSelectMode`、选框高亮样式等一并清理），第一行改为「去除密封线 / 重置」两个按钮。**滑动调整区域的功能完整保留** —— 开启密封线后直接拖动斜纹区即可整体平移，拖动两侧虚线仍可调整范围。
 - **微调纠偏滑块两侧新增「−」「+」按钮**：滑块左侧为「−」、右侧为「+」，点击按滑块步长（0.5°）逐格增减当前页角度；抵达 ±15° 上/下限后对应按钮自动禁用，不会出现「点了没反应」。滑块本身仍可自由拖动。
 - **新增站点宣传语**：左上角「PaperSplit」下方增加一行小字「**试卷本地拆分，一键适配A4打印**」，与英文主标题共同构成网站标题；浏览器标签页标题同步改为「PaperSplit - 试卷本地拆分，一键适配A4打印」，输入网址后地址栏即可看到标语。桌面端与手机端分别做了字号适配（手机端 0.64rem，顶栏不被撑高）。
@@ -357,7 +360,7 @@ Everything happens inside your browser: files are never uploaded, and the app ke
 - **Apply per section** — every panel (orientation, editing tools, seal, post-crop zoom) offers "Apply to Current Page" and "Apply to All Pages" side by side: the first confirms and stores the current page's setup, the second copies it to every page (seal regions are mirrored across odd/even pages to keep the odd-left / even-right symmetry).
 - **A4 export** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page.
 - **Auto-save** — split lines, seal line, orientation, zoom ratio and erase marks are stored in your browser's `localStorage` and restored automatically when you reopen the same file.
-- **Offline & responsive** — the PDF worker, icons and fonts all ship with the app; works on desktop and mobile.
+- **Offline & responsive** — the PDF worker, icons and fonts all ship with the app; works on desktop and mobile. On phones the imported-file list moves to the **top as a horizontally scrollable strip** (add more files with "＋", remove one with "×"), a **compact preview stays pinned to the top of the screen** while you scroll through the tools, and the export panel is no longer glued to the bottom — it appears only when you reach the end of the page.
 - **Weak-server friendly** — the PDF parsing component is inlined into the build, so it no longer needs a separate request; combined with a retrying fallback, it loads even on servers with the wrong MIME type or limited concurrency.
 
 **Getting started**

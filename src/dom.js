@@ -72,12 +72,17 @@ export const elements = {
     emptyState: document.getElementById('emptyState'),
     dragOverlay: document.getElementById('dragOverlay'),
 
-    // 文件清单（多选导入后展示文件列表；手机端为可折叠竖条）
+    // 文件清单（多选导入后展示文件列表；手机端为顶部横向平铺条）
     fileListBox: document.getElementById('fileListBox'),
     fileList: document.getElementById('fileList'),
     fileListCount: document.getElementById('fileListCount'),
     fileListToggle: document.getElementById('fileListToggle'),
     addFilesBtn: document.getElementById('addFilesBtn'),
+
+    // 手机端置顶迷你预览（下滑调参数时，顶部仍能看到当前页效果）
+    miniPreview: document.getElementById('miniPreview'),
+    miniPreviewCanvas: document.getElementById('miniPreviewCanvas'),
+    rightPanel: document.querySelector('.right-panel'),
 
     // 导出前排序面板（页级手动排序）
     openSortBtn: document.getElementById('openSortBtn'),

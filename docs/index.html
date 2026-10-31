@@ -15,9 +15,9 @@
     <title>PaperSplit - 试卷本地拆分，一键适配A4打印</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-CXcg864J.js"></script>
+  <script type="module" crossorigin src="./assets/index-DnUR2t6S.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-CT8fmtWm.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-DWAkw1EI.css">
 </head>
 
 <body>
@@ -108,6 +108,11 @@
             <!-- 右侧：控制面板 -->
             <aside class="right-panel custom-scrollbar">
 
+                <!-- 手机端置顶迷你预览：下滑使用下方调整功能时，顶部仍能看到当前页效果 -->
+                <div class="mini-preview" id="miniPreview">
+                    <canvas id="miniPreviewCanvas" class="mini-preview-canvas"></canvas>
+                </div>
+
                 <div class="panel-section guide-section">
                     <button type="button" class="guide-toggle" id="guideToggle"
                         aria-expanded="false" aria-controls="guideContent">
@@ -120,7 +125,7 @@
                             <div class="step-num">1</div>
                             <div class="step-text">
                                 <strong>导入试卷</strong>
-                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；左面板可查看已导入的文件</p>
+                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；「已导入文件」清单在顶部横向平铺，可滑动查看、继续添加（＋）、移除单个文档（×）</p>
                             </div>
                         </div>
                         <div class="step-item">

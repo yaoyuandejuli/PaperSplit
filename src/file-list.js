@@ -18,11 +18,15 @@ import { renderThumbnails, renderCurrentPage, changePage, updatePageControls } f
 import { showToast } from './toast.js';
 
 /**
- * 展开 / 收起文件清单（仅手机端生效，桌面端始终展开）
+ * 展开 / 收起文件清单
+ *
+ * 仅桌面端有意义：桌面端清单常驻展开，手机端清单改成顶部横向平铺条、
+ * 始终可见，因此窄屏下这里直接返回（不做折叠）。
  */
 export function toggleFileList() {
     const box = elements.fileListBox;
     if (!box) return;
+    if (window.matchMedia('(max-width: 768px)').matches) return;
     const expanded = box.classList.toggle('expanded');
     if (elements.fileListToggle) {
         elements.fileListToggle.setAttribute('aria-expanded', String(expanded));
@@ -36,7 +40,6 @@ export function renderFileList() {
     if (!elements.fileList) return;
 
     const docs = getOrderedDocs();
-    const multi = docs.length > 1;
 
     // 单文件时不显示文件清单区，避免占用左面板空间
     if (elements.fileListBox) {
@@ -48,7 +51,8 @@ export function renderFileList() {
             : '';
     }
     if (elements.addFilesBtn) {
-        elements.addFilesBtn.hidden = !multi;
+        // 「＋」始终可用 —— 只有一个文件时也能继续追加更多文件
+        elements.addFilesBtn.hidden = docs.length === 0;
     }
 
     elements.fileList.innerHTML = '';

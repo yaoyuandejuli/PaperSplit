@@ -349,11 +349,11 @@ export async function renderCropPreview() {
 
 /**
  * 渲染当前页内容画布（已应用方向旋转），用于预览
+ * @param {number} [targetWidth=900] 渲染宽度（像素），越大越清晰
  */
-async function renderPageContentCanvas() {
+export async function renderPageContentCanvas(targetWidth = 900) {
     const cfg = getPageConfig(state.currentPage);
     const rotation = cfg.rotation || 0;
-    const targetWidth = 900;
 
     const source = getPageSource(state.currentPage);
     if (!source) return null;

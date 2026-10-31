@@ -19,6 +19,7 @@ import {
     syncCropZoomUI, renderCropPreview, scheduleCropPreview, STEP
 } from './crop-adjust.js';
 import { saveEditConfig, scheduleSave, clearEditConfig } from './storage.js';
+import { initMiniPreview, scheduleMiniPreview } from './mini-preview.js';
 import { showToast } from './toast.js';
 
 /**
@@ -260,6 +261,8 @@ function initEventListeners() {
 
     // 分割线 / 密封线 / 方向变化后刷新「修改后文件预览」
     document.addEventListener('papersplit:config-changed', scheduleCropPreview);
+    // 手机端置顶迷你预览同步刷新（下滑调参数时顶部能看到当前效果）
+    document.addEventListener('papersplit:config-changed', scheduleMiniPreview);
     // 编辑配置变更后自动落盘（仅存本机 localStorage），刷新后可自动恢复
     document.addEventListener('papersplit:config-changed', persistEditConfig);
     document.addEventListener('papersplit:page-repaint', persistEditConfig);
@@ -366,4 +369,5 @@ function handleResize() {
 
 // 启动程序
 initEventListeners();
+initMiniPreview();
 syncCropZoomUI();
