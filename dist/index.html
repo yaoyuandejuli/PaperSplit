@@ -15,9 +15,9 @@
     <title>PaperSplit - 试卷本地拆分，一键适配A4打印</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-DnUR2t6S.js"></script>
+  <script type="module" crossorigin src="./assets/index-UChHnfXF.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-DWAkw1EI.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-01t1Xzq2.css">
 </head>
 
 <body>
@@ -35,7 +35,7 @@
             <!-- Central Navigation -->
             <div class="top-nav-controls">
                 <button id="changeFileBtn" class="btn secondary small-btn" title="更换文件">
-                    <span class="material-icons">folder_open</span> 切换文件
+                    <span class="material-icons">folder_open</span> <span class="btn-text">切换文件</span>
                 </button>
                 <div class="v-divider"></div>
                 <div class="page-nav-compact">
@@ -108,11 +108,6 @@
             <!-- 右侧：控制面板 -->
             <aside class="right-panel custom-scrollbar">
 
-                <!-- 手机端置顶迷你预览：下滑使用下方调整功能时，顶部仍能看到当前页效果 -->
-                <div class="mini-preview" id="miniPreview">
-                    <canvas id="miniPreviewCanvas" class="mini-preview-canvas"></canvas>
-                </div>
-
                 <div class="panel-section guide-section">
                     <button type="button" class="guide-toggle" id="guideToggle"
                         aria-expanded="false" aria-controls="guideContent">
@@ -174,7 +169,7 @@
                             <div class="step-num">8</div>
                             <div class="step-text">
                                 <strong>文件导出</strong>
-                                <p>文件调整完成之后，点击「导出为 PDF」导出标准 A4 的 PDF</p>
+                                <p>文件调整完成之后，点击「导出为 PDF」导出标准 A4 的 PDF；导出按 <strong>400 DPI（2 倍高清）</strong> 渲染，打印更锐利</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -182,6 +177,13 @@
                             <div class="step-text">
                                 <strong>自动保存</strong>
                                 <p>编辑内容自动保存在本机浏览器，重新打开同一文件即可恢复分割线、旋转与擦除设置；数据不会上传，可用「清除本文件保存记录」重置</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">10</div>
+                            <div class="step-text">
+                                <strong>手机端布局</strong>
+                                <p>手机上整页不滚动：顶部是「已导入文件」与缩略图，中间是<strong>始终可见的大画布</strong>，下方控制面板占下半屏并<strong>独立滚动</strong>，滑动时会<strong>自动吸附</strong>到某个功能模块上</p>
                             </div>
                         </div>
                     </div>
@@ -385,10 +387,14 @@
                                 <span class="material-icons">done_all</span> 应用所有页
                             </button>
                         </div>
-                        <div class="crop-preview-box">
-                            <div class="crop-preview-title">修改后文件预览</div>
-                            <canvas id="cropPreview" class="crop-preview-canvas"></canvas>
-                        </div>
+                    </div>
+                </div>
+
+                <!-- 「修改后文件预览」：独立模块，与其他功能区同级 -->
+                <div class="panel-section preview-section">
+                    <h3>🖼️ 修改后文件预览</h3>
+                    <div class="crop-preview-box">
+                        <canvas id="cropPreview" class="crop-preview-canvas"></canvas>
                     </div>
                 </div>
 
@@ -401,7 +407,7 @@
                     <div class="export-options">
                         <div class="export-head">
                             <label class="sub-label export-title" for="exportFitSelect">文件导出</label>
-                            <span class="export-size-note">成品页 210×297mm</span>
+                            <span class="export-size-note">成品页 210×297mm · 400 DPI</span>
                         </div>
                         <select id="exportFitSelect" class="select-input">
                             <option value="a4-fit" selected>标准 A4 · 等比留白（不变形）</option>

@@ -5,6 +5,51 @@ import { getPageSource } from './documents.js';
 import { rotateCanvas, rotatedBounds, buildEraseOverlay } from './utils.js';
 import { getSliceRanges, computePlacement, getMaskRectsInSlice, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
 
+/**
+ * 导出渲染参数
+ *  - EXPORT_DPI：目标分辨率，400 DPI（之前为 200 DPI，即 2 倍高清）
+ *  - MAX_SOURCE_PIXELS：单张中间画布的像素上限，防止移动端内存溢出
+ *  - MAX_CANVAS_DIM：单轴像素上限（部分浏览器对超大画布有限制）
+ *  - JPEG_QUALITY：成品图质量
+ */
+const EXPORT_DPI = 400;
+const MAX_SOURCE_PIXELS = 30_000_000;
+const MAX_CANVAS_DIM = 8192;
+const JPEG_QUALITY = 0.93;
+
+/**
+ * 计算渲染倍率
+ * 目标：最窄的一栏拉伸到 A4 宽（210mm）后仍达到 EXPORT_DPI；
+ * 同时不超过显存与单轴尺寸上限。
+ *
+ * @param {number} targetSlicePx 成品页宽对应的像素数
+ * @param {number} minRatio 本页最窄切片的宽度比例
+ * @param {number} baseW 旋转后基准宽度
+ * @param {number} baseH 旋转后基准高度
+ * @param {number} minScale 允许的最小倍率
+ * @param {number} maxScale 允许的最大倍率
+ * @returns {number} 渲染倍率
+ */
+function computeRenderScale(targetSlicePx, minRatio, baseW, baseH, minScale, maxScale) {
+    if (!(baseW > 0) || !(baseH > 0)) return 1;
+
+    // 达到目标 DPI 所需的倍率
+    let scale = targetSlicePx / (minRatio * baseW);
+    scale = Math.min(maxScale, Math.max(minScale, scale));
+
+    // 显存保护：总像素数不超过上限
+    const area = baseW * baseH * scale * scale;
+    if (area > MAX_SOURCE_PIXELS) {
+        scale *= Math.sqrt(MAX_SOURCE_PIXELS / area);
+    }
+
+    // 单轴尺寸保护
+    if (baseW * scale > MAX_CANVAS_DIM) scale = MAX_CANVAS_DIM / baseW;
+    if (baseH * scale > MAX_CANVAS_DIM) scale = MAX_CANVAS_DIM / baseH;
+
+    return Math.max(0.1, scale);
+}
+
 /** 导出按钮进度文案 */
 function setExportProgress(done, total) {
     elements.exportBtn.innerHTML =
@@ -75,14 +120,14 @@ export async function exportPdf() {
             const outputScale = config.outputScale || 1;
 
             // 高清导出：按目标 DPI 动态计算渲染倍率，保证“裁剪 + 拉伸填满”后依然清晰
-            const TARGET_DPI = 200;
+            // 400 DPI 是之前 200 DPI 的 2 倍 —— A4 宽 210mm 对应 3307px，打印更锐利
+            const targetSlicePx = (EXPORT_DPI / 25.4) * 210; // A4 宽 210mm 在目标 DPI 下的像素宽
             // 找出本页所有切片中最窄的宽度比例，确保最窄切片拉伸到 A4 宽度也达标
             let minRatio = 1;
             for (const rng of ranges) {
                 const w = rng[1] - rng[0];
                 if (w > 0.01 && w < minRatio) minRatio = w;
             }
-            const targetSlicePx = (TARGET_DPI / 25.4) * 210; // A4 宽 210mm 在目标 DPI 下的像素宽
             // 解析本页来自哪个文件（多文件合并后每页来源可能不同）
             const source = getPageSource(i);
             if (!source) continue;
@@ -91,8 +136,9 @@ export async function exportPdf() {
             if (source.isPdf) {
                 const page = await source.doc.pdfDoc.getPage(source.localPage);
                 const base = page.getViewport({ scale: 1 });
-                const rotBaseW = rotatedBounds(base.width, base.height, rotation).width; // 旋转后切片基准宽度
-                const scale = Math.min(4, Math.max(2, targetSlicePx / (minRatio * rotBaseW)));
+                const rot = rotatedBounds(base.width, base.height, rotation);
+                const rotBaseW = rot.width; // 旋转后切片基准宽度
+                const scale = computeRenderScale(targetSlicePx, minRatio, rotBaseW, rot.height, 2, 8);
                 const viewport = page.getViewport({ scale });
                 sourceCanvas = document.createElement('canvas');
                 sourceCanvas.width = viewport.width;
@@ -102,8 +148,9 @@ export async function exportPdf() {
                 const img = new Image();
                 img.src = source.doc.imageUrl;
                 await new Promise(r => img.onload = r);
-                const rotBaseW = rotatedBounds(img.width, img.height, rotation).width;
-                const scale = Math.min(4, Math.max(1, targetSlicePx / (minRatio * rotBaseW)));
+                const rot = rotatedBounds(img.width, img.height, rotation);
+                const rotBaseW = rot.width;
+                const scale = computeRenderScale(targetSlicePx, minRatio, rotBaseW, rot.height, 1, 6);
                 sourceCanvas = document.createElement('canvas');
                 sourceCanvas.width = Math.round(img.width * scale);
                 sourceCanvas.height = Math.round(img.height * scale);
@@ -111,7 +158,9 @@ export async function exportPdf() {
             }
 
             // 应用方向旋转：后续切片坐标均基于旋转后的坐标系（所见即所得）
+            // 0° 时 rotateCanvas 直接复用原画布，这里就不重复释放
             const workCanvas = rotateCanvas(sourceCanvas, rotation);
+            if (workCanvas !== sourceCanvas) releaseCanvas(sourceCanvas);
 
             // 「涂抹擦除」：把【已应用】的笔迹渲染成白色擦除层，导出时叠加到切片上，真正擦除内容
             // 未应用的笔迹属于草稿标记，不参与导出
@@ -157,7 +206,7 @@ export async function exportPdf() {
                     sliceCtx.drawImage(eraseOverlay, sx, 0, sWidth, sHeight, 0, 0, sWidth, sHeight);
                 }
 
-                const imgData = sliceCanvas.toDataURL('image/jpeg', 0.95);
+                const imgData = sliceCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
 
                 // 根据摆放模式 + 裁剪后调整比例，确定内容在 A4 页面上的绘制区域
                 const placement = computePlacement(mode, sWidth / sHeight, outputScale);
@@ -174,7 +223,6 @@ export async function exportPdf() {
             }
 
             // 本页切片完成：释放高分辨率画布显存，避免多页文档导出时内存持续增长
-            releaseCanvas(sourceCanvas);
             releaseCanvas(workCanvas);
             releaseCanvas(eraseOverlay);
         }

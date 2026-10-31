@@ -88,13 +88,16 @@ npx http-server dist -p 8080
 - **左右密封区可并存**：「靠左」「靠右」是可独立开关的按钮 —— 点一次出现、再点一次消失，**左右两侧可以同时存在**（适合双侧装订），宽度沿用另一侧的设置，也可拖动虚线单独调整。
 - **密封区与分割线互不限制**：密封区域挖掉后，其余部分再按分割线分栏，两者可同时使用。
 - **擦除内容**：框选矩形或涂抹笔刷擦除多余内容，点「应用」后画布直接显示擦除效果，导出 PDF 时真实擦除。
-- **裁剪后调整**：某栏太小看不清时，放大 / 缩小 / 重置，「应用当前页」与「应用所有页」并排一行，比例在导出时真实生效；旁边的「修改后文件预览」实时显示成品页效果，多页时自动换行排版、每页尽可能放大，画布高度按内容自适应，不再留多余空白。
+- **裁剪后调整**：某栏太小看不清时，放大 / 缩小 / 重置，「应用当前页」与「应用所有页」并排一行，比例在导出时真实生效。
+- **修改后文件预览（独立模块）**：从「裁剪后调整」里独立出来，与其它功能区**同级并列**，有自己的标题与卡片样式；实时显示当前页每一栏在成品 A4 上的实际效果，多页时自动换行排版、每页尽可能放大，画布高度按内容自适应，不再留多余空白。
 - **多文件合并** — 一次选择多个 PDF 与图片，合并成一份连续文档；左栏顶部显示已导入的文件（可移除单个文件、继续追加、点击跳转），下方是页面缩略图
 - **导出前排序** — 页面先后的唯一调整入口：导出前逐页拖动微调最终顺序，支持上下按钮与一键恢复默认，跨文件同样适用
 - **分区应用**：方向、编辑工具、密封线、裁剪后调整四个分区都提供「应用当前页 / 应用所有页」两个并排按钮 —— 前者确认并保存本页设置，后者一键把设置复制到所有页面（密封线跨奇偶时自动镜像到另一侧，保持书页左右对称）。
-- **高清导出**：基于 `jsPDF` 生成标准 **A4（210×297mm）** PDF，可选等比留白 / 拉伸填满 / 等比填满三种排版方式。
+- **高清导出（2 倍分辨率）**：基于 `jsPDF` 生成标准 **A4（210×297mm）** PDF，可选等比留白 / 拉伸填满 / 等比填满三种排版方式。导出按 **400 DPI** 渲染（此前是 200 DPI，即**整整 2 倍**），A3 试卷一分为二时每栏可达 **3255×4604 px**，打印锐利不糊；内置像素与单轴尺寸保护，移动端也不会因为超大画布而崩溃。
 - **编辑自动保存**：分割线、密封线、角度、缩放比例与擦除标记自动存在本机浏览器（localStorage），重开同一文件自动恢复，可一键清除。
-- **离线可用 & 响应式**：PDF worker、图标与字体全部本地打包，断网 / 内网照常使用；PC 与手机都能操作。**手机端面板重排** —— 顶部是「已导入文件」**横向平铺条**（文件卡片左右滑动即可看全，「＋」继续添加、「×」移除某个文档），下方是页面缩略图；下滑使用右侧调整功能时，**顶部始终吸着一行迷你预览**，实时显示当前页的分割线与密封区，改完一眼就能看到结果；「文件导出」区不再固定在屏幕底部，回到文档流末尾，滚到底才出现。
+- **离线可用 & 响应式**：PDF worker、图标与字体全部本地打包，断网 / 内网照常使用；PC 与手机都能操作。
+- **手机端「固定视口」布局**：整页**不再上下滚动**，页面被拆成三段 —— 顶部是「已导入文件」**横向平铺条**（文件卡片左右滑动即可看全，「＋」继续添加、「×」移除某个文档）与页面缩略图，中间是**始终可见的大画布**（调参数时也能实时看到效果），底部是**占下半屏的控制面板**。
+- **手机端控制面板独立滚动 + 模块吸附**：面板内部单独滚动，**页面整体纹丝不动**；滑动时每个功能模块（方向调整 / 编辑工具 / 擦除内容 / 密封线 / 裁剪后调整 / 预览 / 导出）都是独立的**吸附单元（Scroll Snap）**，滑到某个模块就稳稳停在那里。
 
 <a id="dev"></a>
 
@@ -286,8 +289,14 @@ PDF、JPG、PNG。图片按单页处理。
 
 ### 2026-10-31
 
+- **手机端改为「固定视口」三段式布局**：整页不再上下滚动，页面被拆成 —— 顶部「已导入文件」横向平铺条 + 页面缩略图（固定不动）、中间**始终可见的大画布**、底部**占下半屏的控制面板**。原先需要下滑才能看到调整功能区、且主画布会滚出视口的问题彻底解决。
+- **手机端控制面板独立滚动 + Scroll Snap 模块吸附**：面板内部单独滚动，**页面整体纹丝不动**；每个功能模块（方向调整 / 编辑工具 / 擦除内容 / 密封线 / 裁剪后调整 / 修改后文件预览 / 文件导出）都是独立的**吸附单元**，滑动时自动对齐到模块边界、停在该模块上。「操作指南」展开后改为面板内独立滚动，避免超高模块把吸附卡住。
+- **取消手机端置顶迷你预览**：上一版的「吸顶迷你预览」条已移除 —— 画布本来就常驻可见，不再需要重复预览。
+- **「修改后文件预览」改为独立模块**：从「裁剪后调整」分区里拆出来，升级为与其它功能区**同级并列**的独立分区，自带标题与卡片样式，视觉风格统一。
+- **导出改为 2 倍分辨率渲染**：目标分辨率由 **200 DPI 提升到 400 DPI**（整整 2 倍），A3 试卷一分为二时每栏内嵌图为 **3255×4604 px**（约 394 DPI），打印更锐利；同时加入**像素总量与单轴尺寸保护**，超大画布自动降档，手机端也不会因内存爆掉。0° 旋转时复用原画布，导出更快、更省内存。
+- **手机端顶部空间压缩**：顶栏压成一行（「切换文件」在手机上只留图标），缩略图改为固定高度 54px 横向排列，画布可用高度从 163px 提升到 **237px**；并按屏幕高度自适应（矮屏 ≤700px 面板降到 44%，超矮屏 ≤600px 降到 42%），保证导出按钮永远不会被裁掉。
 - **手机端「已导入文件」移到最上方，改为横向平铺条**：原先文件清单收在右侧竖条里，要点标题展开浮层才能看到多份文件。现在整条清单提到页面**最上方**，文件卡片**横向平铺、左右滑动**即可看全；标题行右侧的「**＋**」随时可以继续添加更多文件（此前只有多文件时才出现），每张卡片上的「**×**」可直接移除该文档，点击卡片跳转到该文件首页。下方是页面缩略图（横向滑动）。
-- **手机端新增置顶迷你预览**：要调分割 / 密封 / 方向必须下滑到功能区，此时主画布已滚出视口，看不到改动效果。现在右面板最上方多了一条**吸顶迷你预览**（78px），实时显示当前页并叠加**红色虚线分割线**与**半透明密封区**，下滑调参数时结果始终顶在最上面，边调边看。
+- **手机端新增置顶迷你预览**：要调分割 / 密封 / 方向必须下滑到功能区，此时主画布已滚出视口，看不到改动效果。现在右面板最上方多了一条**吸顶迷你预览**（78px），实时显示当前页并叠加**红色虚线分割线**与**半透明密封区**，下滑调参数时结果始终顶在最上面，边调边看。（*同日稍后改为「画布常驻可见」方案，该预览条已移除，见本节末条*）（*同日稍后改为「画布常驻可见」方案，该预览条已移除，见本节末条*）
 - **手机端取消导出区底部固定**：「文件导出」区原先 `position: sticky; bottom: 0` 长期占据屏幕底部，压缩了画布与工具区空间。现改为回归文档流末尾 —— **只有滚动到底部才会出现**，滑到底即可看到当前的调整功能区并完成导出。
 - **密封线区去掉「手动选区域」按钮**：删除该按钮及其「在画布上框选新建区域」的全部代码（框选模式、`state.sealSelectMode`、选框高亮样式等一并清理），第一行改为「去除密封线 / 重置」两个按钮。**滑动调整区域的功能完整保留** —— 开启密封线后直接拖动斜纹区即可整体平移，拖动两侧虚线仍可调整范围。
 - **微调纠偏滑块两侧新增「−」「+」按钮**：滑块左侧为「−」、右侧为「+」，点击按滑块步长（0.5°）逐格增减当前页角度；抵达 ±15° 上/下限后对应按钮自动禁用，不会出现「点了没反应」。滑块本身仍可自由拖动。
@@ -356,11 +365,14 @@ Everything happens inside your browser: files are never uploaded, and the app ke
 - **Left and right seals together** — "Left" and "Right" are independent toggles: click once to add a strip, click again to remove it, and **both sides can be active at the same time** (handy for double-sided binding).
 - **Seal region and split lines work together** — the seal strip is removed first, then the remaining area is split into columns; neither one constrains the other.
 - **Erase content** — box-select a rectangle or paint with a brush; "Apply" bakes the erasure into the page and it is really removed from the exported PDF.
-- **Post-crop zoom** — enlarge, shrink or reset a column that came out too small; "Apply to Current Page" and "Apply to All Pages" sit side by side. The "Modified File Preview" next to it shows the resulting A4 pages live, wrapping into rows so every page stays as large as possible, and the canvas shrinks to fit so no empty space is left below.
+- **Post-crop zoom** — enlarge, shrink or reset a column that came out too small; "Apply to Current Page" and "Apply to All Pages" sit side by side.
+- **Modified File Preview (standalone module)** — split out of the post-crop panel into its own titled section, styled like every other tool module. It shows the resulting A4 pages live, wrapping into rows so every page stays as large as possible, and the canvas shrinks to fit so no empty space is left below.
 - **Apply per section** — every panel (orientation, editing tools, seal, post-crop zoom) offers "Apply to Current Page" and "Apply to All Pages" side by side: the first confirms and stores the current page's setup, the second copies it to every page (seal regions are mirrored across odd/even pages to keep the odd-left / even-right symmetry).
-- **A4 export** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page.
+- **A4 export at 2× resolution** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page. Pages are rendered at **400 DPI** (twice the previous 200 DPI) so a half of an A3 sheet comes out at 3255 × 4604 px — crisp when printed. Built-in pixel and dimension guards keep large canvases from crashing phones.
 - **Auto-save** — split lines, seal line, orientation, zoom ratio and erase marks are stored in your browser's `localStorage` and restored automatically when you reopen the same file.
-- **Offline & responsive** — the PDF worker, icons and fonts all ship with the app; works on desktop and mobile. On phones the imported-file list moves to the **top as a horizontally scrollable strip** (add more files with "＋", remove one with "×"), a **compact preview stays pinned to the top of the screen** while you scroll through the tools, and the export panel is no longer glued to the bottom — it appears only when you reach the end of the page.
+- **Offline & responsive** — the PDF worker, icons and fonts all ship with the app; works on desktop and mobile.
+- **Fixed-viewport mobile layout** — the page itself no longer scrolls. It is split into three bands: the horizontal "imported files" strip and page thumbnails on top, the **large canvas always visible** in the middle, and a **control panel filling the lower half** of the screen.
+- **Independent scrolling + scroll snap** — only the control panel scrolls; the page around it stays perfectly still. Every module (orientation, split tools, erase, seal, post-crop zoom, preview, export) is its own **scroll-snap** target, so the panel always comes to rest on a module boundary. On phones the imported-file list moves to the **top as a horizontally scrollable strip** (add more files with "＋", remove one with "×"), a **compact preview stays pinned to the top of the screen** while you scroll through the tools, and the export panel is no longer glued to the bottom — it appears only when you reach the end of the page.
 - **Weak-server friendly** — the PDF parsing component is inlined into the build, so it no longer needs a separate request; combined with a retrying fallback, it loads even on servers with the wrong MIME type or limited concurrency.
 
 **Getting started**

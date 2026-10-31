@@ -117,6 +117,9 @@ export function rotatedBounds(w, h, deg) {
  * @returns {HTMLCanvasElement} 旋转后的新画布
  */
 export function rotateCanvas(src, deg) {
+    // 0° 旋转：直接复用原画布，省掉一份同尺寸的大图（导出高清大图时很关键）
+    if (((Math.round(deg) % 360) + 360) % 360 === 0) return src;
+
     const b = rotatedBounds(src.width, src.height, deg);
 
     const out = document.createElement('canvas');

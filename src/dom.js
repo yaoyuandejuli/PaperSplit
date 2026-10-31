@@ -79,9 +79,6 @@ export const elements = {
     fileListToggle: document.getElementById('fileListToggle'),
     addFilesBtn: document.getElementById('addFilesBtn'),
 
-    // 手机端置顶迷你预览（下滑调参数时，顶部仍能看到当前页效果）
-    miniPreview: document.getElementById('miniPreview'),
-    miniPreviewCanvas: document.getElementById('miniPreviewCanvas'),
     rightPanel: document.querySelector('.right-panel'),
 
     // 导出前排序面板（页级手动排序）
