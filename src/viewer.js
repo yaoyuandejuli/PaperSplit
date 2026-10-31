@@ -4,7 +4,7 @@ import { renderSplitLines, getPageConfig, syncRotationUI } from './editor.js';
 import { renderMasks, renderAppliedErasures } from './mask-editor.js';
 import { rotateCanvas } from './utils.js';
 import { syncCropZoomFromPage } from './crop-adjust.js';
-import { getPageSource } from './documents.js';
+import { getPageSource, reorderPages } from './documents.js';
 import { showToast } from './toast.js';
 import { setFitScale, resetView } from './viewport.js';
 
@@ -319,6 +319,61 @@ function pickThumbTier(totalPages) {
 }
 
 /**
+ * 缩略图拖拽排序：当前被拖动的源页码（1-based），未拖动时为 -1
+ */
+let dragFrom = -1;
+
+/** 缩略图在手机端是横向平铺条，桌面端是纵向列表；据此决定「前后」判定用 X 还是 Y 轴 */
+function isThumbHorizontal() {
+    return window.matchMedia('(max-width: 768px)').matches;
+}
+
+/** 清除所有缩略图上的拖拽落点提示 */
+function clearDropMarkers() {
+    elements.thumbnailsPanel.querySelectorAll('.thumbnail-item').forEach(el =>
+        el.classList.remove('drop-before', 'drop-after'));
+}
+
+/**
+ * 拖动缩略图调整页面顺序（左侧预览图直接手动排序）
+ *
+ * 复用导出前排序底层的 reorderPages 重排 pageSlots，页面编辑配置（分割线 / 密封线 /
+ * 旋转 / 擦除）会跟着页面一起搬家。重排后让视图仍停在「同一页内容」上，避免跳页。
+ *
+ * @param {number} fromPage 被拖动的源页码（1-based）
+ * @param {number} insertIndex 在「删除源之后」的槽位数组里插入的目标下标
+ */
+async function reorderThumbnails(fromPage, insertIndex) {
+    if (fromPage < 1 || fromPage > state.totalPages) return;
+    if (insertIndex === fromPage - 1) return; // 落点即原位，无变化
+
+    // 记录当前页对应的稳定槽位，重排后让视图继续显示同一份内容
+    const cur = state.pageSlots[state.currentPage - 1];
+    const key = cur ? `${cur.docId}:${cur.localPage}` : null;
+
+    const slots = state.pageSlots.slice();
+    const [moved] = slots.splice(fromPage - 1, 1);
+    slots.splice(insertIndex, 0, moved);
+
+    const changed = reorderPages(slots);
+    if (!changed) return;
+
+    if (key) {
+        const idx = state.pageSlots.findIndex(s => `${s.docId}:${s.localPage}` === key);
+        if (idx >= 0) state.currentPage = idx + 1;
+    }
+    if (state.currentPage > state.totalPages) state.currentPage = state.totalPages;
+
+    updatePageControls();
+    await renderThumbnails();
+    await renderCurrentPage();
+    // 文件顺序依赖 pageSlots，重排后同步刷新文件清单
+    const { renderFileList } = await import('./file-list.js');
+    renderFileList();
+    showToast('页面顺序已更新', 'success');
+}
+
+/**
  * 渲染左侧缩略图列表
  */
 export async function renderThumbnails() {
@@ -331,7 +386,55 @@ export async function renderThumbnails() {
         const thumbainer = document.createElement('div');
         thumbainer.className = `thumbnail-item ${i === state.currentPage ? 'active' : ''}`;
         thumbainer.dataset.pageNumber = i;
+        thumbainer.draggable = true;
         thumbainer.onclick = () => changePage(i);
+
+        // ---- 拖拽排序（手动调整左侧预览图顺序）----
+        thumbainer.addEventListener('dragstart', (e) => {
+            dragFrom = i;
+            e.dataTransfer.effectAllowed = 'move';
+            try { e.dataTransfer.setData('text/plain', String(i)); } catch (_) { /* 某些浏览器限制 */ }
+            // 延迟加类，避免拖拽快照本身被半透明化
+            requestAnimationFrame(() => thumbainer.classList.add('dragging'));
+        });
+        thumbainer.addEventListener('dragend', () => {
+            thumbainer.classList.remove('dragging');
+            dragFrom = -1;
+            clearDropMarkers();
+        });
+        thumbainer.addEventListener('dragover', (e) => {
+            if (dragFrom < 0 || dragFrom === i) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const rect = thumbainer.getBoundingClientRect();
+            const horizontal = isThumbHorizontal();
+            const before = horizontal
+                ? (e.clientX < rect.left + rect.width / 2)
+                : (e.clientY < rect.top + rect.height / 2);
+            clearDropMarkers();
+            thumbainer.classList.add(before ? 'drop-before' : 'drop-after');
+        });
+        thumbainer.addEventListener('dragleave', () => {
+            thumbainer.classList.remove('drop-before', 'drop-after');
+        });
+        thumbainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (dragFrom < 0 || dragFrom === i) { clearDropMarkers(); return; }
+            const rect = thumbainer.getBoundingClientRect();
+            const horizontal = isThumbHorizontal();
+            const before = horizontal
+                ? (e.clientX < rect.left + rect.width / 2)
+                : (e.clientY < rect.top + rect.height / 2);
+            const targetIdx = i - 1;
+            let to = before ? targetIdx : targetIdx + 1;
+            if (dragFrom - 1 < to) to -= 1; // 源在目标之前，删除源后目标下标前移
+            clearDropMarkers();
+            const from = dragFrom;
+            dragFrom = -1;
+            reorderThumbnails(from, to);
+        });
+
         elements.thumbnailsPanel.appendChild(thumbainer);
         slots.push({ page: i, thumbainer });
     }

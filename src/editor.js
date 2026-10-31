@@ -20,7 +20,6 @@ const SEAL_DEFAULT_W = 0.15;
  * }
  * 注：splitLines / sealRanges / sealBands / masks / strokes 均定义在「旋转后的显示坐标系」中。
  * applied 表示该标记已被「应用」到画布（画布上直接显示擦除后的内容）。
- * applied 表示该标记已被「应用」到画布（画布上直接显示擦除后的内容）。
  * @param {number} pageIndex 页面索引 (1-based)
  * @returns {Object} 页面配置对象
  */

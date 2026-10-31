@@ -96,6 +96,7 @@ export const elements = {
     fileListCount: document.getElementById('fileListCount'),
     fileListToggle: document.getElementById('fileListToggle'),
     addFilesBtn: document.getElementById('addFilesBtn'),
+    importNewBtn: document.getElementById('importNewBtn'),
 
     rightPanel: document.querySelector('.right-panel'),
 

@@ -60,22 +60,30 @@
         <main class="main-layout">
             <!-- 左侧：已导入文件清单 + 缩略图 -->
             <aside class="left-panel custom-scrollbar">
-                <!-- 已导入文件清单（手机端收在右侧，点击标题展开） -->
+                <!-- 导入文件管理（手机端收在右侧，点击标题展开） -->
                 <div class="file-list-box" id="fileListBox" hidden>
                     <div class="file-list-top">
                         <button type="button" class="file-list-head" id="fileListToggle"
                             aria-expanded="false" aria-controls="fileList">
                             <span class="material-icons file-list-icon" aria-hidden="true">folder_open</span>
-                            <span class="file-list-title">已导入文件</span>
+                            <span class="file-list-title">导入文件管理</span>
                             <span class="file-list-count" id="fileListCount"></span>
                             <span class="material-icons file-list-caret" aria-hidden="true">chevron_left</span>
                         </button>
-                        <button type="button" class="file-add-btn" id="addFilesBtn"
-                            title="导入新文件（追加到已导入文件末尾）">
-                            <span class="material-icons" aria-hidden="true">add</span>
-                            <span class="file-add-text">导入新文件</span>
-                            <span class="sr-only">导入新文件</span>
-                        </button>
+                        <div class="file-list-actions">
+                            <button type="button" class="file-add-btn" id="addFilesBtn"
+                                title="添加文件：把新文件追加到已导入列表的末尾，保留当前全部编辑">
+                                <span class="material-icons" aria-hidden="true">playlist_add</span>
+                                <span class="file-add-text">添加文件</span>
+                                <span class="sr-only">添加文件</span>
+                            </button>
+                            <button type="button" class="file-add-btn import-new" id="importNewBtn"
+                                title="导入新文件：以全新文件重新开始，清空当前编辑并替换全部内容">
+                                <span class="material-icons" aria-hidden="true">upload_file</span>
+                                <span class="file-add-text">导入新文件</span>
+                                <span class="sr-only">导入新文件</span>
+                            </button>
+                        </div>
                     </div>
                     <ul class="file-list" id="fileList"></ul>
                 </div>
@@ -152,7 +160,7 @@
                             <div class="step-num">1</div>
                             <div class="step-text">
                                 <strong>导入试卷</strong>
-                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；左上角「已导入文件」区可滑动查看全部文档，点「导入新文件」继续追加，点「×」移除单个文档</p>
+                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；左上角「导入文件管理」区可滑动查看全部文档：点「添加文件」把新文件追加到末尾（保留当前编辑），点「导入新文件」以全新文件重新开始（清空并替换），点「×」移除单个文档</p>
                             </div>
                         </div>
                         <div class="step-item">

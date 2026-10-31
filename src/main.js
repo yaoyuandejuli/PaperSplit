@@ -149,8 +149,9 @@ function initEventListeners() {
     initGuideToggle();
 
     // 文件选择：支持多选
-    //   「选择文件」「更换文件」→ 替换现有集合
-    //   「+ 添加」→ 追加到末尾（多文件时才显示）
+    //   「选择文件」「更换文件」「拖拽上传」→ 替换现有集合（全新开始）
+    //   「添加文件」→ 追加到已导入列表末尾（保留当前编辑）
+    //   「导入新文件」→ 以全新文件重新开始（清空并替换）
     elements.uploadBtn.addEventListener('click', () => {
         setImportMode('replace');
         elements.fileInput.click();
@@ -161,9 +162,17 @@ function initEventListeners() {
             elements.fileInput.click();
         });
     }
+    // 「添加文件」：追加到已导入列表末尾（保留当前全部编辑）
     if (elements.addFilesBtn) {
         elements.addFilesBtn.addEventListener('click', () => {
             setImportMode('append');
+            elements.fileInput.click();
+        });
+    }
+    // 「导入新文件」：以全新文件重新开始，清空并替换当前内容
+    if (elements.importNewBtn) {
+        elements.importNewBtn.addEventListener('click', () => {
+            setImportMode('replace');
             elements.fileInput.click();
         });
     }

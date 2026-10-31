@@ -13,6 +13,17 @@
     --surface-color: #ffffff;
     --bg-color: #f8fafc;
 
+    /* 浅紫色调：按钮浅底 / 空状态等，呼应主色 */
+    --primary-light: #eef2ff;
+    --primary-lighter: #f5f3ff;
+    --primary-soft: #ede9fe;
+    /* 统一文本色别名（旧代码曾直接引用未定义的 --text-color） */
+    --text-color: var(--text-main);
+    /* 禁用态（未导入文档时的功能调整区）柔和配色，贴合站点紫色调 */
+    --disabled-bg: #f5f3ff;
+    --disabled-text: #a5a0d8;
+    --disabled-border: #e9e5fb;
+
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 
@@ -190,6 +201,39 @@ body {
 .thumbnail-item.active {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* 缩略图可手动拖动排序 */
+.thumbnail-item {
+    cursor: grab;
+}
+
+.thumbnail-item:active {
+    cursor: grabbing;
+}
+
+.thumbnail-item.dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+}
+
+/* 拖拽落点提示：纵向列表显示在上 / 下边缘，横向条显示在左 / 右边缘 */
+.thumbnail-item.drop-before {
+    box-shadow: inset 0 3px 0 0 var(--primary-color), var(--shadow-sm);
+}
+
+.thumbnail-item.drop-after {
+    box-shadow: inset 0 -3px 0 0 var(--primary-color), var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+    .thumbnail-item.drop-before {
+        box-shadow: inset 3px 0 0 0 var(--primary-color), var(--shadow-sm);
+    }
+
+    .thumbnail-item.drop-after {
+        box-shadow: inset -3px 0 0 0 var(--primary-color), var(--shadow-sm);
+    }
 }
 
 .thumbnail-item canvas {
@@ -418,13 +462,12 @@ body {
 }
 
 .btn:disabled {
-    opacity: 0.5;
+    opacity: 1;
     cursor: not-allowed;
-    filter: grayscale(1);
-    background: #e2e8f0 !important;
-    color: #94a3b8 !important;
+    background: var(--disabled-bg) !important;
+    color: var(--disabled-text) !important;
+    border-color: var(--disabled-border) !important;
     box-shadow: none !important;
-    border-color: transparent !important;
 }
 
 /* ==========================================================================
@@ -1155,18 +1198,20 @@ a:focus-visible {
     max-width: 600px;
     min-height: 300px;
     color: var(--text-secondary);
-    border: 3px dashed #cbd5e1;
-    border-radius: 12px;
-    background: #f8fafc;
-    padding: 32px;
+    border: 2px dashed #c7d2fe;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+    box-shadow: 0 12px 32px rgba(99, 102, 241, 0.10);
+    padding: 36px 32px;
     text-align: center;
     margin: auto;
 }
 
 .empty-state .material-icons {
     font-size: 64px;
-    color: #cbd5e1;
+    color: var(--primary-color);
     margin-bottom: 16px;
+    opacity: 0.85;
 }
 
 .empty-state h3 {
@@ -1174,6 +1219,10 @@ a:focus-visible {
     font-weight: 600;
     font-size: 1.25rem;
     color: var(--text-main);
+}
+
+.empty-state .sub-text {
+    color: var(--text-secondary);
 }
 
 /* ==========================================================================
@@ -2298,6 +2347,35 @@ body.mask-rect-dragging {
     font-size: 16px;
 }
 
+/* 两个导入入口并排：桌面端各占一半，手机端在文件条里并排成图标按钮 */
+.file-list-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    width: 100%;
+}
+
+/* 「导入新文件」：中性外观，与「添加文件」（浅紫）区分，语义更清晰 */
+.file-add-btn.import-new {
+    background: var(--surface-color);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+.file-add-btn.import-new:hover {
+    background: #f8fafc;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+@media (min-width: 769px) {
+    .file-list-actions .file-add-btn {
+        width: auto;
+        flex: 1 1 0;
+        min-width: 0;
+    }
+}
+
 
 .file-list {
     list-style: none;
@@ -2655,8 +2733,8 @@ body.modal-open {
 @media (min-width: 769px) {
 
     .right-panel {
-        /* 略微加宽：按钮组能多并排几个，行数自然减少 */
-        width: 344px;
+        /* 按常用显示尺寸动态变化：窄桌面不挤、宽屏更舒展，始终贴合主视区 */
+        width: clamp(320px, 23vw, 400px);
         padding: 8px 10px;
         gap: 6px;
     }
