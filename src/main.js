@@ -10,10 +10,12 @@ import { state } from './state.js';
 import { handleFileUpload, setImportMode } from './file-handler.js';
 import { toggleFileList } from './file-list.js';
 import { openSortPanel, closeSortPanel, applySort, resetSort } from './page-sort.js';
-import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation, applyRotationToCurrent, applyRotationToAll } from './viewer.js';
+import { changePage, renderCurrentPage, refitCanvas, rotatePage, setPageRotation, resetRotation, applyRotationToCurrent, applyRotationToAll } from './viewer.js';
 import { toggleSealLine, setSealSide, applySplitToCurrent, applySplitToAll, applySealToCurrent, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetSplitLayout, resetSealAreas, getPageConfig, syncFineStepperUI } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
+import { initViewportGestures } from './viewport.js';
+import { initHeaderCollapse } from './header-collapse.js';
 import {
     setCropZoomDraft, stepCropZoom, resetCropZoom, applyCropZoom, applyCropZoomToAll,
     syncCropZoomUI, renderCropPreview, scheduleCropPreview, STEP
@@ -364,6 +366,23 @@ function handleResize() {
     }, 150);
 }
 
+/**
+ * 监听取景框尺寸变化
+ * Header 折叠 / 窗口缩放 / 屏幕旋转都会改变框内可用空间，
+ * 此时只需重算显示比例（不必重新渲染页面），图片立刻填满新的取景框
+ */
+function initViewportResizeObserver() {
+    const clip = elements.a3Clip;
+    if (!clip || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+        refitCanvas();
+    });
+    observer.observe(clip);
+}
+
 // 启动程序
 initEventListeners();
+initViewportGestures();
+initHeaderCollapse();
+initViewportResizeObserver();
 syncCropZoomUI();

@@ -2,10 +2,73 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import { renderSplitLines, getPageConfig, syncRotationUI } from './editor.js';
 import { renderMasks, renderAppliedErasures } from './mask-editor.js';
-import { rotateCanvas, rotatedBounds } from './utils.js';
+import { rotateCanvas } from './utils.js';
 import { syncCropZoomFromPage } from './crop-adjust.js';
 import { getPageSource } from './documents.js';
 import { showToast } from './toast.js';
+import { setFitScale, resetView } from './viewport.js';
+
+/**
+ * 渲染质量系数
+ * 以「适配尺寸 × 该系数」渲染，放大后依然清晰（同时为缩放手势留出余量）
+ */
+const RENDER_QUALITY = 2.5;
+
+/** 渲染倍率上限（PDF 可放大渲染，图片不放大超过原始像素） */
+const MAX_RENDER_SCALE_PDF = 2;
+const MAX_RENDER_SCALE_IMAGE = 1;
+
+/** 单轴渲染像素上限（防止超大页面把移动端内存打爆） */
+const MAX_RENDER_DIM = 2800;
+
+/**
+ * 上一次渲染的基准信息
+ * 重新适配时（Header 折叠 / 窗口变化）复用，避免整页重新渲染
+ */
+let lastRender = null;
+
+/**
+ * 取景框内部可用尺寸
+ * 红框本身尺寸固定，这里量的是「框内可视区」，也就是图片能占满的范围
+ * @returns {{w:number,h:number}} 宽高（像素）
+ */
+function getViewportBox() {
+    const clip = elements.a3Clip;
+    const w = clip ? clip.clientWidth : 0;
+    const h = clip ? clip.clientHeight : 0;
+    if (w > 0 && h > 0) return { w, h };
+
+    // 兜底：取景框尚未完成布局时，用中间区域的尺寸
+    const c = elements.canvasContainer;
+    return {
+        w: Math.max(1, (c ? c.clientWidth : 0) - 24),
+        h: Math.max(1, (c ? c.clientHeight : 0) - 24)
+    };
+}
+
+/**
+ * 计算适配系数：把内容完整放进取景框（contain，横向纵向都不裁切）
+ * @param {number} w 内容原始宽度
+ * @param {number} h 内容原始高度
+ * @param {number} boxW 可用宽度
+ * @param {number} boxH 可用高度
+ * @returns {number} 适配系数
+ */
+function computeFitScale(w, h, boxW, boxH) {
+    if (!(w > 0) || !(h > 0) || !(boxW > 0) || !(boxH > 0)) return 1;
+    return Math.min(boxW / w, boxH / h);
+}
+
+/**
+ * 计算渲染倍率：适配系数 × 质量系数，并受上限与像素上限约束
+ * @param {number} fit 适配系数
+ * @param {number} maxScale 渲染倍率上限
+ * @returns {number} 渲染倍率
+ */
+function computeRenderScale(fit, maxScale) {
+    const s = fit * RENDER_QUALITY;
+    return Math.min(maxScale, Math.max(0.05, s));
+}
 
 /**
  * 切换到指定页面
@@ -20,6 +83,8 @@ export function changePage(pageNum) {
     syncRotationUI();
     // 「裁剪后调整」的待应用值同步为该页已应用值
     syncCropZoomFromPage();
+    // 换页后取景框内的缩放 / 平移复位，保证新页面完整可见
+    resetView();
     updatePageControls();
 
     // 更新缩略图选中状态
@@ -110,13 +175,19 @@ export function applyRotationToAll() {
  */
 export function updatePageControls() {
     elements.pageInfo.textContent = `${state.currentPage} / ${state.totalPages}`;
+    // 取景框角标同步页码（Header 收起后仍能看到当前页）
+    if (elements.a3PageTag) {
+        elements.a3PageTag.textContent = `${state.currentPage} / ${state.totalPages}`;
+    }
     elements.prevPageBtn.disabled = state.currentPage <= 1;
     elements.nextPageBtn.disabled = state.currentPage >= state.totalPages;
 }
 
 /**
  * 渲染当前主页面的 Canvas
- * 会自动计算缩放比例以适应容器
+ * 渲染到「A3 取景框」内：适配比例按取景框计算，
+ * 渲染倍率高于适配倍率（保证放大清晰），显示时用 CSS 缩放抵消，
+ * 因此图片旋转后超出红框的部分会被红框直接裁掉。
  */
 let renderToken = 0;
 
@@ -124,7 +195,7 @@ export async function renderCurrentPage() {
     // 每次渲染分配一个唯一令牌；异步完成后若令牌已过期则丢弃，避免并发渲染叠加重影
     const myToken = ++renderToken;
 
-    let canvas, viewport;
+    let canvas, baseW, baseH, renderScale;
 
     const rotation = getPageConfig(state.currentPage).rotation || 0;
 
@@ -132,28 +203,21 @@ export async function renderCurrentPage() {
     const source = getPageSource(state.currentPage);
     if (!source) return;
 
+    const box = getViewportBox();
+
     if (source.isPdf) {
         const page = await source.doc.pdfDoc.getPage(source.localPage);
         const unscaledViewport = page.getViewport({ scale: 1 });
+        baseW = unscaledViewport.width;
+        baseH = unscaledViewport.height;
 
-        // 获取容器的可用宽高 (减去 padding)
-        const availableWidth = elements.canvasContainer.clientWidth - 40;
-        const availableHeight = elements.canvasContainer.clientHeight - 40;
+        // 适配系数基于「未旋转」的页面尺寸 —— 纸张在屏幕上的大小不随旋转改变，
+        // 旋转后超出取景框的部分由红框裁切（所见即所得）
+        const fit = computeFitScale(baseW, baseH, box.w, box.h);
+        renderScale = computeRenderScale(fit, MAX_RENDER_SCALE_PDF);
+        renderScale = Math.min(renderScale, MAX_RENDER_DIM / baseW, MAX_RENDER_DIM / baseH);
 
-        // 按旋转后的外接矩形尺寸做 Fit Page（支持任意角度，避免裁切）
-        const disp = rotatedBounds(unscaledViewport.width, unscaledViewport.height, rotation);
-        const dispW = disp.width;
-        const dispH = disp.height;
-        const scaleX = availableWidth / dispW;
-        const scaleY = availableHeight / dispH;
-
-        // Fit Page：按容器适配（显示比例统一由「裁剪后调整」控制成品页大小）
-        let fitScale = Math.min(scaleX, scaleY);
-        if (fitScale > 1.5) fitScale = 1.5; // 防止无意义放大
-        fitScale = Math.max(fitScale, 0.1);
-        const scale = fitScale;
-
-        viewport = page.getViewport({ scale: scale });
+        const viewport = page.getViewport({ scale: renderScale });
         canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.height = viewport.height;
@@ -171,35 +235,23 @@ export async function renderCurrentPage() {
             img.onerror = reject;
             img.src = source.doc.imageUrl;
         });
+        baseW = img.width;
+        baseH = img.height;
 
-        const availableWidth = elements.canvasContainer.clientWidth - 40;
-        const availableHeight = elements.canvasContainer.clientHeight - 40;
-
-        // 按旋转后的外接矩形尺寸做 Fit Page（支持任意角度）
-        const disp = rotatedBounds(img.width, img.height, rotation);
-        const dispW = disp.width;
-        const dispH = disp.height;
-        const scaleX = availableWidth / dispW;
-        const scaleY = availableHeight / dispH;
-        let fitScale = Math.min(scaleX, scaleY);
-        if (fitScale > 1) fitScale = 1;
-        fitScale = Math.max(fitScale, 0.1);
-        const scale = fitScale;
+        const fit = computeFitScale(baseW, baseH, box.w, box.h);
+        renderScale = computeRenderScale(fit, MAX_RENDER_SCALE_IMAGE);
 
         canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
+        canvas.width = Math.max(1, Math.round(baseW * renderScale));
+        canvas.height = Math.max(1, Math.round(baseH * renderScale));
         const context = canvas.getContext('2d');
         context.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        viewport = { width: canvas.width, height: canvas.height };
     }
 
     // 应用方向旋转，得到显示画布。分割线/密封线/切片坐标均基于此旋转后坐标系。
     canvas = rotateCanvas(canvas, rotation);
     // 注意：旋转会生成新画布，类名需在此处重新设置
     canvas.className = 'page-canvas';
-    viewport = { width: canvas.width, height: canvas.height };
 
     // 把「已应用」的擦除区域真正画到画布上 —— 画布直接显示擦除后的内容
     renderAppliedErasures(canvas);
@@ -212,11 +264,28 @@ export async function renderCurrentPage() {
     elements.canvasWrapper.style.height = `${canvas.height}px`;
     elements.canvasWrapper.appendChild(canvas);
 
+    // 显示尺寸 = 内容尺寸 × 适配系数（渲染倍率由 CSS 抵消）
+    const finalFit = computeFitScale(baseW, baseH, box.w, box.h);
+    lastRender = { baseW, baseH, renderScale, fit: finalFit };
+    setFitScale(finalFit / renderScale);
+
     // 恢复或添加默认裁切线
     renderSplitLines();
 
     // 渲染「擦除内容」遮盖框（覆盖在画布之上）
     renderMasks();
+}
+
+/**
+ * 取景框尺寸变化后重新适配（不重新渲染页面，只重算显示比例）
+ * Header 折叠 / 窗口缩放 / 屏幕旋转时调用
+ */
+export function refitCanvas() {
+    if (!lastRender) return;
+    const box = getViewportBox();
+    const fit = computeFitScale(lastRender.baseW, lastRender.baseH, box.w, box.h);
+    lastRender.fit = fit;
+    setFitScale(fit / lastRender.renderScale);
 }
 
 /**

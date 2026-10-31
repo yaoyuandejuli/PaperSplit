@@ -219,8 +219,96 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    /* 边距收紧：让取景框横向尽可能撑满可用空间 */
+    padding: 12px;
     overflow: auto;
+    min-height: 0;
+}
+
+/* ==========================================================================
+   A3 固定取景框
+   · 红框比例严格等于 A3 横版（420 : 297），用 aspect-ratio 锁定
+   · 框本身绝对静止：只有里面的图片可旋转 / 缩放 / 平移
+   · overflow: hidden —— 超出红框的图片部分一律隐藏
+   ========================================================================== */
+.a3-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 尺寸容器：让红框同时受宽度与高度约束，且始终保持 A3 比例 */
+    container-type: size;
+}
+
+.a3-frame {
+    position: relative;
+    aspect-ratio: 420 / 297;
+    /* 宽度 = 可用宽度 与 「可用高度 × 420/297」中的较小者 */
+    width: min(100cqw, calc(100cqh * 420 / 297));
+    border: 2px solid #ef4444;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.22);
+    touch-action: none;
+}
+
+/* 兜底：不支持容器查询单位时，按宽度铺满 */
+@supports not (container-type: size) {
+    .a3-stage {
+        container-type: normal;
+    }
+
+    .a3-frame {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+/* 裁切区：图片在这里被裁切，红框的边框始终可见 */
+.a3-clip {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 角标：纸张规格 + 页码（半透明，不拦截任何交互） */
+.a3-frame-tag {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #475569;
+    font-size: 0.66rem;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    user-select: none;
+}
+
+.a3-tag-page {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+/* 未载入文件时隐藏取景框，只显示空状态 */
+.center-panel:not(.has-doc) .a3-stage {
+    display: none;
+}
+
+.center-panel:not(.has-doc) .empty-state {
+    display: flex;
 }
 
 /* Right Panel: Tools & Settings */
@@ -907,9 +995,14 @@ a:focus-visible {
    Feature: Split Line & Seal Line (Updated for Mobile)
    ========================================================================== */
 .canvas-wrapper {
-    position: relative;
+    position: absolute;
+    left: 50%;
+    top: 50%;
     display: inline-block;
-    margin: auto;
+    /* 变换由 JS 写入：translate(-50%,-50%) 定位 + translate(平移) + scale(适配/缩放) */
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+    will-change: transform;
 }
 
 .canvas-wrapper canvas {
@@ -1170,6 +1263,20 @@ body.mask-rect-dragging {
         flex-wrap: wrap;
         padding: 8px 12px;
         gap: 8px;
+        /* 滚动控制面板时收起 / 展开 Header 的过渡 */
+        transition:
+            transform .28s cubic-bezier(.4, 0, .2, 1),
+            margin-top .28s cubic-bezier(.4, 0, .2, 1);
+        will-change: transform;
+    }
+
+    /* Header 收起：
+       · transform: translateY(-100%) 让它平滑向上滑出视口
+       · 负外边距把占用的行高还给主区域 —— 中间取景区因此自动向上填补空间
+       · Logo 与页码仍在 Header 内保留，取景框角标同步显示页码 */
+    .app-container.nav-collapsed .navbar {
+        transform: translateY(-100%);
+        margin-top: calc(-1 * var(--nav-h, 56px));
     }
 
     /* 手机端图标缩小，顶栏整体更矮，把空间留给画布 */
@@ -1421,13 +1528,30 @@ body.mask-rect-dragging {
     .center-panel {
         flex: 1 1 auto;
         min-height: 70px;
-        padding: 8px;
-        overflow: auto;
+        /* 边距收紧：取景框横向尽可能撑满屏幕 */
+        padding: 4px;
+        overflow: hidden;
+    }
+
+    /* 空状态：手机端缩小高度，避免把取景框挤出视口 */
+    .center-panel .empty-state {
+        min-height: 160px;
+        padding: 20px;
+    }
+
+    .center-panel .empty-state .material-icons {
+        font-size: 44px;
+        margin-bottom: 8px;
+    }
+
+    .center-panel .empty-state h3 {
+        margin-top: 8px;
+        font-size: 1.05rem;
     }
 
     /* ------------------------------------------------------------------
        Right Panel —— 手机端「控制面板」
-       · 高度固定为屏幕下半部分（48dvh），不再随内容撑高
+       · 高度固定为屏幕下半部分（43dvh，较上一版缩小 10%），不再随内容撑高
        · 内部独立滚动：手势只在面板内生效，页面整体始终不动
        · Scroll Snap：每个模块（方向调整 / 编辑工具 / 擦除内容 …）
          都是一个吸附单元，滑到某个模块就停在那里
@@ -1437,18 +1561,18 @@ body.mask-rect-dragging {
         flex: 0 0 auto;
         border-left: none;
         border-top: 1px solid var(--border-color);
-        height: 48vh;
-        height: 48dvh;
-        min-height: 250px;
-        max-height: 56vh;
-        max-height: 56dvh;
+        height: 43vh;
+        height: 43dvh;
+        min-height: 240px;
+        max-height: 50vh;
+        max-height: 50dvh;
         overflow-y: auto;
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
         scroll-snap-type: y mandatory;
         scroll-padding-block-start: 0;
-        padding: 10px 12px 16px;
-        gap: 12px;
+        padding: 8px 10px 12px;
+        gap: 10px;
     }
 
     /* 每个模块作为一个吸附单元 */
@@ -1464,7 +1588,7 @@ body.mask-rect-dragging {
 
     /* 「操作指南」展开后可能比面板还高 —— 改为内部滚动，避免吸附被困住 */
     .right-panel .guide-steps {
-        max-height: 38dvh;
+        max-height: 33dvh;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
     }
@@ -1472,7 +1596,7 @@ body.mask-rect-dragging {
     .tools-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 10px;
     }
 
     /* 导出区：面板内的最后一个模块，样式与其他模块保持一致 */
@@ -1578,19 +1702,19 @@ body.mask-rect-dragging {
     }
 }
 
-/* 矮屏（<=700px 高）：控制面板占比从 48% 降到 44%，画布不至于被挤没 */
+/* 矮屏（<=700px 高）：控制面板占比从 43% 降到 39.5%，画布不至于被挤没 */
 @media (max-height: 700px) {
     .right-panel {
-        height: 44vh;
-        height: 44dvh;
+        height: 39.5vh;
+        height: 39.5dvh;
     }
 }
 
 /* 超矮屏（<=600px 高）：再降一档，保证控制面板底部（导出按钮）不被裁掉 */
 @media (max-height: 600px) {
     .right-panel {
-        height: 42vh;
-        height: 42dvh;
+        height: 37.5vh;
+        height: 37.5dvh;
     }
 }
 

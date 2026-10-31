@@ -72,6 +72,12 @@ export const elements = {
     emptyState: document.getElementById('emptyState'),
     dragOverlay: document.getElementById('dragOverlay'),
 
+    // A3 固定取景框（红框比例 = A3 横版 420:297，内部裁切超出部分）
+    a3Stage: document.getElementById('a3Stage'),
+    a3Frame: document.getElementById('a3Frame'),
+    a3Clip: document.getElementById('a3Clip'),
+    a3PageTag: document.getElementById('a3PageTag'),
+
     // 文件清单（多选导入后展示文件列表；手机端为顶部横向平铺条）
     fileListBox: document.getElementById('fileListBox'),
     fileList: document.getElementById('fileList'),

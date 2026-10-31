@@ -15,9 +15,9 @@
     <title>PaperSplit - 试卷本地拆分，一键适配A4打印</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-UChHnfXF.js"></script>
+  <script type="module" crossorigin src="./assets/index-DxIlWz0q.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-01t1Xzq2.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-Du9zsQlJ.css">
 </head>
 
 <body>
@@ -93,15 +93,29 @@
                     <p>释放文件以上传</p>
                 </div>
 
-                <div id="canvasWrapper" class="canvas-wrapper">
-                    <div class="empty-state" id="emptyState">
-                        <span class="material-icons">cloud_upload</span>
-                        <h3>点击上传或拖拽文件</h3>
-                        <p class="sub-text">支持 PDF 或图片文件，可一次选择多个</p>
-                        <button id="uploadBtn" class="btn primary large-btn">
-                            选择文件
-                        </button>
+                <!-- A3 固定取景框
+                     · 红色实线边框，比例严格等于 A3 横版（420 : 297）
+                     · 框本身绝对静止，图片在框内旋转 / 缩放，超出部分被 overflow:hidden 裁掉 -->
+                <div class="a3-stage" id="a3Stage">
+                    <div class="a3-frame" id="a3Frame">
+                        <div class="a3-clip" id="a3Clip">
+                            <div id="canvasWrapper" class="canvas-wrapper"></div>
+                        </div>
+                        <!-- 角标：纸张规格 + 当前页码（Header 折叠后仍可看页码） -->
+                        <div class="a3-frame-tag" aria-hidden="true">
+                            <span class="a3-tag-spec">A3 · 420×297</span>
+                            <span class="a3-tag-page" id="a3PageTag">1 / 1</span>
+                        </div>
                     </div>
+                </div>
+
+                <div class="empty-state" id="emptyState">
+                    <span class="material-icons">cloud_upload</span>
+                    <h3>点击上传或拖拽文件</h3>
+                    <p class="sub-text">支持 PDF 或图片文件，可一次选择多个</p>
+                    <button id="uploadBtn" class="btn primary large-btn">
+                        选择文件
+                    </button>
                 </div>
             </section>
 
@@ -182,8 +196,15 @@
                         <div class="step-item">
                             <div class="step-num">10</div>
                             <div class="step-text">
+                                <strong>A3 取景框</strong>
+                                <p>中间预览区是一个<strong>固定不动的红色实线框</strong>，比例严格等于 A3 横版（420×297mm）；试卷图片始终放在框内显示，旋转或放大后<strong>超出红框的部分会被自动隐藏</strong>。双指可缩放 / 平移图片，双击画面复位。</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">11</div>
+                            <div class="step-text">
                                 <strong>手机端布局</strong>
-                                <p>手机上整页不滚动：顶部是「已导入文件」与缩略图，中间是<strong>始终可见的大画布</strong>，下方控制面板占下半屏并<strong>独立滚动</strong>，滑动时会<strong>自动吸附</strong>到某个功能模块上</p>
+                                <p>手机上整页不滚动：顶部是「已导入文件」与缩略图，中间是<strong>始终可见的取景框</strong>，下方控制面板占下半屏并<strong>独立滚动</strong>，滑动时会<strong>自动吸附</strong>到某个功能模块上；在面板里继续下拉时顶部 Header 会<strong>平滑收起</strong>，把空间让给取景框，上滑即可恢复</p>
                             </div>
                         </div>
                     </div>

@@ -99,8 +99,10 @@ async function importFiles(files, mode) {
         : `${firstName} 等 ${state.documents.length} 个文件`;
 
     // 隐藏空状态、显示左侧面板
-    // 注意：首次渲染后 emptyState 会被 canvasWrapper 清空，这里必须做空值保护
+    // 注意：首次渲染后 emptyState 不再随 canvasWrapper 一起被清空，这里做空值保护
     if (elements.emptyState) elements.emptyState.style.display = 'none';
+    // 标记已载入文档：中间预览区切换为 A3 取景框
+    if (elements.canvasContainer) elements.canvasContainer.classList.add('has-doc');
     const leftPanel = document.querySelector('.left-panel');
     if (leftPanel) leftPanel.style.display = 'flex';
 
