@@ -4,6 +4,9 @@
  * 坐标约定：
  *  - 切片比例 (ratio) 定义在「旋转后的显示坐标系」中，0 = 左边缘，1 = 右边缘
  *  - 页面尺寸与绘制区域单位统一为毫米 (mm)
+ *  - 密封带分两个方向：
+ *      · 左右（竖向密封带）：{ x0, x1 }，沿 x 轴挖掉
+ *      · 上下（横向密封带）：{ y0, y1 }，沿 y 轴挖掉
  */
 
 /**
@@ -83,6 +86,76 @@ export function getSealRanges(config) {
 }
 
 /**
+ * 把任意形态的「上下密封带」规整为 { y0, y1 }，非法数据返回 null
+ *
+ * @param {*} band 密封带数据
+ * @returns {{y0:number, y1:number}|null}
+ */
+export function normalizeSealBand(band) {
+    if (!band || typeof band !== 'object') return null;
+
+    let a, b;
+    if (Number.isFinite(band.y0) && Number.isFinite(band.y1)) {
+        a = band.y0; b = band.y1;
+    } else if (Number.isFinite(band.y)) {
+        // 旧形态：type = 'bottom' 表示裁掉 [y, 1]，否则裁掉 [0, y]
+        if (band.type === 'bottom') { a = band.y; b = 1; }
+        else { a = 0; b = band.y; }
+    } else {
+        return null;
+    }
+
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    if (hi - lo < SEAL_MIN_W) return null;
+
+    // 高度封顶，并把区域收进 [0, 1] 之内
+    const h = Math.min(hi - lo, SEAL_MAX_W);
+    const y0 = Math.min(Math.max(lo, 0), 1 - h);
+    return { y0, y1: y0 + h };
+}
+
+/**
+ * 读取并规整某一页的全部「上下密封带」（横向密封带）
+ *
+ * @param {Object} config 页面配置
+ * @returns {Array<{y0:number,y1:number}>} 按位置升序
+ */
+export function getSealBands(config) {
+    if (!config) return [];
+    const raw = config.sealBands;
+    const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+
+    const valid = [];
+    for (const item of list) {
+        const s = normalizeSealBand(item);
+        if (s) valid.push(s);
+    }
+    valid.sort((a, b) => a.y0 - b.y0);
+    return valid;
+}
+
+/**
+ * 计算页面纵向（上下方向）保留下来的区间
+ *
+ * 上下密封带把页面的顶部 / 底部挖掉，导出时只保留中间这段。
+ * 没有密封带时返回整页 [0, 1]；有多个区间时取最大的一段。
+ *
+ * @param {Object} config 页面配置
+ * @returns {[number, number]} [起始比例, 结束比例]
+ */
+export function getVerticalRange(config) {
+    const bands = getSealBands(config);
+    if (!bands.length) return [0, 1];
+
+    const segs = subtractRanges(0, 1, bands.map(b => [b.y0, b.y1]));
+    if (!segs.length) return [0, 1];
+
+    segs.sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]));
+    return [segs[0][0], segs[0][1]];
+}
+
+/**
  * 从 [start, end] 区间中挖掉若干子区间，返回剩余的区间列表
  * @param {number} start
  * @param {number} end
@@ -142,29 +215,31 @@ export const A4_HEIGHT = 297;
 /**
  * 计算遮盖区域与某一切片的交集（像素坐标）
  *
- * 遮盖 masks 是整页比例坐标（基于旋转后的显示坐标系），切片是整页的一段，
- * 因此需要把遮盖换算到切片像素坐标后再求交集。
+ * 遮盖 masks 是整页比例坐标（基于旋转后的显示坐标系），切片是整页的一段
+ * （横向可能因上下密封带而不从 0 开始），因此需要把遮盖换算到切片像素坐标后再求交集。
  *
  * @param {Array<{x,y,w,h}>} masks 遮盖列表（比例坐标）
  * @param {number} workWidth  整页像素宽
  * @param {number} workHeight 整页像素高
  * @param {number} sliceStartX 切片在整页中的左边界（像素）
  * @param {number} sliceWidth  切片像素宽
+ * @param {number} sliceStartY 切片在整页中的上边界（像素，0 = 未裁掉顶部）
  * @param {number} sliceHeight 切片像素高
  * @returns {Array<{x,y,w,h}>} 与切片相交的遮盖矩形（切片像素坐标）
  */
-export function getMaskRectsInSlice(masks, workWidth, workHeight, sliceStartX, sliceWidth, sliceHeight) {
+export function getMaskRectsInSlice(masks, workWidth, workHeight, sliceStartX, sliceWidth, sliceStartY = 0, sliceHeight) {
     const out = [];
+    const h = (sliceHeight === undefined) ? workHeight : sliceHeight;
     for (const m of (masks || [])) {
         const mx = m.x * workWidth - sliceStartX;   // 相对切片左边界
-        const my = m.y * workHeight;
+        const my = m.y * workHeight - sliceStartY; // 相对切片上边界
         const mw = m.w * workWidth;
         const mh = m.h * workHeight;
 
         const x0 = Math.max(0, mx);
         const y0 = Math.max(0, my);
         const x1 = Math.min(sliceWidth, mx + mw);
-        const y1 = Math.min(sliceHeight, my + mh);
+        const y1 = Math.min(h, my + mh);
         if (x1 <= x0 || y1 <= y0) continue; // 与该切片无交集
 
         out.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });

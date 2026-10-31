@@ -202,6 +202,9 @@ function initEventListeners() {
     elements.toggleSealLineBtn.addEventListener('click', toggleSealLine);
     elements.sealLeftBtn.addEventListener('click', () => setSealSide('left'));
     elements.sealRightBtn.addEventListener('click', () => setSealSide('right'));
+    // 上下（横向密封带）
+    elements.sealTopBtn.addEventListener('click', () => setSealSide('top'));
+    elements.sealBottomBtn.addEventListener('click', () => setSealSide('bottom'));
     elements.addSplitBtn.addEventListener('click', addSplitLine);
 
     // 「去除分割线」：进入选择模式 → 点击分割线即直接删除

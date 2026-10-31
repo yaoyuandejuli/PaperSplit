@@ -42,11 +42,14 @@ export const elements = {
     addSplitBtn: document.getElementById('addSplitBtn'),
     // 去除分割线（点击即删）
     removeSplitBtn: document.getElementById('removeSplitBtn'),
-    // 密封线（独立分区：开关 + 贴边切换 + 状态 + 应用）
+    // 密封线（独立分区：开关 + 四方向贴边 + 状态 + 应用）
     toggleSealLineBtn: document.getElementById('toggleSealLineBtn'),
     sealStatus: document.getElementById('sealStatus'),
     sealLeftBtn: document.getElementById('sealLeftBtn'),
     sealRightBtn: document.getElementById('sealRightBtn'),
+    // 上下（横向密封带）
+    sealTopBtn: document.getElementById('sealTopBtn'),
+    sealBottomBtn: document.getElementById('sealBottomBtn'),
     // 密封线 · 重置：清除当前页所有密封区域
     resetSealBtn: document.getElementById('resetSealBtn'),
     // 密封线 · 应用：当前页 / 所有页（并排一行）

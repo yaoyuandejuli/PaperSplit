@@ -1,23 +1,25 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
 import { showToast } from './toast.js';
-import { normalizeSeal, getSealRanges, SEAL_MIN_W, SEAL_MAX_W } from './export-geometry.js';
+import { normalizeSeal, getSealRanges, getSealBands, SEAL_MIN_W, SEAL_MAX_W } from './export-geometry.js';
 
-/** 新建密封区域时的默认宽度（15%） */
+/** 新建密封区域时的默认宽度（占页宽 / 页高的比例） */
 const SEAL_DEFAULT_W = 0.15;
 
 /**
  * 获取或初始化当前页面的配置
  * 结构: {
  *   splitLines: number[],                   // 分割线位置比例 (0-1)，多条 => 分栏
- *   sealRanges: Array<{x0,x1}>,             // 密封区域（一页可有多个，如左右同时存在）
+ *   sealRanges: Array<{x0,x1}>,             // 左右密封带（一页可有多个）
+ *   sealBands:  Array<{y0,y1}>,             // 上下密封带（一页可有多个）
  *   rotation: 0 | 90 | 180 | 270,           // 内容方向（每页独立）
  *   outputScale: 1,                        // 裁剪后调整比例（成品页上的大小，导出时生效）
  *   masks: Array<{id,x,y,w,h,applied}>     // 框选擦除区域（比例坐标，导出时覆盖为白色）
  *   strokes: Array<{id,points,width,applied}> // 涂抹擦除笔迹（比例坐标，导出时擦除）
  *   eraseOps: Array<{type,id|ids}>         // 擦除操作栈（支持撤销「标记」与「应用」两类操作）
  * }
- * 注：splitLines / sealRanges / masks / strokes 均定义在「旋转后的显示坐标系」中。
+ * 注：splitLines / sealRanges / sealBands / masks / strokes 均定义在「旋转后的显示坐标系」中。
+ * applied 表示该标记已被「应用」到画布（画布上直接显示擦除后的内容）。
  * applied 表示该标记已被「应用」到画布（画布上直接显示擦除后的内容）。
  * @param {number} pageIndex 页面索引 (1-based)
  * @returns {Object} 页面配置对象
@@ -47,6 +49,8 @@ export function getPageConfig(pageIndex) {
     if (!Array.isArray(cfg.sealRanges)) {
         cfg.sealRanges = cfg.sealRanges ? [normalizeSeal(cfg.sealRanges)].filter(Boolean) : [];
     }
+    // 兼容旧数据（无上下密封带）
+    if (!Array.isArray(cfg.sealBands)) cfg.sealBands = [];
     // 兼容旧数据（无 masks / strokes / eraseOps 字段）
     if (!Array.isArray(cfg.masks)) cfg.masks = [];
     if (!Array.isArray(cfg.strokes)) cfg.strokes = [];
@@ -69,39 +73,78 @@ function focusAfterSplitGone() {
 }
 
 /**
- * 渲染「密封区域」遮罩（一页可有多个区域，如左右两侧同时存在装订线）
+ * 统一列出本页的全部密封带
+ *
+ * 左右（x 轴，竖向密封带）在前、上下（y 轴，横向密封带）在后，各自按位置升序。
+ * 每个条目都带上「所属列表 + 列表内下标」，方便拖动时精确写回配置。
+ *
+ * @param {Object} config 当前页配置
+ * @returns {Array<{axis:'x'|'y', start:number, end:number, list:'x'|'y', index:number}>}
+ */
+function collectSeals(config) {
+    const out = [];
+    getSealRanges(config).forEach((s, i) => {
+        out.push({ axis: 'x', start: s.x0, end: s.x1, list: 'x', index: i });
+    });
+    getSealBands(config).forEach((s, i) => {
+        out.push({ axis: 'y', start: s.y0, end: s.y1, list: 'y', index: i });
+    });
+    return out;
+}
+
+/**
+ * 渲染「密封区域」遮罩（一页可有多个区域，四个方向都支持）
  * 把导出时会被裁掉的那一块用斜纹阴影标出来，让用户直观看到密封线的影响范围。
- * 区域可落在页面任意位置（左 / 中 / 右），拖动遮罩本体可整体移动。
+ * 区域可落在页面任意位置（左 / 右 / 上 / 下），拖动遮罩本体可整体移动。
  * @param {Object} config 当前页配置
  */
 function renderSealZones(config) {
     const wrapper = elements.canvasWrapper;
     if (!wrapper) return;
 
-    const seals = getSealRanges(config);
-
     // 区域数量可能变化 —— 整体重建，保证每个遮罩与配置一一对应
     wrapper.querySelectorAll('.seal-zone').forEach(z => z.remove());
 
-    seals.forEach((seal, i) => {
+    collectSeals(config).forEach((item) => {
         const zone = document.createElement('div');
-        zone.className = 'seal-zone';
-        zone.dataset.sealIndex = String(i);
+        zone.className = item.axis === 'y' ? 'seal-zone seal-zone-h' : 'seal-zone';
+        zone.dataset.sealAxis = item.axis;
+        zone.dataset.sealList = item.list;
+        zone.dataset.sealIndex = String(item.index);
         zone.appendChild(Object.assign(document.createElement('span'), {
             className: 'seal-zone-tag',
             textContent: '密封区'
         }));
         wrapper.appendChild(zone);
-        bindSealZoneDrag(zone, i);
-        applySealZoneStyle(zone, seal);
+        bindSealZoneDrag(zone);
+        applySealZoneStyle(zone, item);
     });
 }
 
-/** 把一个密封区域的位置写进遮罩元素 */
-function applySealZoneStyle(zone, seal) {
-    zone.style.left = `${seal.x0 * 100}%`;
-    zone.style.width = `${(seal.x1 - seal.x0) * 100}%`;
-    zone.title = `密封区域 ${(seal.x0 * 100).toFixed(0)}% ~ ${(seal.x1 * 100).toFixed(0)}%：拖动可整体移动，拖两侧虚线可调整范围`;
+/**
+ * 把一个密封区域的位置写进遮罩元素
+ * @param {HTMLElement} zone 遮罩元素
+ * @param {Object} item 密封带描述 { axis, start, end }
+ */
+function applySealZoneStyle(zone, item) {
+    const isY = item.axis === 'y';
+    const pct = v => `${v * 100}%`;
+
+    if (isY) {
+        // 上下：横向密封带（顶部 / 底部）
+        zone.style.left = '0%';
+        zone.style.right = '0%';
+        zone.style.top = pct(item.start);
+        zone.style.height = pct(item.end - item.start);
+        zone.title = `密封区域 纵向 ${pct(item.start)} ~ ${pct(item.end)}：拖动可整体移动，拖两侧虚线可调整范围`;
+    } else {
+        // 左右：竖向密封带（左侧 / 右侧）
+        zone.style.top = '0%';
+        zone.style.bottom = '0%';
+        zone.style.left = pct(item.start);
+        zone.style.width = pct(item.end - item.start);
+        zone.title = `密封区域 横向 ${pct(item.start)} ~ ${pct(item.end)}：拖动可整体移动，拖两侧虚线可调整范围`;
+    }
 }
 
 /**
@@ -111,44 +154,78 @@ function applySealZoneStyle(zone, seal) {
  * 这样即使移动后与其它区域重叠，也不会出现「下标错位、改错区域」的问题。
  *
  * @param {HTMLElement} zone 遮罩元素
- * @param {number} index 该遮罩对应的区域下标
  */
-function bindSealZoneDrag(zone, index) {
-    let dragging = false;
-    let startX = 0;
-    let startLeft = 0;
-    let draft = null;   // { x0, x1 } 拖动中的临时位置
-    let edgeLeft = null; // 两条边界线元素
-    let edgeRight = null;
+function bindSealZoneDrag(zone) {
+    const isY = zone.dataset.sealAxis === 'y';
 
-    const onDown = (clientX) => {
+    let dragging = false;
+    let startPos = 0;
+    let startStart = 0;
+    let draft = null;   // { start, end } 拖动中的临时位置
+    let edgeA = null;  // 两条边界线元素
+    let edgeB = null;
+
+    /** 读取当前密封带（x 轴取 x0/x1，y 轴取 y0/y1） */
+    const readSeal = () => {
+        const cfg = getPageConfig(state.currentPage);
+        const list = isY ? getSealBands(cfg) : getSealRanges(cfg);
+        const s = list[Number(zone.dataset.sealIndex)];
+        if (!s) return null;
+        return { start: isY ? s.y0 : s.x0, end: isY ? s.y1 : s.x1 };
+    };
+
+    /** 找到该密封带的两条边界虚线 */
+    const findEdges = () => {
+        const idx = zone.dataset.sealIndex;
+        const axisAttr = isY ? '[data-seal-axis="y"]' : '';
+        const sel = `.split-line.seal${axisAttr}[data-seal-index="${idx}"]`;
+        return {
+            a: elements.canvasWrapper ? elements.canvasWrapper.querySelector(`${sel}[data-seal-edge="0"]`) : null,
+            b: elements.canvasWrapper ? elements.canvasWrapper.querySelector(`${sel}[data-seal-edge="1"]`) : null
+        };
+    };
+
+    const onDown = (clientX, clientY) => {
+        const cur = readSeal();
+        if (!cur) return;
+
         dragging = true;
-        startX = clientX;
-        startLeft = parseFloat(zone.style.left) || 0;
-        const seals = getSealRanges(getPageConfig(state.currentPage));
-        draft = seals[index] ? { ...seals[index] } : null;
-        edgeLeft = elements.canvasWrapper
-            ? elements.canvasWrapper.querySelector(`.split-line.seal[data-seal-index="${index}"][data-seal-edge="0"]`)
-            : null;
-        edgeRight = elements.canvasWrapper
-            ? elements.canvasWrapper.querySelector(`.split-line.seal[data-seal-index="${index}"][data-seal-edge="1"]`)
-            : null;
+        startPos = isY ? clientY : clientX;
+        startStart = cur.start;
+        draft = { ...cur };
+
+        const edges = findEdges();
+        edgeA = edges.a;
+        edgeB = edges.b;
+
         zone.classList.add('dragging-zone');
     };
 
-    const onMove = (clientX) => {
+    const onMove = (clientX, clientY) => {
         if (!dragging || !draft) return;
         const rect = elements.canvasWrapper.getBoundingClientRect();
-        if (!rect.width) return;
+        const size = isY ? rect.height : rect.width;
+        if (!size) return;
 
-        const w = (draft.x1 - draft.x0) * 100;
-        const left = Math.min(Math.max(startLeft + ((clientX - startX) / rect.width) * 100, 0), 100 - w);
-        draft = { x0: left / 100, x1: left / 100 + w / 100 };
+        const w = (draft.end - draft.start) * 100;
+        const delta = ((isY ? clientY : clientX) - startPos) / size * 100;
+        const left = Math.min(Math.max(startStart * 100 + delta, 0), 100 - w);
+        draft = { start: left / 100, end: left / 100 + w / 100 };
 
         // 直接更新 DOM，避免中途重排导致索引漂移
-        zone.style.left = `${draft.x0 * 100}%`;
-        if (edgeLeft) edgeLeft.style.left = `${draft.x0 * 100}%`;
-        if (edgeRight) edgeRight.style.left = `${draft.x1 * 100}%`;
+        if (isY) {
+            zone.style.top = `${draft.start * 100}%`;
+        } else {
+            zone.style.left = `${draft.start * 100}%`;
+        }
+        if (edgeA) {
+            if (isY) edgeA.style.top = `${draft.start * 100}%`;
+            else edgeA.style.left = `${draft.start * 100}%`;
+        }
+        if (edgeB) {
+            if (isY) edgeB.style.top = `${draft.end * 100}%`;
+            else edgeB.style.left = `${draft.end * 100}%`;
+        }
     };
 
     const onUp = () => {
@@ -157,11 +234,19 @@ function bindSealZoneDrag(zone, index) {
         zone.classList.remove('dragging-zone');
         if (draft) {
             const cfg = getPageConfig(state.currentPage);
-            const seals = getSealRanges(cfg);
-            if (seals[index]) {
-                cfg.sealRanges[index] = { x0: draft.x0, x1: draft.x1 };
-                // 移动后可能与其它区域重叠 —— 保留原位置优先，新位置让位
-                cfg.sealRanges = getSealRanges(cfg);
+            const idx = Number(zone.dataset.sealIndex);
+            if (isY) {
+                const bands = getSealBands(cfg);
+                if (bands[idx]) {
+                    cfg.sealBands[idx] = { y0: draft.start, y1: draft.end };
+                    cfg.sealBands = getSealBands(cfg);
+                }
+            } else {
+                const seals = getSealRanges(cfg);
+                if (seals[idx]) {
+                    cfg.sealRanges[idx] = { x0: draft.start, x1: draft.end };
+                    cfg.sealRanges = getSealRanges(cfg);
+                }
             }
         }
         draft = null;
@@ -169,18 +254,18 @@ function bindSealZoneDrag(zone, index) {
         document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
     };
 
-    const mouseMove = (e) => { if (dragging) { e.preventDefault(); onMove(e.clientX); } };
+    const mouseMove = (e) => { if (dragging) { e.preventDefault(); onMove(e.clientX, e.clientY); } };
     const touchMove = (e) => {
         if (!dragging || e.touches.length !== 1) return;
         e.preventDefault();
-        onMove(e.touches[0].clientX);
+        onMove(e.touches[0].clientX, e.touches[0].clientY);
     };
 
     zone.addEventListener('mousedown', (e) => {
         if (e.button !== 0 || state.removeSplitMode) return;
         e.preventDefault();
         e.stopPropagation();
-        onDown(e.clientX);
+        onDown(e.clientX, e.clientY);
         document.addEventListener('mousemove', mouseMove);
         document.addEventListener('mouseup', onUp, { once: true });
     });
@@ -188,7 +273,7 @@ function bindSealZoneDrag(zone, index) {
     zone.addEventListener('touchstart', (e) => {
         if (e.touches.length !== 1 || state.removeSplitMode) return;
         e.stopPropagation();
-        onDown(e.touches[0].clientX);
+        onDown(e.touches[0].clientX, e.touches[0].clientY);
         document.addEventListener('touchmove', touchMove, { passive: false });
         document.addEventListener('touchend', onUp, { once: true });
     }, { passive: false });
@@ -201,13 +286,19 @@ function bindSealZoneDrag(zone, index) {
  */
 function syncSealVisuals(config) {
     const seals = getSealRanges(config);
+    const bands = getSealBands(config);
 
-    // 遮罩：按 data-seal-index 对位更新位置
+    // 遮罩：按 data-seal-index / data-seal-axis 对位更新位置
     const zones = elements.canvasWrapper
         ? elements.canvasWrapper.querySelectorAll('.seal-zone')
         : [];
-    zones.forEach((zone, i) => {
-        if (seals[i]) applySealZoneStyle(zone, seals[i]);
+    zones.forEach((zone) => {
+        const isY = zone.dataset.sealAxis === 'y';
+        const idx = Number(zone.dataset.sealIndex);
+        const item = isY
+            ? (bands[idx] ? { axis: 'y', start: bands[idx].y0, end: bands[idx].y1 } : null)
+            : (seals[idx] ? { axis: 'x', start: seals[idx].x0, end: seals[idx].x1 } : null);
+        if (item) applySealZoneStyle(zone, item);
     });
 
     // 边界虚线：同样按 data-seal-index / data-seal-edge 对位更新
@@ -228,23 +319,46 @@ function syncSealVisuals(config) {
         }
     });
 
+    // 上下密封带的边界虚线（水平虚线）
+    bands.forEach((band, i) => {
+        const top = elements.canvasWrapper
+            ? elements.canvasWrapper.querySelector(`.split-line.seal[data-seal-axis="y"][data-seal-index="${i}"][data-seal-edge="0"]`)
+            : null;
+        const bottom = elements.canvasWrapper
+            ? elements.canvasWrapper.querySelector(`.split-line.seal[data-seal-axis="y"][data-seal-index="${i}"][data-seal-edge="1"]`)
+            : null;
+        if (top) {
+            top.style.top = `${band.y0 * 100}%`;
+            top.setAttribute('aria-valuenow', String(Math.round(band.y0 * 100)));
+        }
+        if (bottom) {
+            bottom.style.top = `${band.y1 * 100}%`;
+            bottom.setAttribute('aria-valuenow', String(Math.round(band.y1 * 100)));
+        }
+    });
+
     updateSealUI(config);
 }
 
 /**
- * 更新密封线状态徽标与靠左 / 靠右按钮
+ * 更新密封线状态徽标与四个方向按钮（靠左 / 靠右 / 靠上 / 靠下）
  * @param {Object} config 当前页配置
  */
 function updateSealUI(config) {
     const seals = getSealRanges(config);
+    const bands = getSealBands(config);
+    const total = seals.length + bands.length;
+
     const chip = elements.sealStatus;
     if (chip) {
-        if (seals.length) {
+        if (total) {
             const pct = (v) => `${Math.round(v * 100)}%`;
-            const detail = seals.map(s => `${pct(s.x0)}~${pct(s.x1)}`).join(' / ');
-            chip.textContent = seals.length > 1
-                ? `已启用 · ${seals.length} 处`
-                : `已启用 · ${detail}`;
+            // 详情：左右用横向比例，上下用纵向比例，一并列出
+            const detail = [
+                ...seals.map(s => `横 ${pct(s.x0)}~${pct(s.x1)}`),
+                ...bands.map(b => `纵 ${pct(b.y0)}~${pct(b.y1)}`)
+            ].join(' / ');
+            chip.textContent = `已启用 · ${total} 处`;
             chip.title = `密封区域：${detail}`;
             chip.classList.add('seal-on');
         } else {
@@ -254,18 +368,22 @@ function updateSealUI(config) {
         }
     }
 
-    // 靠左 / 靠右：可独立开关，两侧可同时点亮
+    // 四个方向：可独立开关，多个方向可同时点亮
     const atLeft = seals.some(s => s.x0 <= 0.001);
     const atRight = seals.some(s => s.x1 >= 0.999);
+    const atTop = bands.some(b => b.y0 <= 0.001);
+    const atBottom = bands.some(b => b.y1 >= 0.999);
 
-    if (elements.sealLeftBtn) {
-        elements.sealLeftBtn.disabled = false;
-        elements.sealLeftBtn.classList.toggle('active-state', atLeft);
-    }
-    if (elements.sealRightBtn) {
-        elements.sealRightBtn.disabled = false;
-        elements.sealRightBtn.classList.toggle('active-state', atRight);
-    }
+    const toggle = (btn, active) => {
+        if (!btn) return;
+        btn.disabled = false;
+        btn.classList.toggle('active-state', active);
+    };
+
+    toggle(elements.sealLeftBtn, atLeft);
+    toggle(elements.sealRightBtn, atRight);
+    toggle(elements.sealTopBtn, atTop);
+    toggle(elements.sealBottomBtn, atBottom);
 }
 
 /**
@@ -330,8 +448,37 @@ export function renderSplitLines() {
         }, { sealIndex: i, sealEdge: 1 });
     });
 
-    // 更新按钮状态：显示取消
-    if (seals.length) {
+    // 2b. 渲染上下密封带（横向密封带）的边界 —— 水平虚线
+    const bands = getSealBands(config);
+    bands.forEach((band, i) => {
+        // 上边界：不能越过下边界（至少保留最小高度）
+        createLineElement(band.y0, 'seal', i, (v) => {
+            const cur = getSealBands(config)[i];
+            if (!cur) return;
+            const y0 = Math.min(Math.max(v, 0), cur.y1 - SEAL_MIN_W);
+            config.sealBands[i] = { y0, y1: cur.y1 };
+            syncSealVisuals(config);
+        }, (pct) => {
+            const cur = getSealBands(config)[i];
+            return cur ? Math.min(Math.max(pct, 0), (cur.y1 - SEAL_MIN_W) * 100) : pct;
+        }, { sealIndex: i, sealEdge: 0, axis: 'y' });
+
+        // 下边界：不能越过上边界
+        createLineElement(band.y1, 'seal', i, (v) => {
+            const cur = getSealBands(config)[i];
+            if (!cur) return;
+            const y1 = Math.min(Math.max(v, cur.y0 + SEAL_MIN_W), 1);
+            config.sealBands[i] = { y0: cur.y0, y1 };
+            syncSealVisuals(config);
+        }, (pct) => {
+            const cur = getSealBands(config)[i];
+            return cur ? Math.min(Math.max(pct, (cur.y0 + SEAL_MIN_W) * 100), 100) : pct;
+        }, { sealIndex: i, sealEdge: 1, axis: 'y' });
+    });
+
+    // 更新按钮状态：显示取消（四个方向任一存在即视为已启用）
+    const anySeal = seals.length + bands.length > 0;
+    if (anySeal) {
         elements.toggleSealLineBtn.innerHTML = '<span class="material-icons">close</span> 取消密封线';
         elements.toggleSealLineBtn.classList.add('active-state');
     } else {
@@ -413,6 +560,11 @@ export function syncFineStepperUI() {
 
 /**
  * 创建辅助线 DOM 元素并绑定拖拽事件
+ *
+ * 支持两个方向：
+ *  - 默认（x 轴）：竖线，左右拖动，用 left 定位（分割线 / 左右密封带边界）
+ *  - axis = 'y'：横线，上下拖动，用 top 定位（上下密封带边界）
+ *
  * @param {number} initialX 初始位置比例 (0-1)
  * @param {string} type 线条类型 ('split' | 'seal')
  * @param {number} index 分割线索引（split 用）/ 密封区域序号（seal 用）
@@ -422,27 +574,34 @@ export function syncFineStepperUI() {
  */
 function createLineElement(initialX, type, index, onUpdate, clampFn, attrs) {
     const lineEl = document.createElement('div');
-    lineEl.className = `split-line ${type}`;
-    lineEl.style.left = `${initialX * 100}%`;
+
+    // axis = 'y' → 水平线（上下密封带边界）；否则为竖线
+    const isY = !!(attrs && attrs.axis === 'y');
+    const posProp = isY ? 'top' : 'left';
+
+    lineEl.className = `split-line ${type}${isY ? ' horizontal' : ''}`;
+    lineEl.style[posProp] = `${initialX * 100}%`;
     if (attrs) {
         for (const [k, v] of Object.entries(attrs)) lineEl.setAttribute(k, String(v));
     }
 
-    // 密封边界属于第几个区域、是该区域的左边界还是右边界
-    const sealEdgeName = attrs && attrs.sealEdge === 0 ? '左' : '右';
+    // 密封边界属于第几个区域、是该区域的上/下（或左/右）边界
+    const sealEdgeName = isY
+        ? (attrs && attrs.sealEdge === 0 ? '上' : '下')
+        : (attrs && attrs.sealEdge === 0 ? '左' : '右');
     const sealRegionNo = (attrs && typeof attrs.sealIndex === 'number') ? attrs.sealIndex + 1 : 1;
 
     // 键盘可操作：可聚焦，语义化为一维滑块（位置 0-100%）
     lineEl.tabIndex = 0;
     lineEl.setAttribute('role', 'slider');
-    lineEl.setAttribute('aria-orientation', 'horizontal');
+    lineEl.setAttribute('aria-orientation', isY ? 'vertical' : 'horizontal');
     lineEl.setAttribute('aria-valuemin', '0');
     lineEl.setAttribute('aria-valuemax', '100');
     lineEl.setAttribute('aria-valuenow', String(Math.round(initialX * 100)));
     lineEl.setAttribute('aria-valuetext', `位置 ${Math.round(initialX * 100)}%`);
     lineEl.setAttribute('aria-label', type === 'split'
         ? `分割线 ${index + 1}：左右方向键微调位置，Delete 键删除`
-        : `密封区域 ${sealRegionNo} 的${sealEdgeName}边界：左右方向键微调位置`);
+        : `密封区域 ${sealRegionNo} 的${sealEdgeName}边界：${isY ? '上下' : '左右'}方向键微调位置`);
     lineEl.setAttribute('aria-valuetext',
         `位置 ${Math.round(initialX * 100)}%${type === 'seal' ? `（${sealEdgeName}边界）` : ''}`);
 
@@ -483,31 +642,33 @@ function createLineElement(initialX, type, index, onUpdate, clampFn, attrs) {
      */
     const setPercent = (pct) => {
         const v = clampPercent(pct);
-        lineEl.style.left = `${v}%`;
+        lineEl.style[posProp] = `${v}%`;
         syncAria(v);
         onUpdate(v / 100);
         // 位置变化后刷新「修改后文件预览」
         document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
     };
 
-    const onDragStart = (clientX) => {
+    const onDragStart = (clientX, clientY) => {
         isDragging = true;
-        startX = clientX;
-        // 获取当前 style.left 的百分比数值 (去除 %)
-        startLeft = parseFloat(lineEl.style.left);
+        startX = isY ? clientY : clientX;
+        // 获取当前 style.[left|top] 的百分比数值 (去除 %)
+        startLeft = parseFloat(lineEl.style[posProp]);
         lineEl.classList.add('dragging');
     };
 
-    const onDragMove = (clientX) => {
+    const onDragMove = (clientX, clientY) => {
         if (!isDragging) return;
 
         const rect = elements.canvasWrapper.getBoundingClientRect();
-        const deltaX = clientX - startX;
-        const deltaPercent = (deltaX / rect.width) * 100;
+        const size = isY ? rect.height : rect.width;
+        if (!size) return;
+        const delta = (isY ? clientY : clientX) - startX;
+        const deltaPercent = (delta / size) * 100;
 
         let newPercent = clampPercent(startLeft + deltaPercent);
 
-        lineEl.style.left = `${newPercent}%`;
+        lineEl.style[posProp] = `${newPercent}%`;
         syncAria(newPercent);
         onUpdate(newPercent / 100);
     };
@@ -530,7 +691,7 @@ function createLineElement(initialX, type, index, onUpdate, clampFn, attrs) {
             document.addEventListener('mouseup', onMouseUp);
             return;
         }
-        onDragStart(e.clientX);
+        onDragStart(e.clientX, e.clientY);
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     };
@@ -544,7 +705,7 @@ function createLineElement(initialX, type, index, onUpdate, clampFn, attrs) {
         }
         if (!isDragging) return;
         e.preventDefault();
-        onDragMove(e.clientX);
+        onDragMove(e.clientX, e.clientY);
     };
 
     const onMouseUp = () => {
@@ -575,7 +736,7 @@ function createLineElement(initialX, type, index, onUpdate, clampFn, attrs) {
             document.addEventListener('touchend', onTouchEnd);
             return;
         }
-        onDragStart(e.touches[0].clientX);
+        onDragStart(e.touches[0].clientX, e.touches[0].clientY);
         document.addEventListener('touchmove', onTouchMove, { passive: false });
         document.addEventListener('touchend', onTouchEnd);
     };
@@ -591,7 +752,7 @@ function createLineElement(initialX, type, index, onUpdate, clampFn, attrs) {
         }
         if (!isDragging) return;
         e.preventDefault();
-        onDragMove(e.touches[0].clientX);
+        onDragMove(e.touches[0].clientX, e.touches[0].clientY);
     };
 
     const onTouchEnd = () => {
@@ -662,16 +823,24 @@ function createLineElement(initialX, type, index, onUpdate, clampFn, attrs) {
             if (handled) e.preventDefault();
         });
     } else {
-        // 密封线：仅支持方向键移动位置
+        // 密封线：仅支持方向键移动位置（水平线用上下键，竖直线用左右键）
         lineEl.addEventListener('keydown', (e) => {
-            const cur = parseFloat(lineEl.style.left) || 0;
+            const cur = parseFloat(lineEl.style[posProp]) || 0;
             const step = e.shiftKey ? 5 : 1;
             let handled = true;
-            if (e.key === 'ArrowLeft') setPercent(cur - step);
-            else if (e.key === 'ArrowRight') setPercent(cur + step);
-            else if (e.key === 'Home') setPercent(0);
-            else if (e.key === 'End') setPercent(100);
-            else handled = false;
+            if (isY) {
+                if (e.key === 'ArrowUp') setPercent(cur - step);
+                else if (e.key === 'ArrowDown') setPercent(cur + step);
+                else if (e.key === 'Home') setPercent(0);
+                else if (e.key === 'End') setPercent(100);
+                else handled = false;
+            } else {
+                if (e.key === 'ArrowLeft') setPercent(cur - step);
+                else if (e.key === 'ArrowRight') setPercent(cur + step);
+                else if (e.key === 'Home') setPercent(0);
+                else if (e.key === 'End') setPercent(100);
+                else handled = false;
+            }
             if (handled) e.preventDefault();
         });
     }
@@ -809,38 +978,60 @@ export function setSplitColumns(n) {
 /**
  * 把密封区域贴到某一侧（保持当前宽度，只挪位置）
  * 这只是「快捷吸附」，区域本身不受边缘限制，仍可再拖到页面中间。
- * @param {'left'|'right'} side 目标一侧
+ *
+ * 四个方向都支持：
+ *  - left / right → 左右密封带（沿 x 轴）
+ *  - top / bottom → 上下密封带（沿 y 轴）
+ *
+ * @param {'left'|'right'|'top'|'bottom'} side 目标一侧
  */
 export function setSealSide(side) {
     const config = getPageConfig(state.currentPage);
-    const seals = getSealRanges(config);
+    const isY = (side === 'top' || side === 'bottom');
+    const seals = isY ? getSealBands(config) : getSealRanges(config);
 
-    // 找到贴在这一侧的区域（贴左 = x0 为 0；贴右 = x1 为 1）
-    const hitIndex = seals.findIndex(s => (side === 'left' ? s.x0 <= 0.001 : s.x1 >= 0.999));
+    // 找到贴在这一侧的区域（贴左/上 = 起点为 0；贴右/下 = 终点为 1）
+    const isAtStart = (side === 'left' || side === 'top');
+    const hitIndex = seals.findIndex(s => (isAtStart
+        ? (isY ? s.y0 <= 0.001 : s.x0 <= 0.001)
+        : (isY ? s.y1 >= 0.999 : s.x1 >= 0.999)));
 
     if (hitIndex >= 0) {
         // 已经贴在这一侧 —— 再点一次即取消
         seals.splice(hitIndex, 1);
-        config.sealRanges = seals;
+        if (isY) config.sealBands = seals;
+        else config.sealRanges = seals;
         renderSplitLines();
         return;
     }
 
     // 尚未贴在这一侧 —— 新增一个贴边区域
     // 宽度沿用「另一侧已有的贴边区域」，没有则用默认值
-    const other = seals.find(s => (side === 'left' ? s.x1 >= 0.999 : s.x0 <= 0.001));
-    const w = other ? (other.x1 - other.x0) : SEAL_DEFAULT_W;
+    const other = seals.find(s => (isAtStart
+        ? (isY ? s.y1 >= 0.999 : s.x1 >= 0.999)
+        : (isY ? s.y0 <= 0.001 : s.x0 <= 0.001)));
+    const w = other
+        ? (isY ? (other.y1 - other.y0) : (other.x1 - other.x0))
+        : SEAL_DEFAULT_W;
     const width = Math.min(Math.max(w, SEAL_MIN_W), SEAL_MAX_W);
 
-    const next = side === 'left'
-        ? { x0: 0, x1: width }
-        : { x0: 1 - width, x1: 1 };
+    const next = isY
+        ? (side === 'top'
+            ? { y0: 0, y1: width }
+            : { y0: 1 - width, y1: 1 })
+        : (side === 'left'
+            ? { x0: 0, x1: width }
+            : { x0: 1 - width, x1: 1 });
 
     // 与已有区域重叠时以新的贴边区域为准
-    const kept = seals.filter(s => s.x1 <= next.x0 + 0.0001 || s.x0 >= next.x1 - 0.0001);
+    const kept = seals.filter(s => isY
+        ? (s.y1 <= next.y0 + 0.0001 || s.y0 >= next.y1 - 0.0001)
+        : (s.x1 <= next.x0 + 0.0001 || s.x0 >= next.x1 - 0.0001));
     kept.push(next);
-    kept.sort((a, b) => a.x0 - b.x0);
-    config.sealRanges = kept;
+    kept.sort((a, b) => (isY ? a.y0 - b.y0 : a.x0 - b.x0));
+
+    if (isY) config.sealBands = kept;
+    else config.sealRanges = kept;
 
     renderSplitLines();
 }
@@ -848,17 +1039,20 @@ export function setSealSide(side) {
 /**
  * 切换密封线状态（启用 / 取消）
  * 首次启用时给出贴合书页习惯的默认区域：奇数页靠左、偶数页靠右，各占 15%
+ * 四个方向（左右 / 上下）任一存在即视为已启用，再次点击全部取消
  */
 export function toggleSealLine() {
     const config = getPageConfig(state.currentPage);
 
-    if (getSealRanges(config).length) {
+    if (getSealRanges(config).length || getSealBands(config).length) {
         config.sealRanges = [];
+        config.sealBands = [];
     } else {
         const isOdd = state.currentPage % 2 !== 0;
         config.sealRanges = [isOdd
             ? { x0: 0, x1: SEAL_DEFAULT_W }
             : { x0: 1 - SEAL_DEFAULT_W, x1: 1 }];
+        config.sealBands = [];
     }
 
     renderSplitLines();
@@ -883,12 +1077,13 @@ export function resetSplitLayout() {
 }
 
 /**
- * 清除当前页的所有密封区域（不影响分割线、方向角度与裁剪比例）
+ * 清除当前页的所有密封区域（左右 + 上下，不影响分割线、方向角度与裁剪比例）
  */
 export function resetSealAreas() {
     const config = getPageConfig(state.currentPage);
 
     config.sealRanges = [];
+    config.sealBands = [];
 
     renderSplitLines();
 }
@@ -942,6 +1137,9 @@ export function applySplitToAll() {
  *  - 当前页未启用密封区域 → 使用目标奇偶的默认位置（奇数页靠左 / 偶数页靠右，各 15%）。
  *
  * 一页可能有多个密封区域（左右同时存在），此时逐个区域按上述规则处理。
+ * **上下密封带不参与奇偶镜像** —— 顶部永远是顶部、底部永远是底部，
+ * 只有左右方向才随奇偶左右互换。
+ *
  * 只改动密封区域，不动分割线（两者彼此独立，可同时使用）；
  * 也不影响擦除标记、方向角度与裁剪比例。
  * @param {(page:number)=>boolean} match 页码筛选器
@@ -950,6 +1148,7 @@ export function applySplitToAll() {
 function applySealToPages(match, scopeName) {
     const currentConfig = getPageConfig(state.currentPage);
     const currentSeals = getSealRanges(currentConfig);
+    const currentBands = getSealBands(currentConfig);
     const currentIsOdd = state.currentPage % 2 !== 0;
 
     if (!confirm(`确定把密封区域应用到${scopeName}吗？`)) return;
@@ -980,6 +1179,11 @@ function applySealToPages(match, scopeName) {
         const config = getPageConfig(i);
         config.sealRanges = seals.sort((a, b) => a.x0 - b.x0);
 
+        // 上下密封带：原样复制（顶部 / 底部不随奇偶翻转）
+        config.sealBands = currentBands
+            .map(b => ({ y0: b.y0, y1: b.y1 }))
+            .sort((a, b) => a.y0 - b.y0);
+
         affected++;
     }
 
@@ -996,10 +1200,12 @@ function applySealToPages(match, scopeName) {
 export function applySealToCurrent() {
     const config = getPageConfig(state.currentPage);
     const seals = getSealRanges(config);
+    const bands = getSealBands(config);
+    const total = seals.length + bands.length;
 
-    showToast(seals.length
-        ? `密封区域已应用到当前页（${seals.length} 处）`
-        : '当前页未启用密封区域', seals.length ? 'success' : 'warn');
+    showToast(total
+        ? `密封区域已应用到当前页（${total} 处）`
+        : '当前页未启用密封区域', total ? 'success' : 'warn');
     document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 

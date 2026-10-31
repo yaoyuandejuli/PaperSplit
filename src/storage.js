@@ -12,7 +12,7 @@
  *  - 最多保留 MAX_RECORDS 个文件的记录，超出时淘汰最旧的
  */
 
-import { getSealRanges } from './export-geometry.js';
+import { getSealRanges, getSealBands } from './export-geometry.js';
 
 const STORAGE_PREFIX = 'papersplit:edit:';
 const SCHEMA_VERSION = 1;
@@ -47,6 +47,7 @@ function serializeConfig(cfg) {
     return {
         splitLines: cfg.splitLines,
         sealRanges: cfg.sealRanges,
+        sealBands: cfg.sealBands,
         rotation: cfg.rotation,
         outputScale: cfg.outputScale,
         masks: cfg.masks,
@@ -76,6 +77,9 @@ function sanitizeConfig(raw) {
         sealLine: raw.sealLine
     });
 
+    // 上下密封带（横向密封带）：{ sealBands: [{y0,y1}] }
+    const sealBands = getSealBands({ sealBands: raw.sealBands });
+
     const rotation = Number.isFinite(raw.rotation)
         ? ((raw.rotation % 360) + 360) % 360
         : 0;
@@ -98,7 +102,7 @@ function sanitizeConfig(raw) {
 
     const eraseOps = Array.isArray(raw.eraseOps) ? raw.eraseOps : [];
 
-    return { splitLines, sealRanges, rotation, outputScale, masks, strokes, eraseOps };
+    return { splitLines, sealRanges, sealBands, rotation, outputScale, masks, strokes, eraseOps };
 }
 
 /* ------------------------------------------------------------------ */

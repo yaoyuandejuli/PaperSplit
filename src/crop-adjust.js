@@ -4,7 +4,7 @@ import { elements } from './dom.js';
 import { getPageConfig } from './editor.js';
 import { rotateCanvas, buildEraseOverlay } from './utils.js';
 import { showToast } from './toast.js';
-import { getSliceRanges, computePlacement, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
+import { getSliceRanges, getVerticalRange, computePlacement, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
 
 /**
  * 「裁剪后调整」模块
@@ -173,10 +173,16 @@ export async function renderCropPreview() {
         .filter(r => (r[1] - r[0]) > 0.01);
     if (!ranges.length) return;
 
+    // 纵向保留区间：上下密封带（靠上 / 靠下）裁掉顶部 / 底部
+    const [vStart, vEnd] = getVerticalRange(cfg);
+    const vRatio = Math.max(0.0001, vEnd - vStart);
+    const srcY = work.height * vStart;
+    const srcH = work.height * vRatio;
+
     // 计算每一栏在成品页上的版面（成品页恒为标准 A4 210×297mm）
     const papers = ranges.map(r => {
         const widthRatio = r[1] - r[0];
-        const sliceAspect = (work.width * widthRatio) / work.height;
+        const sliceAspect = (work.width * widthRatio) / srcH;
         return { r, widthRatio, sliceAspect, pl: computePlacement(mode, sliceAspect, draft) };
     });
 
@@ -250,7 +256,7 @@ export async function renderCropPreview() {
 
         const sx = work.width * p.r[0];
         const sw = work.width * p.widthRatio;
-        ctx.drawImage(work, sx, 0, sw, work.height, cx, cy, cw, ch);
+        ctx.drawImage(work, sx, srcY, sw, srcH, cx, cy, cw, ch);
 
         // 「擦除内容」遮盖：与导出一致，用白色覆盖该区域（只覆盖已应用的）
         const masks = (cfg.masks || []).filter(m => m.applied);
@@ -265,21 +271,21 @@ export async function renderCropPreview() {
 
                 const ix0 = Math.max(mx, sx);
                 const ix1 = Math.min(mx + mw, sx + sw);
-                const iy0 = Math.max(my, 0);
-                const iy1 = Math.min(my + mh, work.height);
+                const iy0 = Math.max(my, srcY);
+                const iy1 = Math.min(my + mh, srcY + srcH);
                 if (ix1 <= ix0 || iy1 <= iy0) continue;
 
                 const tx = cx + (ix0 - sx) / sw * cw;
-                const ty = cy + iy0 / work.height * ch;
+                const ty = cy + (iy0 - srcY) / srcH * ch;
                 const tw = (ix1 - ix0) / sw * cw;
-                const th = (iy1 - iy0) / work.height * ch;
+                const th = (iy1 - iy0) / srcH * ch;
                 ctx.fillRect(tx, ty, tw, th);
             }
         }
 
         // 「涂抹擦除」：叠加白色笔迹层，笔迹经过处内容被真正擦除
         if (eraseOverlay) {
-            ctx.drawImage(eraseOverlay, sx, 0, sw, work.height, cx, cy, cw, ch);
+            ctx.drawImage(eraseOverlay, sx, srcY, sw, srcH, cx, cy, cw, ch);
         }
         ctx.restore();
 

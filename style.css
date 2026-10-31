@@ -551,6 +551,33 @@ a:focus-visible {
     white-space: nowrap;
 }
 
+/* ==========================================================================
+   密封线「四方向」：靠左 / 靠右 / 靠上 / 靠下
+   两行两列收在一个带边框的小卡片里，既紧凑又能一眼看出是同一组
+   ========================================================================== */
+.seal-direction-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--bg-color);
+}
+
+.seal-side-row .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 4px;
+    font-size: 0.85rem;
+    padding: 8px 6px;
+    white-space: nowrap;
+}
+
+.seal-side-row .btn .material-icons {
+    font-size: 17px;
+}
+
 /* 裁剪后调整：「应用当前页」与「应用所有页」并列一行 */
 .crop-apply-row .btn {
     flex: 1 1 0;
@@ -1044,6 +1071,24 @@ a:focus-visible {
     width: 0;
     background-color: transparent;
     border-left: 2px dashed #64748b;
+}
+
+/* 上下密封带的边界：水平虚线（竖线图标的横版） */
+.split-line.seal.horizontal {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: auto;
+    width: auto;
+    height: 0;
+    border-left: none;
+    border-top: 2px dashed #64748b;
+    cursor: row-resize;
+}
+
+/* 水平密封线的拖拽手柄：↕ 箭头 */
+.split-line.seal.horizontal::after {
+    content: '↕';
 }
 
 /* 拖拽手柄: ↔ 箭头样式 */
@@ -1857,6 +1902,27 @@ body.mask-rect-dragging {
 .seal-zone.dragging-zone {
     cursor: grabbing;
     background-color: rgb(100 116 139 / 0.26);
+}
+
+/* 上下密封带（横向密封带）：贴住顶部 / 底部，虚线在上下两侧 */
+.seal-zone-h {
+    border-left: none;
+    border-right: none;
+    border-top: 2px dashed rgb(100 116 139 / 0.55);
+    border-bottom: 2px dashed rgb(100 116 139 / 0.55);
+    /* 斜纹方向与左右密封带保持一致的观感 */
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgb(100 116 139 / 0.20) 0 6px,
+        transparent 6px 12px
+    );
+}
+
+/* 上下密封带的小标签：贴在左侧居中，避免压住内容 */
+.seal-zone-h .seal-zone-tag {
+    top: 50%;
+    left: 6px;
+    transform: translateY(-50%);
 }
 
 /* 区域顶部的「密封区」小标签 */

@@ -160,7 +160,7 @@
                             <div class="step-num">5</div>
                             <div class="step-text">
                                 <strong>密封线调整（可选）</strong>
-                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；开启后<strong>直接拖动斜纹区即可整体平移</strong>，拖动两侧虚线可调整范围（位置不限）；「重置」可清除本页密封区域。「靠左」「靠右」可独立开关，左右两侧可以同时存在</p>
+                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；开启后<strong>直接拖动斜纹区即可整体平移</strong>，拖动两侧虚线可调整范围（位置不限）。<strong>「靠左」「靠右」「靠上」「靠下」四个方向可独立开关、可同时存在</strong> —— 左右是竖向密封带，上下是横向密封带（裁掉顶部 / 底部）。「重置」可清除本页全部密封区域</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -336,11 +336,11 @@
                     <div class="tools-grid">
                         <div class="btn-group seal-action-row">
                             <button id="toggleSealLineBtn" class="btn secondary" disabled
-                                title="开启/取消密封区域（默认奇数页靠左、偶数页靠右，各占 15%）">
+                                title="开启/取消全部方向的密封区域（默认奇数页靠左、偶数页靠右，各占 15%）">
                                 <span class="material-icons">format_shapes</span> 去除密封线
                             </button>
                             <button id="resetSealBtn" class="btn secondary" disabled
-                                title="清除当前页所有密封区域（不影响分割线）">
+                                title="清除当前页所有密封区域（左右 + 上下，不影响分割线）">
                                 <span class="material-icons">restart_alt</span> 重置
                             </button>
                         </div>
@@ -349,13 +349,25 @@
                             <span class="status-chip seal-state" id="sealStatus">未启用</span>
                         </div>
 
-                        <div class="btn-group seal-side-row">
-                            <button id="sealLeftBtn" class="btn secondary" disabled title="把密封区域贴到页面左边缘（保持当前宽度）">
-                                <span class="material-icons">align_horizontal_left</span> 靠左
-                            </button>
-                            <button id="sealRightBtn" class="btn secondary" disabled title="把密封区域贴到页面右边缘（保持当前宽度）">
-                                <span class="material-icons">align_horizontal_right</span> 靠右
-                            </button>
+                        <!-- 四个方向：左右（竖向密封带）与上下（横向密封带），可独立开关、可同时存在 -->
+                        <div class="seal-direction-block">
+                            <div class="btn-group seal-side-row">
+                                <button id="sealLeftBtn" class="btn secondary" disabled title="把密封区域贴到页面左边缘（保持当前宽度）">
+                                    <span class="material-icons">align_horizontal_left</span> 靠左
+                                </button>
+                                <button id="sealRightBtn" class="btn secondary" disabled title="把密封区域贴到页面右边缘（保持当前宽度）">
+                                    <span class="material-icons">align_horizontal_right</span> 靠右
+                                </button>
+                            </div>
+
+                            <div class="btn-group seal-side-row">
+                                <button id="sealTopBtn" class="btn secondary" disabled title="把密封区域贴到页面顶部（保持当前高度）">
+                                    <span class="material-icons">align_vertical_top</span> 靠上
+                                </button>
+                                <button id="sealBottomBtn" class="btn secondary" disabled title="把密封区域贴到页面底部（保持当前高度）">
+                                    <span class="material-icons">align_vertical_bottom</span> 靠下
+                                </button>
+                            </div>
                         </div>
 
                         <div class="btn-group seal-apply-row">
@@ -364,7 +376,7 @@
                                 <span class="material-icons">check_circle</span> 应用当前页
                             </button>
                             <button id="sealApplyAllBtn" class="btn secondary" disabled
-                                title="把密封区域应用到所有页面（跨奇偶时自动镜像）">
+                                title="把密封区域应用到所有页面（左右随奇偶镜像，上下保持不变）">
                                 <span class="material-icons">done_all</span> 应用所有页
                             </button>
                         </div>

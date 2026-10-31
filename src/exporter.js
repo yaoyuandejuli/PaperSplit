@@ -3,7 +3,7 @@ import { elements } from './dom.js';
 import { getPageConfig } from './editor.js';
 import { getPageSource } from './documents.js';
 import { rotateCanvas, rotatedBounds, buildEraseOverlay } from './utils.js';
-import { getSliceRanges, computePlacement, getMaskRectsInSlice, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
+import { getSliceRanges, getVerticalRange, computePlacement, getMaskRectsInSlice, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
 
 /**
  * 导出渲染参数
@@ -116,6 +116,11 @@ export async function exportPdf() {
             // 准备切割区间：基于分割线数组（可多条 => 分栏），叠加密封线
             const ranges = getSliceRanges(config);
 
+            // 纵向保留区间：上下密封带（靠上 / 靠下）把顶部 / 底部挖掉，
+            // 这里只保留中间这一段（没有上下密封带时就是整页 [0, 1]）
+            const [vStart, vEnd] = getVerticalRange(config);
+            const vRatio = Math.max(0.0001, vEnd - vStart);
+
             // 裁剪后调整比例：调整裁剪结果在成品页面上的大小（每页独立，可批量应用）
             const outputScale = config.outputScale || 1;
 
@@ -179,9 +184,9 @@ export async function exportPdf() {
                 if (widthRatio <= 0.01) continue;
 
                 const sx = workCanvas.width * startXRatio;
-                const sy = 0;
+                const sy = workCanvas.height * vStart;        // 顶部密封带裁掉的高度
                 const sWidth = workCanvas.width * widthRatio;
-                const sHeight = workCanvas.height;
+                const sHeight = workCanvas.height * vRatio;    // 上下密封带之间的有效高度
 
                 // 创建切片 Canvas
                 const sliceCanvas = document.createElement('canvas');
@@ -194,7 +199,7 @@ export async function exportPdf() {
                 // （导出为位图，覆盖后无法从 PDF 中提取/还原原文）
                 const appliedMasks = (config.masks || []).filter(m => m.applied);
                 const maskRects = getMaskRectsInSlice(
-                    appliedMasks, workCanvas.width, workCanvas.height, sx, sWidth, sHeight
+                    appliedMasks, workCanvas.width, workCanvas.height, sx, sWidth, sy, sHeight
                 );
                 for (const r of maskRects) {
                     sliceCtx.fillStyle = '#ffffff';
@@ -203,7 +208,7 @@ export async function exportPdf() {
 
                 // 「擦除内容 · 涂抹」：叠加白色笔迹层，擦除笔迹经过的内容
                 if (eraseOverlay) {
-                    sliceCtx.drawImage(eraseOverlay, sx, 0, sWidth, sHeight, 0, 0, sWidth, sHeight);
+                    sliceCtx.drawImage(eraseOverlay, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
                 }
 
                 const imgData = sliceCanvas.toDataURL('image/jpeg', JPEG_QUALITY);

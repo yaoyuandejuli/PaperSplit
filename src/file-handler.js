@@ -111,6 +111,8 @@ async function importFiles(files, mode) {
     elements.resetSealBtn.disabled = false;
     elements.sealLeftBtn.disabled = true;
     elements.sealRightBtn.disabled = true;
+    elements.sealTopBtn.disabled = true;
+    elements.sealBottomBtn.disabled = true;
     elements.exportBtn.disabled = false;
     elements.clearSaveBtn.disabled = false;
     if (elements.openSortBtn) elements.openSortBtn.disabled = false;
