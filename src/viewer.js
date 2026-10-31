@@ -71,6 +71,29 @@ export function setPageRotation(angle) {
 }
 
 /**
+ * 把当前页的方向角度应用到当前页（确认并保存本页角度）
+ *
+ * 微调滑块在拖动时即已实时生效，本按钮用于「明确确认 + 落盘」：
+ * 先补一次最终角度的写入（确保节流窗口内的最后一次改动也已落定），
+ * 再写入本地存储并给出反馈。
+ */
+export function applyRotationToCurrent() {
+    const offset = Number(elements.rotateFineSlider ? elements.rotateFineSlider.value : 0);
+    const target = state.rotationBase + offset;
+    const current = getPageConfig(state.currentPage).rotation || 0;
+
+    // 比较两个角度是否等价（0 与 360 同义）
+    const diff = Math.abs((((target - current) % 360) + 540) % 360 - 180);
+    if (diff >= 0.01) {
+        setPageRotation(target);
+    }
+
+    const angle = getPageConfig(state.currentPage).rotation || 0;
+    showToast(`方向角度已应用到当前页（${angle}°）`, 'success');
+    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
+}
+
+/**
  * 把当前页的方向角度应用到所有页面
  */
 export function applyRotationToAll() {

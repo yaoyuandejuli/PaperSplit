@@ -12,12 +12,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PaperSplit - A3 试卷拆分</title>
+    <title>PaperSplit - 试卷本地拆分，一键适配A4打印</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-CPeDJAPh.js"></script>
+  <script type="module" crossorigin src="./assets/index-wThSsYLq.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-C-JKVaf_.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-D9sBTi8O.css">
 </head>
 
 <body>
@@ -26,7 +26,10 @@
         <header class="navbar">
             <div class="branding">
                 <span class="material-icons logo-icon">content_cut</span>
-                <span class="logo-text">PaperSplit</span>
+                <div class="brand-text">
+                    <span class="logo-text">PaperSplit</span>
+                    <span class="logo-slogan">试卷本地拆分，一键适配A4打印</span>
+                </div>
             </div>
 
             <!-- Central Navigation -->
@@ -124,14 +127,14 @@
                             <div class="step-num">2</div>
                             <div class="step-text">
                                 <strong>方向校正</strong>
-                                <p>文件斜歪时，用「左转/右转 90°」把内容转正（每页独立，角度实时显示），调好后可用「应用全部页」一键复制到全部页面</p>
+                                <p>文件斜歪时，用「左转 / 右转」把内容转正，「重置」可归零（每页独立，角度实时显示）；调好后用「应用当前页」保存到本页，或「应用所有页」一键复制到全部页面</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">3</div>
                             <div class="step-text">
                                 <strong>调整分割</strong>
-                                <p>点「两栏」一分为二、点「三栏」一分为三；也可拖动红色实线微调，双击某条线删除。调好后用「应用所有页」一键复制到全部页面</p>
+                                <p>点「两栏」一分为二、点「三栏」一分为三，「重置」可恢复默认单中线；也可拖动红色实线微调，双击某条线删除。调好后用「应用当前页」保存到本页，或「应用所有页」一键复制到全部页面</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -145,14 +148,14 @@
                             <div class="step-num">5</div>
                             <div class="step-text">
                                 <strong>密封线调整（可选）</strong>
-                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；点「手动选区域」后在画布上横向拖动即可自定义范围（位置不限）。「靠左」「靠右」可独立开关，左右两侧可以同时存在；「批量应用」可统一设置</p>
+                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；点「手动选区域」后在画布上横向拖动即可自定义范围（位置不限）；「重置」可清除本页密封区域。「靠左」「靠右」可独立开关，左右两侧可以同时存在</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">6</div>
                             <div class="step-text">
                                 <strong>裁剪后调整（可选）</strong>
-                                <p>裁剪后的文字过小，使用「放大/缩小/重置」调整大小，再用「应用到当前页」或「应用所有页」写入。</p>
+                                <p>裁剪后的文字过小，使用「放大/缩小/重置」调整大小，再用「应用当前页」或「应用所有页」写入。</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -186,10 +189,13 @@
                     <div class="tools-grid">
                         <div class="btn-group rotate-group">
                             <button id="rotateLeftBtn" class="btn secondary" disabled title="逆时针旋转 90°">
-                                <span class="material-icons">rotate_left</span> 左转 90°
+                                <span class="material-icons">rotate_left</span> 左转
+                            </button>
+                            <button id="resetRotationBtn" class="btn secondary" disabled title="将当前页旋转角度重置为 0°">
+                                <span class="material-icons">restart_alt</span> 重置
                             </button>
                             <button id="rotateRightBtn" class="btn secondary" disabled title="顺时针旋转 90°">
-                                <span class="material-icons">rotate_right</span> 右转 90°
+                                <span class="material-icons">rotate_right</span> 右转
                             </button>
                         </div>
                         <div class="rotate-slider">
@@ -201,12 +207,13 @@
                             <span class="rotate-slider-val"><span id="rotateFineVal">0</span>°</span>
                         </div>
                         <div class="btn-group rotate-apply-row">
-                            <button id="resetRotationBtn" class="btn secondary" disabled title="将当前页旋转角度重置为 0°">
-                                <span class="material-icons">restart_alt</span> 重置角度
+                            <button id="applyRotateCurrentBtn" class="btn secondary" disabled
+                                title="把当前角度应用到当前页并保存">
+                                <span class="material-icons">check_circle</span> 应用当前页
                             </button>
                             <button id="applyRotateAllBtn" class="btn secondary" disabled
                                 title="把当前页的方向角度应用到所有页面">
-                                <span class="material-icons">done_all</span> 应用全部页
+                                <span class="material-icons">done_all</span> 应用所有页
                             </button>
                         </div>
                     </div>
@@ -215,9 +222,13 @@
                 <div class="panel-section">
                     <h3>🛠️ 编辑工具</h3>
                     <div class="tools-grid">
-                        <div class="btn-group">
+                        <div class="btn-group split-preset-group">
                             <button id="splitHalfBtn" class="btn secondary" disabled title="把文档平均分成两栏（一分为二）">
                                 <span class="material-icons">vertical_split</span> 两栏
+                            </button>
+                            <button id="resetDefaultsBtn" class="btn secondary" disabled
+                                title="重置当前页分割线为默认（一条中线，一分为二）">
+                                <span class="material-icons">restart_alt</span> 重置
                             </button>
                             <button id="splitThirdBtn" class="btn secondary" disabled title="把文档平均分成三栏（一分为三）">
                                 <span class="material-icons">view_column</span> 三栏
@@ -235,9 +246,9 @@
                         </div>
 
                         <div class="btn-group edit-apply-row">
-                            <button id="resetDefaultsBtn" class="btn secondary" disabled
-                                title="恢复当前页默认：分割线一分为二、取消密封线">
-                                <span class="material-icons">restart_alt</span> 恢复默认
+                            <button id="applySplitCurrentBtn" class="btn secondary" disabled
+                                title="把当前页的分割设置应用到当前页并保存">
+                                <span class="material-icons">check_circle</span> 应用当前页
                             </button>
                             <button id="applyToAllBtn" class="btn secondary" disabled
                                 title="把当前页的分割设置复制到所有页面">
@@ -290,15 +301,20 @@
                 <div class="panel-section">
                     <h3>🔒 密封线调整（可选）</h3>
                     <div class="tools-grid">
-                        <button id="toggleSealLineBtn" class="btn secondary full-width" disabled
-                            title="开启/取消密封区域（默认奇数页靠左、偶数页靠右，各占 15%）">
-                            <span class="material-icons">format_shapes</span> 去除密封线
-                        </button>
-
-                        <button id="sealSelectBtn" class="btn secondary full-width" disabled
-                            title="开启后在画布上横向拖动，手动框选要裁掉的密封区域（可落在页面任意位置）">
-                            <span class="material-icons">photo_size_select_large</span> 手动选区域
-                        </button>
+                        <div class="btn-group seal-action-row">
+                            <button id="toggleSealLineBtn" class="btn secondary" disabled
+                                title="开启/取消密封区域（默认奇数页靠左、偶数页靠右，各占 15%）">
+                                <span class="material-icons">format_shapes</span> 去除密封线
+                            </button>
+                            <button id="sealSelectBtn" class="btn secondary" disabled
+                                title="开启后在画布上横向拖动，手动框选要裁掉的密封区域（可落在页面任意位置）">
+                                <span class="material-icons">photo_size_select_large</span> 手动选区域
+                            </button>
+                            <button id="resetSealBtn" class="btn secondary" disabled
+                                title="清除当前页所有密封区域（不影响分割线）">
+                                <span class="material-icons">restart_alt</span> 重置
+                            </button>
+                        </div>
 
                         <div class="status-line">
                             <span class="status-chip seal-state" id="sealStatus">未启用</span>
@@ -313,21 +329,14 @@
                             </button>
                         </div>
 
-                        <div class="batch-apply-block seal-batch-apply">
-                            <span class="sub-label">批量应用</span>
-                            <div class="btn-group batch-apply-row">
-                                <button id="sealApplyOddBtn" class="btn secondary" disabled
-                                    title="把密封区域应用到所有奇数页（1、3、5…）：与当前页奇偶相同时原样复制，跨奇偶时自动镜像">
-                                    奇数页
-                                </button>
-                                <button id="sealApplyEvenBtn" class="btn secondary" disabled
-                                    title="把密封区域应用到所有偶数页（2、4、6…）：与当前页奇偶相同时原样复制，跨奇偶时自动镜像">
-                                    偶数页
-                                </button>
-                            </div>
-                            <button id="sealApplyAllBtn" class="btn secondary full-width batch-apply-all" disabled
-                                title="把密封区域应用到所有页面">
-                                应用所有页
+                        <div class="btn-group seal-apply-row">
+                            <button id="applySealCurrentBtn" class="btn secondary" disabled
+                                title="把当前页的密封区域应用到当前页并保存">
+                                <span class="material-icons">check_circle</span> 应用当前页
+                            </button>
+                            <button id="sealApplyAllBtn" class="btn secondary" disabled
+                                title="把密封区域应用到所有页面（跨奇偶时自动镜像）">
+                                <span class="material-icons">done_all</span> 应用所有页
                             </button>
                         </div>
                     </div>
@@ -361,7 +370,7 @@
                         <div class="btn-group crop-apply-row">
                             <button id="applyCropZoomBtn" class="btn primary" disabled
                                 title="把当前比例应用到本页，之后导出时生效">
-                                <span class="material-icons">check_circle</span> 应用到当前页
+                                <span class="material-icons">check_circle</span> 应用当前页
                             </button>
                             <button id="applyCropZoomAllBtn" class="btn secondary" disabled
                                 title="把当前比例应用到所有页面，之后导出时生效">

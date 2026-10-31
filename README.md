@@ -69,6 +69,8 @@ npx http-server dist -p 8080
 
 **PaperSplit** 是一个纯浏览器端运行的轻量工具，专门把 **A3 试卷 / 文档拆分成 A4**，并顺手去掉装订密封线、擦掉多余标记。文件不上传、不依赖网络，所有处理都在本机完成。
 
+> 站点标语：**试卷本地拆分，一键适配A4打印**（左上角与浏览器标签页标题同步展示）
+
 <a id="preview"></a>
 
 ## 🖼️ 界面预览
@@ -80,16 +82,16 @@ npx http-server dist -p 8080
 ## ✨ 核心功能
 
 - **智能导入**：拖拽上传 PDF 或图片（JPG / PNG）。
-- **多栏分割**：一页可切成 **N 栏**；「两栏 / 三栏」一键预设，「增加分割线」继续细分，「去除分割线」点击即删。
-- **方向校正**：左转 / 右转 90° 摆正，再用 ±15° 滑块微调，角度实时显示，每页独立生效；「重置角度」与「应用全部页」并排一行，可一键把角度复制到所有页面。
-- **密封线调整**（独立分区）：密封区域**位置不限** —— 默认奇数页靠左、偶数页靠右（各占 15%），也可点「手动选区域」在画布上横向拖出任意范围；拖动斜纹区整体平移、拖两侧虚线改宽窄。画布上用斜纹阴影标出**导出时会被裁掉**的区域。
+- **多栏分割**：一页可切成 **N 栏**；「两栏 / 重置 / 三栏」三个按钮并排一行，「增加分割线」「去除分割线」并排一行。
+- **方向校正**：「左转 / 重置 / 右转」三个按钮并排一行，再用 ±15° 滑块微调，角度实时显示，每页独立生效；滑块下方的「应用当前页 / 应用所有页」可把角度保存到本页或一键复制到所有页面。
+- **密封线调整**（独立分区）：密封区域**位置不限** —— 默认奇数页靠左、偶数页靠右（各占 15%），也可点「手动选区域」在画布上横向拖出任意范围；拖动斜纹区整体平移、拖两侧虚线改宽窄。画布上用斜纹阴影标出**导出时会被裁掉**的区域。「去除密封线 / 手动选区域 / 重置」三个按钮并排一行，「重置」可清除本页所有密封区域。
 - **左右密封区可并存**：「靠左」「靠右」是可独立开关的按钮 —— 点一次出现、再点一次消失，**左右两侧可以同时存在**（适合双侧装订），宽度沿用另一侧的设置，也可拖动虚线单独调整。
 - **密封区与分割线互不限制**：密封区域挖掉后，其余部分再按分割线分栏，两者可同时使用。
 - **擦除内容**：框选矩形或涂抹笔刷擦除多余内容，点「应用」后画布直接显示擦除效果，导出 PDF 时真实擦除。
-- **裁剪后调整**：某栏太小看不清时，放大 / 缩小 / 重置，「应用到当前页」与「应用所有页」并排一行，比例在导出时真实生效；旁边的「修改后文件预览」实时显示成品页效果，多页时自动换行排版、每页尽可能放大，画布高度按内容自适应，不再留多余空白。
+- **裁剪后调整**：某栏太小看不清时，放大 / 缩小 / 重置，「应用当前页」与「应用所有页」并排一行，比例在导出时真实生效；旁边的「修改后文件预览」实时显示成品页效果，多页时自动换行排版、每页尽可能放大，画布高度按内容自适应，不再留多余空白。
 - **多文件合并** — 一次选择多个 PDF 与图片，合并成一份连续文档；左栏顶部显示已导入的文件（可移除单个文件、继续追加、点击跳转），下方是页面缩略图
 - **导出前排序** — 页面先后的唯一调整入口：导出前逐页拖动微调最终顺序，支持上下按钮与一键恢复默认，跨文件同样适用
-- **批量应用**：编辑工具区「恢复默认」与「应用所有页」并排一行，一键把当前页的分割设置复制到所有页面；密封线分区另有「奇数页 / 偶数页 / 应用所有页」，跨奇偶应用时自动镜像到另一侧，保持书页左右对称。
+- **分区应用**：方向、编辑工具、密封线、裁剪后调整四个分区都提供「应用当前页 / 应用所有页」两个并排按钮 —— 前者确认并保存本页设置，后者一键把设置复制到所有页面（密封线跨奇偶时自动镜像到另一侧，保持书页左右对称）。
 - **高清导出**：基于 `jsPDF` 生成标准 **A4（210×297mm）** PDF，可选等比留白 / 拉伸填满 / 等比填满三种排版方式。
 - **编辑自动保存**：分割线、密封线、角度、缩放比例与擦除标记自动存在本机浏览器（localStorage），重开同一文件自动恢复，可一键清除。
 - **离线可用 & 响应式**：PDF worker、图标与字体全部本地打包，断网 / 内网照常使用；PC 与手机都能操作。**手机端左面板横向重排** —— 左侧放大展示页面缩略图（108px，可横向滑动），右侧是「已导入文件」竖条，点击标题即可展开文件清单，收起时不占用任何空间。
@@ -113,7 +115,7 @@ npm run serve    # 构建版，先 npm run build，再访问 http://localhost:80
 
 1. **导入**：点击「选择文件」，或把文件直接拖进工作区。
 2. **调整**：拖动红色分割线确定分栏位置；用「两栏 / 三栏」「增加分割线」细分；扫描歪斜就用方向校正；多余内容用「擦除内容」；密封线在「密封线调整」里开启与换边。
-3. **批量**：调好一页后，点「奇数页」「偶数页」复制到同类页面，或点「所有页」复制到整份文档。
+3. **应用**：调好一页后，点「应用当前页」保存本页设置，或点「应用所有页」复制到整份文档（密封线跨奇偶会自动镜像）。
 4. **导出**：点「文件导出」下载标准 A4 的 PDF。
 
 ## 🛠️ 技术栈
@@ -282,6 +284,16 @@ PDF、JPG、PNG。图片按单页处理。
 
 ## 📅 更新日志
 
+### 2026-10-31
+
+- **新增站点宣传语**：左上角「PaperSplit」下方增加一行小字「**试卷本地拆分，一键适配A4打印**」，与英文主标题共同构成网站标题；浏览器标签页标题同步改为「PaperSplit - 试卷本地拆分，一键适配A4打印」，输入网址后地址栏即可看到标语。桌面端与手机端分别做了字号适配（手机端 0.64rem，顶栏不被撑高）。
+- **方向调整区按钮重排**：「左转 / **重置** / 右转」三个按钮并排一行（重置居中，取代原先单独的「重置角度」）；滑块下方改为「**应用当前页** / **应用所有页**」两个按钮并排一行。
+- **编辑工具区按钮重排**：「两栏 / **重置** / 三栏」三个按钮并排一行（重置居中，只把分割线恢复为默认单中线，不再连带清除密封线）；下方「增加分割线 / 去除分割线」保持一行，再下方改为「**应用当前页** / **应用所有页**」。
+- **密封线区按钮重排**：去掉「批量应用」整块（**奇数页 / 偶数页** 按钮及其代码一并删除），改为「去除密封线 / 手动选区域 / **重置**」三个按钮并排一行；「重置」只清除本页密封区域，不影响分割线。下方新增「**应用当前页** / **应用所有页**」两个并排按钮（应用所有页跨奇偶时仍自动镜像）。
+- **裁剪后调整区文案统一**：「应用到当前页」改名为「**应用当前页**」，与其它分区保持一致。
+- **四个分区统一「应用当前页 / 应用所有页」**：方向、编辑工具、密封线、裁剪后调整的按钮命名与排版完全对齐；「应用当前页」负责确认并写入本页设置（给出 Toast 反馈），「应用所有页」负责批量复制。
+- **同步更新**：页面内「操作指南」文案、README 中英文功能说明与更新日志均已对齐新界面。
+
 ### 2026-10-30
 
 - **密封区域支持左右并存**：「靠左」「靠右」由「快捷吸附」改为**可独立开关的按钮** —— 点一次出现、再点一次消失，**左右两侧可以同时存在**（适合双侧装订）。数据模型由 `sealRange: {x0,x1}` 升级为 `sealRanges: []`（一页可有多个区域），几何层用「区间相减」算出剩余区域：挖掉左右两端后中间仍是一个连续区域，挖在中间则自然分成左右两段各自分栏。宽度默认沿用另一侧的设置，也可拖动两侧虚线单独调整。
@@ -326,19 +338,21 @@ PDF、JPG、PNG。图片按单页处理。
 
 **PaperSplit** — *A privacy-first A3 to A4 PDF splitter. 100% client-side processing.*
 
+> Site tagline: **Split exam papers locally, fit them to A4 in one click** (shown under the logo and in the browser tab title).
+
 Everything happens inside your browser: files are never uploaded, and the app keeps working offline. PaperSplit turns scanned exam papers or documents into standard A4 pages, removes the binding (seal) strip, erases stray marks, and exports a clean A4 PDF.
 
 **Features**
 
 - **Import** — drag in a PDF or an image (JPG / PNG).
-- **Multi-column splitting** — cut one page into *N* columns: "Two Columns" / "Three Columns" presets, "Add Split Line" for even more, "Remove Split Line" by clicking a line (double-click removes it too).
-- **Orientation correction** — rotate 90° left / right, then fine-tune with a ±15° slider; the angle is shown live and every page is adjusted independently. "Reset Angle" and "Apply to All Pages" sit side by side.
-- **Seal region panel** — the seal strip can sit *anywhere* on the page: odd pages default to the left, even pages to the right, or pick a custom range by dragging horizontally on the canvas with "Select Area". Drag the shaded strip to move it, drag either dashed edge to resize. The area that will be cropped is shaded on the canvas.
+- **Multi-column splitting** — cut one page into *N* columns: "Two Columns" / "Reset" / "Three Columns" sit in one row, "Add Split Line" and "Remove Split Line" in the next.
+- **Orientation correction** — "Rotate Left" / "Reset" / "Rotate Right" sit in one row, then fine-tune with a ±15° slider; the angle is shown live and every page is adjusted independently. "Apply to Current Page" and "Apply to All Pages" sit side by side below the slider.
+- **Seal region panel** — the seal strip can sit *anywhere* on the page: odd pages default to the left, even pages to the right, or pick a custom range by dragging horizontally on the canvas with "Select Area". Drag the shaded strip to move it, drag either dashed edge to resize. The area that will be cropped is shaded on the canvas. "Remove Seal" / "Select Area" / "Reset" sit in one row.
 - **Left and right seals together** — "Left" and "Right" are independent toggles: click once to add a strip, click again to remove it, and **both sides can be active at the same time** (handy for double-sided binding).
 - **Seal region and split lines work together** — the seal strip is removed first, then the remaining area is split into columns; neither one constrains the other.
 - **Erase content** — box-select a rectangle or paint with a brush; "Apply" bakes the erasure into the page and it is really removed from the exported PDF.
 - **Post-crop zoom** — enlarge, shrink or reset a column that came out too small; "Apply to Current Page" and "Apply to All Pages" sit side by side. The "Modified File Preview" next to it shows the resulting A4 pages live, wrapping into rows so every page stays as large as possible, and the canvas shrinks to fit so no empty space is left below.
-- **Batch apply** — "Reset Defaults" and "Apply to All Pages" sit side by side in the editing tools, copying the current page's split setup to every page. The seal panel keeps its own "Odd / Even / All Pages" buttons, and applying across parities mirrors the seal to keep the odd-left / even-right symmetry.
+- **Apply per section** — every panel (orientation, editing tools, seal, post-crop zoom) offers "Apply to Current Page" and "Apply to All Pages" side by side: the first confirms and stores the current page's setup, the second copies it to every page (seal regions are mirrored across odd/even pages to keep the odd-left / even-right symmetry).
 - **A4 export** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page.
 - **Auto-save** — split lines, seal line, orientation, zoom ratio and erase marks are stored in your browser's `localStorage` and restored automatically when you reopen the same file.
 - **Offline & responsive** — the PDF worker, icons and fonts all ship with the app; works on desktop and mobile.

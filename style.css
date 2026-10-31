@@ -60,6 +60,16 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
+}
+
+/* 品牌区：英文主标题 + 中文宣传语（上下两行） */
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    min-width: 0;
 }
 
 .logo-text {
@@ -67,6 +77,19 @@ body {
     font-weight: 700;
     color: var(--text-main);
     letter-spacing: -0.5px;
+    line-height: 1.15;
+}
+
+/* 宣传语小字：与上方英文标题共同构成网站标题 */
+.logo-slogan {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.2px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .logo-icon {
@@ -408,25 +431,47 @@ a:focus-visible {
 }
 
 
-/* 方向调整：「重置角度」与「应用全部页」并列一行 */
-.rotate-apply-row .btn {
+/* ==========================================================================
+   面板按钮分组
+   三个按钮并排一行：方向（左转/重置/右转）、分栏（两栏/重置/三栏）、
+   密封（去除密封线/手动选区域/重置）
+   ========================================================================== */
+.rotate-group .btn,
+.split-preset-group .btn,
+.seal-action-row .btn {
     flex: 1 1 0;
-    font-size: 0.85rem;
-    padding: 8px 6px;
+    min-width: 0;
+    gap: 4px;
+    font-size: 0.72rem;
+    padding: 8px 4px;
+    white-space: nowrap;
 }
 
-/* 编辑工具：「恢复默认」与「应用所有页」并列一行 */
-.edit-apply-row .btn {
-    flex: 1 1 0;
-    font-size: 0.85rem;
-    padding: 8px 6px;
+.rotate-group .btn .material-icons,
+.split-preset-group .btn .material-icons,
+.seal-action-row .btn .material-icons {
+    font-size: 16px;
 }
 
-/* 裁剪后调整：「应用到当前页」与「应用所有页」并列一行 */
+/* 方向调整：「应用当前页」与「应用所有页」并列一行 */
+.rotate-apply-row .btn,
+.edit-apply-row .btn,
+.seal-apply-row .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 4px;
+    font-size: 0.85rem;
+    padding: 8px 6px;
+    white-space: nowrap;
+}
+
+/* 裁剪后调整：「应用当前页」与「应用所有页」并列一行 */
 .crop-apply-row .btn {
     flex: 1 1 0;
+    min-width: 0;
     font-size: 0.82rem;
     padding: 9px 6px;
+    white-space: nowrap;
 }
 
 /* 裁剪后调整 */
@@ -631,38 +676,6 @@ a:focus-visible {
     margin-bottom: 0;
     flex: 0 0 auto;
     white-space: nowrap;
-}
-
-/* 「批量应用」块：标题独占一行并放大居中，两个按钮排在下一行 */
-.batch-apply-block {
-    display: block;
-}
-
-.batch-apply-block .sub-label {
-    display: block;
-    text-align: center;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-main);
-    letter-spacing: 2px;
-    margin-bottom: 8px;
-}
-
-/* 「批量应用」行：两个按钮同处一行 */
-.batch-apply-row .btn {
-    flex: 1 1 0;
-}
-
-/* 「所有页」独占一行：与上方并排按钮拉开间距 */
-.batch-apply-all {
-    margin-top: 8px;
-}
-
-/* 密封线分区里的批量应用块：与上方左右切换按钮分隔开 */
-.seal-batch-apply {
-    margin-top: 4px;
-    padding-top: 10px;
-    border-top: 1px dashed var(--border-color);
 }
 
 /* ==========================================================================
@@ -1095,6 +1108,12 @@ body.mask-rect-dragging {
 
     .branding .logo-text {
         font-size: 1.1rem;
+    }
+
+    /* 手机端：宣传语缩小一行显示，避免顶栏被撑高 */
+    .branding .logo-slogan {
+        font-size: 0.64rem;
+        letter-spacing: 0;
     }
 
     .user-profile {

@@ -59,7 +59,7 @@ export function getPageConfig(pageIndex) {
 
 /**
  * 删除分割线后安置键盘焦点，避免焦点丢失导致键盘用户"无处可去"
- * 优先下一条分割线 → 「去除分割线」按钮 → 「恢复默认」按钮
+ * 优先下一条分割线 → 「去除分割线」按钮 → 「重置」按钮
  */
 function focusAfterSplitGone() {
     const next = elements.canvasWrapper && elements.canvasWrapper.querySelector('.split-line.split');
@@ -272,15 +272,17 @@ function updateSealUI(config) {
 }
 
 /**
- * 启用「批量应用」按钮
- * 编辑工具（奇数页 / 偶数页 / 所有页）与密封线分区（奇数页 / 偶数页 / 所有页）共用一套逻辑。
+ * 启用「应用」类按钮
+ * 编辑工具（当前页 / 所有页）与密封线分区（当前页 / 所有页）共用一套逻辑。
  */
-function enableBatchButtons() {
+function enableApplyButtons() {
     const buttons = [
+        elements.applySplitCurrentBtn,
         elements.applyToAllBtn,
-        elements.sealApplyOddBtn,
-        elements.sealApplyEvenBtn,
-        elements.sealApplyAllBtn
+        elements.applySealCurrentBtn,
+        elements.sealApplyAllBtn,
+        elements.resetDefaultsBtn,
+        elements.resetSealBtn
     ];
     for (const btn of buttons) {
         if (btn) btn.disabled = false;
@@ -350,7 +352,7 @@ export function renderSplitLines() {
     // 启用相关操作按钮
     elements.toggleSealLineBtn.disabled = false;
     if (elements.sealSelectBtn) elements.sealSelectBtn.disabled = false;
-    enableBatchButtons();
+    enableApplyButtons();
 
     // 分栏预设按钮高亮：两栏(1条分割线) / 三栏(2条分割线)
     if (elements.splitHalfBtn) {
@@ -1040,23 +1042,34 @@ export function initSealInteractions() {
 }
 
 /**
- * 恢复当前页的默认编辑状态
- *  - 分割线恢复为默认「两栏」（一条 0.5 分割线）
- *  - 取消密封线
- * 注意：不影响方向角度与裁剪比例（它们各自有独立的重置按钮）
+ * 重置当前页的分割线为默认状态（一条中线，一分为二）
+ * 注意：不影响密封区域、方向角度与裁剪比例
+ * （密封区域有独立的「重置」按钮，其余两项也各自有独立重置入口）
  */
-export function resetToDefaults() {
+export function resetSplitLayout() {
     const config = getPageConfig(state.currentPage);
 
     config.splitLines = [0.5];
-    config.sealRanges = [];
 
-    // 退出「去除分割线」与「密封区域框选」模式，避免残留选中态
+    // 退出「去除分割线」模式，避免残留选中态
     state.removeSplitMode = false;
-    state.sealSelectMode = false;
 
     renderSplitLines();
     updateSplitRemoveUI();
+}
+
+/**
+ * 清除当前页的所有密封区域（不影响分割线、方向角度与裁剪比例）
+ */
+export function resetSealAreas() {
+    const config = getPageConfig(state.currentPage);
+
+    config.sealRanges = [];
+
+    // 同时退出「密封区域框选」模式，避免残留选框
+    state.sealSelectMode = false;
+
+    renderSplitLines();
     updateSealSelectUI();
 }
 
@@ -1079,6 +1092,20 @@ function applyConfigToPages(match, scopeName) {
 
     showToast(`已应用到${scopeName}`, 'success');
     requestRepaint();
+}
+
+/**
+ * 把当前页的分割设置应用到当前页（确认并保存本页设置）
+ *
+ * 分割线本身在画布上拖动时即已生效，本按钮用于「明确确认 + 落盘」：
+ * 立即写入本地存储并给出反馈，避免用户不确定设置是否已被记录。
+ */
+export function applySplitToCurrent() {
+    const config = getPageConfig(state.currentPage);
+    const lines = (config.splitLines || []).length;
+
+    showToast(`分割设置已应用到当前页（${lines} 条分割线）`, 'success');
+    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
 /** 批量应用分割设置到所有页面 */
@@ -1140,14 +1167,20 @@ function applySealToPages(match, scopeName) {
     requestRepaint();
 }
 
-/** 批量应用密封线到所有奇数页 */
-export function applySealToOdd() {
-    applySealToPages(page => page % 2 !== 0, '所有奇数页');
-}
+/**
+ * 把当前页的密封区域应用到当前页（确认并保存本页设置）
+ *
+ * 密封区域在画布上拖动时即已生效，本按钮用于「明确确认 + 落盘」：
+ * 立即写入本地存储并给出反馈。
+ */
+export function applySealToCurrent() {
+    const config = getPageConfig(state.currentPage);
+    const seals = getSealRanges(config);
 
-/** 批量应用密封线到所有偶数页 */
-export function applySealToEven() {
-    applySealToPages(page => page % 2 === 0, '所有偶数页');
+    showToast(seals.length
+        ? `密封区域已应用到当前页（${seals.length} 处）`
+        : '当前页未启用密封区域', seals.length ? 'success' : 'warn');
+    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
 /** 批量应用密封线到所有页面 */

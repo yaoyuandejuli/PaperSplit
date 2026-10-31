@@ -7,8 +7,8 @@ export const elements = {
     nextPageBtn: document.getElementById('nextPageBtn'),
     pageInfo: document.getElementById('pageInfo'),
 
-    // New controls
-    // 编辑工具 · 批量应用：奇数页 / 偶数页（并排一行）+ 所有页（独占一行）
+    // 编辑工具 · 应用：当前页 / 所有页（并排一行）
+    applySplitCurrentBtn: document.getElementById('applySplitCurrentBtn'),
     applyToAllBtn: document.getElementById('applyToAllBtn'),
 
     // 方向旋转
@@ -18,6 +18,7 @@ export const elements = {
     rotateFineSlider: document.getElementById('rotateFineSlider'),
     rotateFineVal: document.getElementById('rotateFineVal'),
     resetRotationBtn: document.getElementById('resetRotationBtn'),
+    applyRotateCurrentBtn: document.getElementById('applyRotateCurrentBtn'),
     applyRotateAllBtn: document.getElementById('applyRotateAllBtn'),
     // 裁剪后调整（作用于成品页大小，导出时生效）
     cropZoomSlider: document.getElementById('cropZoomSlider'),
@@ -38,17 +39,18 @@ export const elements = {
     addSplitBtn: document.getElementById('addSplitBtn'),
     // 去除分割线（点击即删）
     removeSplitBtn: document.getElementById('removeSplitBtn'),
-    // 密封线（独立分区：开关 + 手动框选 + 贴边切换 + 状态 + 批量应用）
+    // 密封线（独立分区：开关 + 手动框选 + 贴边切换 + 状态 + 应用）
     toggleSealLineBtn: document.getElementById('toggleSealLineBtn'),
     sealSelectBtn: document.getElementById('sealSelectBtn'),
     sealStatus: document.getElementById('sealStatus'),
     sealLeftBtn: document.getElementById('sealLeftBtn'),
     sealRightBtn: document.getElementById('sealRightBtn'),
-    // 密封线 · 批量应用：奇数页 / 偶数页（并排一行）+ 所有页（独占一行）
-    sealApplyOddBtn: document.getElementById('sealApplyOddBtn'),
-    sealApplyEvenBtn: document.getElementById('sealApplyEvenBtn'),
+    // 密封线 · 重置：清除当前页所有密封区域
+    resetSealBtn: document.getElementById('resetSealBtn'),
+    // 密封线 · 应用：当前页 / 所有页（并排一行）
+    applySealCurrentBtn: document.getElementById('applySealCurrentBtn'),
     sealApplyAllBtn: document.getElementById('sealApplyAllBtn'),
-    // 恢复当前页默认编辑状态
+    // 重置当前页分割线为默认（一条中线）
     resetDefaultsBtn: document.getElementById('resetDefaultsBtn'),
     // 分栏预设：两栏 / 三栏
     splitHalfBtn: document.getElementById('splitHalfBtn'),

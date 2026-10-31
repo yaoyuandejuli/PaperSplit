@@ -10,8 +10,8 @@ import { state } from './state.js';
 import { handleFileUpload, setImportMode } from './file-handler.js';
 import { toggleFileList } from './file-list.js';
 import { openSortPanel, closeSortPanel, applySort, resetSort } from './page-sort.js';
-import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation, applyRotationToAll } from './viewer.js';
-import { toggleSealLine, setSealSide, applySplitToAll, applySealToOdd, applySealToEven, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetToDefaults, getPageConfig, toggleSealSelectMode, initSealInteractions } from './editor.js';
+import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation, applyRotationToCurrent, applyRotationToAll } from './viewer.js';
+import { toggleSealLine, setSealSide, applySplitToCurrent, applySplitToAll, applySealToCurrent, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetSplitLayout, resetSealAreas, getPageConfig, toggleSealSelectMode, initSealInteractions } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
 import {
@@ -190,8 +190,11 @@ function initEventListeners() {
         toggleRemoveSplitMode();
     });
 
-    // 「恢复默认」：把当前页分割线恢复两栏、取消密封线、清除撤销记录
-    elements.resetDefaultsBtn.addEventListener('click', resetToDefaults);
+    // 「重置」：把当前页分割线恢复为默认（一条中线，一分为二）
+    elements.resetDefaultsBtn.addEventListener('click', resetSplitLayout);
+
+    // 密封线「重置」：清除当前页所有密封区域（不影响分割线）
+    elements.resetSealBtn.addEventListener('click', resetSealAreas);
 
     // 分栏预设：两栏（一分为二）/ 三栏（一分为三）
     elements.splitHalfBtn.addEventListener('click', () => setSplitColumns(2));
@@ -220,6 +223,7 @@ function initEventListeners() {
     elements.rotateLeftBtn.addEventListener('click', () => rotatePage(-90));
     elements.rotateRightBtn.addEventListener('click', () => rotatePage(90));
     elements.resetRotationBtn.addEventListener('click', resetRotation);
+    elements.applyRotateCurrentBtn.addEventListener('click', applyRotationToCurrent);
     elements.applyRotateAllBtn.addEventListener('click', applyRotationToAll);
 
     // 「裁剪后调整」：调整裁剪结果在成品页面上的大小
@@ -256,11 +260,11 @@ function initEventListeners() {
         fineRotateLastRun = Date.now();
         applyFineRotation();
     });
-    // 「批量应用」· 编辑工具：把当前页的分割设置复制到奇数页 / 偶数页 / 所有页
+    // 编辑工具 · 应用：当前页 / 所有页
+    elements.applySplitCurrentBtn.addEventListener('click', applySplitToCurrent);
     elements.applyToAllBtn.addEventListener('click', applySplitToAll);
-    // 「批量应用」· 密封线：把密封线统一设置到奇数页 / 偶数页 / 所有页
-    elements.sealApplyOddBtn.addEventListener('click', applySealToOdd);
-    elements.sealApplyEvenBtn.addEventListener('click', applySealToEven);
+    // 密封线 · 应用：当前页 / 所有页
+    elements.applySealCurrentBtn.addEventListener('click', applySealToCurrent);
     elements.sealApplyAllBtn.addEventListener('click', applySealToAll);
     elements.exportBtn.addEventListener('click', exportPdf);
     // 清除本文件的保存记录（并停止该文件的自动保存）
