@@ -15,9 +15,9 @@
     <title>PaperSplit - 试卷本地拆分，一键适配A4打印</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-wThSsYLq.js"></script>
+  <script type="module" crossorigin src="./assets/index-CXcg864J.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-D9sBTi8O.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-CT8fmtWm.css">
 </head>
 
 <body>
@@ -127,7 +127,7 @@
                             <div class="step-num">2</div>
                             <div class="step-text">
                                 <strong>方向校正</strong>
-                                <p>文件斜歪时，用「左转 / 右转」把内容转正，「重置」可归零（每页独立，角度实时显示）；调好后用「应用当前页」保存到本页，或「应用所有页」一键复制到全部页面</p>
+                                <p>文件斜歪时，用「左转 / 右转」把内容转正，「重置」可归零（每页独立，角度实时显示）；滑块两侧的「−」「+」可逐 0.5° 微调，滑块下方的「应用当前页」保存到本页，或「应用所有页」一键复制到全部页面</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -148,7 +148,7 @@
                             <div class="step-num">5</div>
                             <div class="step-text">
                                 <strong>密封线调整（可选）</strong>
-                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；点「手动选区域」后在画布上横向拖动即可自定义范围（位置不限）；「重置」可清除本页密封区域。「靠左」「靠右」可独立开关，左右两侧可以同时存在</p>
+                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；开启后<strong>直接拖动斜纹区即可整体平移</strong>，拖动两侧虚线可调整范围（位置不限）；「重置」可清除本页密封区域。「靠左」「靠右」可独立开关，左右两侧可以同时存在</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -203,7 +203,14 @@
                                 <span>微调纠偏（±15°）</span>
                                 <span class="status-chip" id="rotateAngle">0°</span>
                             </div>
-                            <input type="range" id="rotateFineSlider" min="-15" max="15" step="0.5" value="0" disabled />
+                            <div class="fine-stepper">
+                                <button type="button" id="rotateFineMinusBtn" class="fine-step-btn" disabled
+                                    title="角度减少 0.5°" aria-label="角度减少 0.5 度">−</button>
+                                <input type="range" id="rotateFineSlider" min="-15" max="15" step="0.5" value="0" disabled
+                                    aria-label="微调纠偏角度" />
+                                <button type="button" id="rotateFinePlusBtn" class="fine-step-btn" disabled
+                                    title="角度增加 0.5°" aria-label="角度增加 0.5 度">+</button>
+                            </div>
                             <span class="rotate-slider-val"><span id="rotateFineVal">0</span>°</span>
                         </div>
                         <div class="btn-group rotate-apply-row">
@@ -305,10 +312,6 @@
                             <button id="toggleSealLineBtn" class="btn secondary" disabled
                                 title="开启/取消密封区域（默认奇数页靠左、偶数页靠右，各占 15%）">
                                 <span class="material-icons">format_shapes</span> 去除密封线
-                            </button>
-                            <button id="sealSelectBtn" class="btn secondary" disabled
-                                title="开启后在画布上横向拖动，手动框选要裁掉的密封区域（可落在页面任意位置）">
-                                <span class="material-icons">photo_size_select_large</span> 手动选区域
                             </button>
                             <button id="resetSealBtn" class="btn secondary" disabled
                                 title="清除当前页所有密封区域（不影响分割线）">

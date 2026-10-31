@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { renderSplitLines, getPageConfig, syncRotationUI, exitSealSelectMode } from './editor.js';
+import { renderSplitLines, getPageConfig, syncRotationUI } from './editor.js';
 import { renderMasks, renderAppliedErasures } from './mask-editor.js';
 import { rotateCanvas, rotatedBounds } from './utils.js';
 import { syncCropZoomFromPage } from './crop-adjust.js';
@@ -13,9 +13,6 @@ import { showToast } from './toast.js';
  */
 export function changePage(pageNum) {
     if (pageNum < 1 || pageNum > state.totalPages) return;
-
-    // 翻页时退出「密封区域框选」模式，避免把选区画到别的页上
-    exitSealSelectMode();
 
     state.currentPage = pageNum;
     // 翻页时把旋转基准重置为该页绝对角，微调滑块归零（偏移 = 角度 - 基准 = 0）

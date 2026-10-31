@@ -433,12 +433,10 @@ a:focus-visible {
 
 /* ==========================================================================
    面板按钮分组
-   三个按钮并排一行：方向（左转/重置/右转）、分栏（两栏/重置/三栏）、
-   密封（去除密封线/手动选区域/重置）
+   三个按钮并排一行：方向（左转/重置/右转）、分栏（两栏/重置/三栏）
    ========================================================================== */
 .rotate-group .btn,
-.split-preset-group .btn,
-.seal-action-row .btn {
+.split-preset-group .btn {
     flex: 1 1 0;
     min-width: 0;
     gap: 4px;
@@ -448,15 +446,15 @@ a:focus-visible {
 }
 
 .rotate-group .btn .material-icons,
-.split-preset-group .btn .material-icons,
-.seal-action-row .btn .material-icons {
+.split-preset-group .btn .material-icons {
     font-size: 16px;
 }
 
 /* 方向调整：「应用当前页」与「应用所有页」并列一行 */
 .rotate-apply-row .btn,
 .edit-apply-row .btn,
-.seal-apply-row .btn {
+.seal-apply-row .btn,
+.seal-action-row .btn {
     flex: 1 1 0;
     min-width: 0;
     gap: 4px;
@@ -525,6 +523,62 @@ a:focus-visible {
     width: 100%;
     accent-color: var(--primary-color);
     cursor: pointer;
+}
+
+/* 微调纠偏：滑块 + 左右「− / +」微调按钮 */
+.fine-stepper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.fine-stepper input[type="range"] {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    /* 与两侧按钮等高，保证三者上下边缘对齐 */
+    height: 26px;
+}
+
+.fine-step-btn {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.fine-step-btn:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: #f8fafc;
+}
+
+.fine-step-btn:active:not(:disabled) {
+    transform: scale(0.94);
+}
+
+.fine-step-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(1);
+    background: #e2e8f0 !important;
+    color: #94a3b8 !important;
 }
 
 .rotate-slider-val {
@@ -1617,23 +1671,6 @@ body.mask-rect-dragging {
     white-space: nowrap;
     pointer-events: none;
     user-select: none;
-}
-
-/* 「手动选区域」拖动时的高亮框 */
-.seal-marquee {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    z-index: 30;
-    pointer-events: none;
-    background: rgb(99 102 241 / 0.20);
-    border: 2px dashed var(--primary-color);
-    border-radius: 2px;
-}
-
-/* 框选模式：画布显示十字光标 */
-.canvas-wrapper.seal-select-mode {
-    cursor: crosshair;
 }
 
 /* 状态徽标：启用时高亮 */

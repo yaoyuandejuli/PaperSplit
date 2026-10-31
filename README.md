@@ -83,8 +83,8 @@ npx http-server dist -p 8080
 
 - **智能导入**：拖拽上传 PDF 或图片（JPG / PNG）。
 - **多栏分割**：一页可切成 **N 栏**；「两栏 / 重置 / 三栏」三个按钮并排一行，「增加分割线」「去除分割线」并排一行。
-- **方向校正**：「左转 / 重置 / 右转」三个按钮并排一行，再用 ±15° 滑块微调，角度实时显示，每页独立生效；滑块下方的「应用当前页 / 应用所有页」可把角度保存到本页或一键复制到所有页面。
-- **密封线调整**（独立分区）：密封区域**位置不限** —— 默认奇数页靠左、偶数页靠右（各占 15%），也可点「手动选区域」在画布上横向拖出任意范围；拖动斜纹区整体平移、拖两侧虚线改宽窄。画布上用斜纹阴影标出**导出时会被裁掉**的区域。「去除密封线 / 手动选区域 / 重置」三个按钮并排一行，「重置」可清除本页所有密封区域。
+- **方向校正**：「左转 / 重置 / 右转」三个按钮并排一行，再用 ±15° 滑块微调（滑块两侧的「−」「+」可逐 0.5° 增减，抵达 ±15° 时按钮自动禁用），角度实时显示，每页独立生效；滑块下方的「应用当前页 / 应用所有页」可把角度保存到本页或一键复制到所有页面。
+- **密封线调整**（独立分区）：密封区域**位置不限** —— 默认奇数页靠左、偶数页靠右（各占 15%）；开启后**直接拖动斜纹区即可整体平移**，拖动两侧虚线可调整范围。画布上用斜纹阴影标出**导出时会被裁掉**的区域。「去除密封线 / 重置」两个按钮并排一行，「重置」可清除本页所有密封区域。
 - **左右密封区可并存**：「靠左」「靠右」是可独立开关的按钮 —— 点一次出现、再点一次消失，**左右两侧可以同时存在**（适合双侧装订），宽度沿用另一侧的设置，也可拖动虚线单独调整。
 - **密封区与分割线互不限制**：密封区域挖掉后，其余部分再按分割线分栏，两者可同时使用。
 - **擦除内容**：框选矩形或涂抹笔刷擦除多余内容，点「应用」后画布直接显示擦除效果，导出 PDF 时真实擦除。
@@ -286,6 +286,8 @@ PDF、JPG、PNG。图片按单页处理。
 
 ### 2026-10-31
 
+- **密封线区去掉「手动选区域」按钮**：删除该按钮及其「在画布上框选新建区域」的全部代码（框选模式、`state.sealSelectMode`、选框高亮样式等一并清理），第一行改为「去除密封线 / 重置」两个按钮。**滑动调整区域的功能完整保留** —— 开启密封线后直接拖动斜纹区即可整体平移，拖动两侧虚线仍可调整范围。
+- **微调纠偏滑块两侧新增「−」「+」按钮**：滑块左侧为「−」、右侧为「+」，点击按滑块步长（0.5°）逐格增减当前页角度；抵达 ±15° 上/下限后对应按钮自动禁用，不会出现「点了没反应」。滑块本身仍可自由拖动。
 - **新增站点宣传语**：左上角「PaperSplit」下方增加一行小字「**试卷本地拆分，一键适配A4打印**」，与英文主标题共同构成网站标题；浏览器标签页标题同步改为「PaperSplit - 试卷本地拆分，一键适配A4打印」，输入网址后地址栏即可看到标语。桌面端与手机端分别做了字号适配（手机端 0.64rem，顶栏不被撑高）。
 - **方向调整区按钮重排**：「左转 / **重置** / 右转」三个按钮并排一行（重置居中，取代原先单独的「重置角度」）；滑块下方改为「**应用当前页** / **应用所有页**」两个按钮并排一行。
 - **编辑工具区按钮重排**：「两栏 / **重置** / 三栏」三个按钮并排一行（重置居中，只把分割线恢复为默认单中线，不再连带清除密封线）；下方「增加分割线 / 去除分割线」保持一行，再下方改为「**应用当前页** / **应用所有页**」。
@@ -346,8 +348,8 @@ Everything happens inside your browser: files are never uploaded, and the app ke
 
 - **Import** — drag in a PDF or an image (JPG / PNG).
 - **Multi-column splitting** — cut one page into *N* columns: "Two Columns" / "Reset" / "Three Columns" sit in one row, "Add Split Line" and "Remove Split Line" in the next.
-- **Orientation correction** — "Rotate Left" / "Reset" / "Rotate Right" sit in one row, then fine-tune with a ±15° slider; the angle is shown live and every page is adjusted independently. "Apply to Current Page" and "Apply to All Pages" sit side by side below the slider.
-- **Seal region panel** — the seal strip can sit *anywhere* on the page: odd pages default to the left, even pages to the right, or pick a custom range by dragging horizontally on the canvas with "Select Area". Drag the shaded strip to move it, drag either dashed edge to resize. The area that will be cropped is shaded on the canvas. "Remove Seal" / "Select Area" / "Reset" sit in one row.
+- **Orientation correction** — "Rotate Left" / "Reset" / "Rotate Right" sit in one row, then fine-tune with a ±15° slider flanked by "−" and "+" buttons that step 0.5° at a time (the matching button disables itself at the ±15° limit); the angle is shown live and every page is adjusted independently. "Apply to Current Page" and "Apply to All Pages" sit side by side below the slider.
+- **Seal region panel** — the seal strip can sit *anywhere* on the page: odd pages default to the left, even pages to the right; drag the shaded strip to move it, drag either dashed edge to resize. The area that will be cropped is shaded on the canvas. "Remove Seal" and "Reset" sit in one row.
 - **Left and right seals together** — "Left" and "Right" are independent toggles: click once to add a strip, click again to remove it, and **both sides can be active at the same time** (handy for double-sided binding).
 - **Seal region and split lines work together** — the seal strip is removed first, then the remaining area is split into columns; neither one constrains the other.
 - **Erase content** — box-select a rectangle or paint with a brush; "Apply" bakes the erasure into the page and it is really removed from the exported PDF.

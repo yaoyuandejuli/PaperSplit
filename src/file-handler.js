@@ -106,7 +106,6 @@ async function importFiles(files, mode) {
 
     // 启用相关操作按钮
     elements.toggleSealLineBtn.disabled = false;
-    elements.sealSelectBtn.disabled = false;
     elements.resetSealBtn.disabled = false;
     elements.sealLeftBtn.disabled = true;
     elements.sealRightBtn.disabled = true;
@@ -125,6 +124,8 @@ async function importFiles(files, mode) {
     elements.rotateLeftBtn.disabled = false;
     elements.rotateRightBtn.disabled = false;
     elements.rotateFineSlider.disabled = false;
+    elements.rotateFineMinusBtn.disabled = false;
+    elements.rotateFinePlusBtn.disabled = false;
     elements.resetRotationBtn.disabled = false;
     elements.applyRotateCurrentBtn.disabled = false;
     elements.applyRotateAllBtn.disabled = false;

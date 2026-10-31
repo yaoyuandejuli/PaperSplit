@@ -11,7 +11,7 @@ import { handleFileUpload, setImportMode } from './file-handler.js';
 import { toggleFileList } from './file-list.js';
 import { openSortPanel, closeSortPanel, applySort, resetSort } from './page-sort.js';
 import { changePage, renderCurrentPage, rotatePage, setPageRotation, resetRotation, applyRotationToCurrent, applyRotationToAll } from './viewer.js';
-import { toggleSealLine, setSealSide, applySplitToCurrent, applySplitToAll, applySealToCurrent, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetSplitLayout, resetSealAreas, getPageConfig, toggleSealSelectMode, initSealInteractions } from './editor.js';
+import { toggleSealLine, setSealSide, applySplitToCurrent, applySplitToAll, applySealToCurrent, applySealToAll, addSplitLine, setSplitColumns, toggleRemoveSplitMode, exitRemoveSplitMode, resetSplitLayout, resetSealAreas, getPageConfig, syncFineStepperUI } from './editor.js';
 import { toggleMaskMode, toggleBrushMode, removeAllErases, applyErases, undoErase, initMaskInteractions, exitMaskMode, isMaskMode } from './mask-editor.js';
 import { exportPdf } from './exporter.js';
 import {
@@ -57,6 +57,35 @@ function scheduleFineRotation() {
             applyFineRotation();
         }, wait);
     }
+}
+
+/**
+ * 「− / +」按钮：按滑块步长逐格微调当前页角度
+ * @param {number} delta 步进方向（+1 增加 / -1 减少）
+ */
+function stepFineRotation(delta) {
+    const slider = elements.rotateFineSlider;
+    if (!slider || slider.disabled) return;
+
+    const step = Number(slider.step) || 0.5;
+    const min = Number(slider.min);
+    const max = Number(slider.max);
+
+    // 对齐到步长网格，避免浮点误差累积
+    let value = Math.round((Number(slider.value) + delta * step) / step) * step;
+    value = Math.max(min, Math.min(max, value));
+
+    slider.value = String(value);
+    if (elements.rotateFineVal) {
+        elements.rotateFineVal.textContent = (value > 0 ? '+' : '') + value;
+    }
+
+    // 点击是离散操作，立即应用（不必等滑块拖动的节流窗口）
+    if (fineRotateTimer) { clearTimeout(fineRotateTimer); fineRotateTimer = 0; }
+    fineRotateLastRun = Date.now();
+    applyFineRotation();
+
+    syncFineStepperUI();
 }
 
 /**
@@ -173,16 +202,6 @@ function initEventListeners() {
     elements.sealRightBtn.addEventListener('click', () => setSealSide('right'));
     elements.addSplitBtn.addEventListener('click', addSplitLine);
 
-    // 「手动选区域」：进入框选模式 → 在画布上横向拖出要裁掉的密封区域
-    // 与「去除分割线」「擦除内容」模式互斥：开启前先退出它们
-    elements.sealSelectBtn.addEventListener('click', () => {
-        if (!state.sealSelectMode) {
-            exitMaskMode();
-            exitRemoveSplitMode();
-        }
-        toggleSealSelectMode();
-    });
-
     // 「去除分割线」：进入选择模式 → 点击分割线即直接删除
     // 与「擦除内容」的框选/涂抹模式互斥：开启前先退出擦除模式
     elements.removeSplitBtn.addEventListener('click', () => {
@@ -219,12 +238,15 @@ function initEventListeners() {
         document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
     });
     initMaskInteractions();
-    initSealInteractions();
     elements.rotateLeftBtn.addEventListener('click', () => rotatePage(-90));
     elements.rotateRightBtn.addEventListener('click', () => rotatePage(90));
     elements.resetRotationBtn.addEventListener('click', resetRotation);
     elements.applyRotateCurrentBtn.addEventListener('click', applyRotationToCurrent);
     elements.applyRotateAllBtn.addEventListener('click', applyRotationToAll);
+
+    // 微调纠偏滑块两侧的「− / +」：逐 0.5° 增减当前页角度
+    elements.rotateFineMinusBtn.addEventListener('click', () => stepFineRotation(-1));
+    elements.rotateFinePlusBtn.addEventListener('click', () => stepFineRotation(1));
 
     // 「裁剪后调整」：调整裁剪结果在成品页面上的大小
     elements.cropZoomOutBtn.addEventListener('click', () => stepCropZoom(-STEP));
@@ -252,6 +274,8 @@ function initEventListeners() {
         if (elements.rotateFineVal) {
             elements.rotateFineVal.textContent = (offset > 0 ? '+' : '') + offset;
         }
+        // 滑到两端时同步「− / +」按钮的禁用状态
+        syncFineStepperUI();
         scheduleFineRotation();
     });
     // 松手时立即应用最终角度（不必等节流窗口）

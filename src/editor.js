@@ -266,9 +266,6 @@ function updateSealUI(config) {
         elements.sealRightBtn.disabled = false;
         elements.sealRightBtn.classList.toggle('active-state', atRight);
     }
-    if (elements.sealSelectBtn) {
-        elements.sealSelectBtn.classList.toggle('active-state', state.sealSelectMode);
-    }
 }
 
 /**
@@ -346,12 +343,9 @@ export function renderSplitLines() {
     // 遮罩与状态显示
     renderSealZones(config);
     updateSealUI(config);
-    // 框选模式状态随页面渲染同步（换文件时 state 被重置，这里一并清掉残留样式）
-    updateSealSelectUI();
 
     // 启用相关操作按钮
     elements.toggleSealLineBtn.disabled = false;
-    if (elements.sealSelectBtn) elements.sealSelectBtn.disabled = false;
     enableApplyButtons();
 
     // 分栏预设按钮高亮：两栏(1条分割线) / 三栏(2条分割线)
@@ -392,6 +386,28 @@ export function syncRotationUI() {
         if (elements.rotateFineVal) {
             elements.rotateFineVal.textContent = (off > 0 ? '+' : '') + off;
         }
+    }
+
+    syncFineStepperUI();
+}
+
+/**
+ * 同步「− / +」微调按钮的可用状态
+ * 到达滑块两端（±15°）时对应按钮自动禁用，避免点击无反应。
+ */
+export function syncFineStepperUI() {
+    const slider = elements.rotateFineSlider;
+    if (!slider) return;
+
+    const min = Number(slider.min);
+    const max = Number(slider.max);
+    const value = Number(slider.value);
+
+    if (elements.rotateFineMinusBtn) {
+        elements.rotateFineMinusBtn.disabled = slider.disabled || value <= min;
+    }
+    if (elements.rotateFinePlusBtn) {
+        elements.rotateFinePlusBtn.disabled = slider.disabled || value >= max;
     }
 }
 
@@ -838,8 +854,6 @@ export function toggleSealLine() {
 
     if (getSealRanges(config).length) {
         config.sealRanges = [];
-        // 区域已取消，同时退出框选模式
-        exitSealSelectMode();
     } else {
         const isOdd = state.currentPage % 2 !== 0;
         config.sealRanges = [isOdd
@@ -850,196 +864,6 @@ export function toggleSealLine() {
     renderSplitLines();
 }
 
-/* ------------------------------------------------------------------ */
-/* 密封区域 · 手动框选（在画布上横向拖出范围）                          */
-/* ------------------------------------------------------------------ */
-
-/** 框选进行中的临时高亮框 */
-let marqueeEl = null;
-
-/** 「已设置」反馈的定时器（非空表示正在闪烁，此时不覆盖按钮文案） */
-let sealFlashTimer = null;
-
-/** 切换「手动框选密封区域」模式 */
-export function toggleSealSelectMode() {
-    state.sealSelectMode = !state.sealSelectMode;
-    updateSealSelectUI();
-}
-
-/** 退出「手动框选密封区域」模式 */
-export function exitSealSelectMode() {
-    if (!state.sealSelectMode) return;
-    state.sealSelectMode = false;
-    updateSealSelectUI();
-}
-
-/**
- * 同步框选模式的按钮与画布状态
- */
-function updateSealSelectUI() {
-    const wrapper = elements.canvasWrapper;
-    if (wrapper) {
-        wrapper.classList.toggle('seal-select-mode', state.sealSelectMode);
-    }
-    // 退出模式时清掉可能残留的选框
-    if (!state.sealSelectMode && marqueeEl) {
-        marqueeEl.remove();
-        marqueeEl = null;
-    }
-    const btn = elements.sealSelectBtn;
-    if (btn) {
-        btn.classList.toggle('active-state', state.sealSelectMode);
-        // 「已设置」反馈闪烁期间不改文案，避免被中途覆盖
-        if (!sealFlashTimer) {
-            btn.innerHTML = state.sealSelectMode
-                ? '<span class="material-icons">check_circle</span> 拖动中…'
-                : '<span class="material-icons">photo_size_select_large</span> 手动选区域';
-        }
-    }
-}
-
-/** 把一次框选结果写入配置（新建一个密封区域） */
-function commitSealRange(a, b) {
-    const config = getPageConfig(state.currentPage);
-    const x0 = Math.min(a, b);
-    const x1 = Math.max(a, b);
-    const w = Math.min(x1 - x0, SEAL_MAX_W);
-    if (w < SEAL_MIN_W) {
-        showToast('区域太窄，请再拖宽一些', 'warn');
-        return false;
-    }
-    const start = Math.min(Math.max(x0, 0), 1 - w);
-    const next = { x0: start, x1: start + w };
-
-    // 新画的区域覆盖到已有区域时，以新区域为准（旧的被替换掉）
-    const seals = getSealRanges(config)
-        .filter(s => s.x1 <= next.x0 + 0.0001 || s.x0 >= next.x1 - 0.0001);
-    seals.push(next);
-    seals.sort((x, y) => x.x0 - y.x0);
-    config.sealRanges = seals;
-    return true;
-}
-
-/** 框选完成后的短暂反馈 */
-function flashSealSet() {
-    const btn = elements.sealSelectBtn;
-    if (!btn) return;
-    clearTimeout(sealFlashTimer);
-    btn.innerHTML = '<span class="material-icons">check_circle</span> 已设置';
-    btn.classList.add('applied-state');
-    sealFlashTimer = setTimeout(() => {
-        sealFlashTimer = null;   // 先置空：之后 updateSealSelectUI 才能恢复按钮文案
-        btn.classList.remove('applied-state');
-        updateSealSelectUI();
-    }, 1200);
-}
-
-/**
- * 绑定画布框选交互（只绑定一次）
- * 与「去除分割线」「擦除内容」一样是模式化操作：仅在本模式开启时响应。
- */
-export function initSealInteractions() {
-    const wrapper = elements.canvasWrapper;
-    if (!wrapper || initSealInteractions.bound) return;
-    initSealInteractions.bound = true;
-
-    let dragging = false;
-    let anchorRatio = 0;
-
-    /** 画布横坐标 -> 页面比例（0-1） */
-    const ratioOf = (clientX) => {
-        const rect = wrapper.getBoundingClientRect();
-        if (!rect.width) return 0;
-        return Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
-    };
-
-    const ensureMarquee = () => {
-        if (marqueeEl && marqueeEl.isConnected) return marqueeEl;
-        marqueeEl = document.createElement('div');
-        marqueeEl.className = 'seal-marquee';
-        wrapper.appendChild(marqueeEl);
-        return marqueeEl;
-    };
-
-    const paintMarquee = (a, b) => {
-        const el = ensureMarquee();
-        const lo = Math.min(a, b), hi = Math.max(a, b);
-        el.style.left = `${lo * 100}%`;
-        el.style.width = `${(hi - lo) * 100}%`;
-    };
-
-    const clearMarquee = () => {
-        if (marqueeEl) marqueeEl.remove();
-        marqueeEl = null;
-    };
-
-    /** 是否可以在画布上开始框选 */
-    const canStart = (target) => !(
-        state.removeSplitMode ||
-        (target && target.closest && target.closest('.split-line'))
-    );
-
-    const onDown = (clientX, target) => {
-        if (!state.sealSelectMode || !canStart(target)) return;
-        dragging = true;
-        anchorRatio = ratioOf(clientX);
-        paintMarquee(anchorRatio, anchorRatio);
-    };
-
-    const onMove = (clientX) => {
-        if (!dragging) return;
-        paintMarquee(anchorRatio, ratioOf(clientX));
-    };
-
-    // 记录最后一次移动的位置，用于抬起时确定终点
-    let lastRatio = 0;
-
-    wrapper.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return;
-        if (!state.sealSelectMode) return;
-        e.preventDefault();
-        lastRatio = ratioOf(e.clientX);
-        onDown(e.clientX, e.target);
-        const move = (ev) => { if (dragging) { lastRatio = ratioOf(ev.clientX); onMove(ev.clientX); } };
-        const up = () => {
-            document.removeEventListener('mousemove', move);
-            document.removeEventListener('mouseup', up);
-            finish(lastRatio);
-        };
-        document.addEventListener('mousemove', move);
-        document.addEventListener('mouseup', up);
-    });
-
-    wrapper.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1 || !state.sealSelectMode) return;
-        lastRatio = ratioOf(e.touches[0].clientX);
-        onDown(e.touches[0].clientX, e.target);
-        const move = (ev) => {
-            if (!dragging || ev.touches.length !== 1) return;
-            ev.preventDefault();
-            lastRatio = ratioOf(ev.touches[0].clientX);
-            onMove(ev.touches[0].clientX);
-        };
-        const up = () => {
-            document.removeEventListener('touchmove', move);
-            document.removeEventListener('touchend', up);
-            finish(lastRatio);
-        };
-        document.addEventListener('touchmove', move, { passive: false });
-        document.addEventListener('touchend', up);
-    }, { passive: false });
-
-    function finish(endRatio) {
-        if (!dragging) { clearMarquee(); return; }
-        dragging = false;
-        clearMarquee();
-        if (commitSealRange(anchorRatio, endRatio)) {
-            exitSealSelectMode();
-            renderSplitLines();
-            flashSealSet();
-        }
-    }
-}
 
 /**
  * 重置当前页的分割线为默认状态（一条中线，一分为二）
@@ -1066,11 +890,7 @@ export function resetSealAreas() {
 
     config.sealRanges = [];
 
-    // 同时退出「密封区域框选」模式，避免残留选框
-    state.sealSelectMode = false;
-
     renderSplitLines();
-    updateSealSelectUI();
 }
 
 /**

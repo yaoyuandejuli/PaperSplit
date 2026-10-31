@@ -17,6 +17,9 @@ export const elements = {
     rotateAngle: document.getElementById('rotateAngle'),
     rotateFineSlider: document.getElementById('rotateFineSlider'),
     rotateFineVal: document.getElementById('rotateFineVal'),
+    // 微调纠偏滑块两侧的「− / +」按钮（逐 0.5° 步进）
+    rotateFineMinusBtn: document.getElementById('rotateFineMinusBtn'),
+    rotateFinePlusBtn: document.getElementById('rotateFinePlusBtn'),
     resetRotationBtn: document.getElementById('resetRotationBtn'),
     applyRotateCurrentBtn: document.getElementById('applyRotateCurrentBtn'),
     applyRotateAllBtn: document.getElementById('applyRotateAllBtn'),
@@ -39,9 +42,8 @@ export const elements = {
     addSplitBtn: document.getElementById('addSplitBtn'),
     // 去除分割线（点击即删）
     removeSplitBtn: document.getElementById('removeSplitBtn'),
-    // 密封线（独立分区：开关 + 手动框选 + 贴边切换 + 状态 + 应用）
+    // 密封线（独立分区：开关 + 贴边切换 + 状态 + 应用）
     toggleSealLineBtn: document.getElementById('toggleSealLineBtn'),
-    sealSelectBtn: document.getElementById('sealSelectBtn'),
     sealStatus: document.getElementById('sealStatus'),
     sealLeftBtn: document.getElementById('sealLeftBtn'),
     sealRightBtn: document.getElementById('sealRightBtn'),
