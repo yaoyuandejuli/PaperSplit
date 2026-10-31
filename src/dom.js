@@ -33,7 +33,6 @@ export const elements = {
     cropZoomResetBtn: document.getElementById('cropZoomResetBtn'),
     applyCropZoomBtn: document.getElementById('applyCropZoomBtn'),
     applyCropZoomAllBtn: document.getElementById('applyCropZoomAllBtn'),
-    cropPreview: document.getElementById('cropPreview'),
 
     exportBtn: document.getElementById('exportBtn'),
     exportFitSelect: document.getElementById('exportFitSelect'),
@@ -77,9 +76,19 @@ export const elements = {
 
     // A3 固定取景框（红框比例 = A3 横版 420:297，内部裁切超出部分）
     a3Stage: document.getElementById('a3Stage'),
+    // 内容层：承载「原图编辑态」与「结果预览态」两层，data-mode 控制互斥显示
+    a3Content: document.getElementById('a3Content'),
     a3Frame: document.getElementById('a3Frame'),
     a3Clip: document.getElementById('a3Clip'),
     a3PageTag: document.getElementById('a3PageTag'),
+    // 结果预览态：主画布上直接显示处理后的 A4 成品页
+    a3Preview: document.getElementById('a3Preview'),
+    resultPreview: document.getElementById('resultPreview'),
+    previewPageTag: document.getElementById('previewPageTag'),
+    // 画布状态标签（左上角，提示当前是原图编辑还是结果预览）
+    canvasModeBadge: document.getElementById('canvasModeBadge'),
+    canvasModeIcon: document.getElementById('canvasModeIcon'),
+    canvasModeText: document.getElementById('canvasModeText'),
 
     // 文件清单（多选导入后展示文件列表；手机端为顶部横向平铺条）
     fileListBox: document.getElementById('fileListBox'),

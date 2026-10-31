@@ -19,8 +19,10 @@ import { guardSliders } from './slider-touch.js';
 import { initHeaderCollapse } from './header-collapse.js';
 import {
     setCropZoomDraft, stepCropZoom, resetCropZoom, applyCropZoom, applyCropZoomToAll,
-    syncCropZoomUI, renderCropPreview, scheduleCropPreview, STEP
+    syncCropZoomUI, STEP
 } from './crop-adjust.js';
+import { scheduleResultPreview, requestResultPreview } from './result-preview.js';
+import { initCanvasMode, bindPanelModeSwitch } from './canvas-mode.js';
 import { saveEditConfig, scheduleSave, clearEditConfig } from './storage.js';
 import { showToast } from './toast.js';
 
@@ -265,8 +267,8 @@ function initEventListeners() {
     elements.applyCropZoomBtn.addEventListener('click', applyCropZoom);
     elements.applyCropZoomAllBtn.addEventListener('click', applyCropZoomToAll);
 
-    // 分割线 / 密封线 / 方向变化后刷新「修改后文件预览」
-    document.addEventListener('papersplit:config-changed', scheduleCropPreview);
+    // 分割线 / 密封线 / 方向变化后刷新主画布上的「结果预览」
+    document.addEventListener('papersplit:config-changed', scheduleResultPreview);
     // 编辑配置变更后自动落盘（仅存本机 localStorage），刷新后可自动恢复
     document.addEventListener('papersplit:config-changed', persistEditConfig);
     document.addEventListener('papersplit:page-repaint', persistEditConfig);
@@ -275,7 +277,7 @@ function initEventListeners() {
         if (state.totalPages) renderCurrentPage();
     });
     // 导出模式变化后，预览需按新模式重绘
-    elements.exportFitSelect.addEventListener('change', renderCropPreview);
+    elements.exportFitSelect.addEventListener('change', requestResultPreview);
     elements.rotateFineSlider.addEventListener('input', () => {
         const offset = Number(elements.rotateFineSlider.value);
         if (elements.rotateFineVal) {
@@ -368,6 +370,8 @@ function handleResize() {
         if (state.totalPages) {
             renderCurrentPage();
         }
+        // 主画布尺寸变了 → 结果预览需按新尺寸重排
+        requestResultPreview();
     }, 150);
 }
 
@@ -386,6 +390,8 @@ function initViewportResizeObserver() {
 }
 
 // 启动程序
+initCanvasMode();
+bindPanelModeSwitch();
 initEventListeners();
 initViewportGestures();
 initHeaderCollapse();

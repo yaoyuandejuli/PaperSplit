@@ -95,14 +95,33 @@
                      · 红色实线边框，比例严格等于 A3 横版（420 : 297）
                      · 框本身绝对静止，图片在框内旋转 / 缩放，超出部分被 overflow:hidden 裁掉 -->
                 <div class="a3-stage" id="a3Stage">
-                    <div class="a3-frame" id="a3Frame">
-                        <div class="a3-clip" id="a3Clip">
-                            <div id="canvasWrapper" class="canvas-wrapper"></div>
+                    <!-- 内容层：固定 A3 比例的纸张框，两种画布形态互斥显示 -->
+                    <div class="a3-content" id="a3Content">
+                        <!-- 原图编辑态：带红框、分割线、密封线的原图 -->
+                        <div class="a3-frame" id="a3Frame">
+                            <div class="a3-clip" id="a3Clip">
+                                <div id="canvasWrapper" class="canvas-wrapper"></div>
+                            </div>
+                            <!-- 角标：纸张规格 + 当前页码（Header 折叠后仍可看页码） -->
+                            <div class="a3-frame-tag" aria-hidden="true">
+                                <span class="a3-tag-spec">A3 · 420×297</span>
+                                <span class="a3-tag-page" id="a3PageTag">1 / 1</span>
+                            </div>
                         </div>
-                        <!-- 角标：纸张规格 + 当前页码（Header 折叠后仍可看页码） -->
-                        <div class="a3-frame-tag" aria-hidden="true">
-                            <span class="a3-tag-spec">A3 · 420×297</span>
-                            <span class="a3-tag-page" id="a3PageTag">1 / 1</span>
+
+                        <!-- 结果预览态：处理后的最终 A4 成品页 -->
+                        <div class="a3-preview" id="a3Preview" aria-hidden="true">
+                            <canvas id="resultPreview" class="a3-preview-canvas"></canvas>
+                            <div class="a3-preview-tag" aria-hidden="true">
+                                <span class="a3-tag-spec">A4 · 210×297</span>
+                                <span class="a3-tag-page" id="previewPageTag">1 / 1</span>
+                            </div>
+                        </div>
+
+                        <!-- 画布状态标签：左上角提示当前看的是原图还是成品结果 -->
+                        <div class="canvas-mode-badge" id="canvasModeBadge" data-mode="edit">
+                            <span class="material-icons" id="canvasModeIcon">edit</span>
+                            <span id="canvasModeText">[ 原图编辑 ]</span>
                         </div>
                     </div>
                 </div>
@@ -168,6 +187,7 @@
                             <div class="step-text">
                                 <strong>输出比例调整（可选）</strong>
                                 <p>裁剪后的文字过小，使用「放大/缩小/重置」或下方滑块调整成品页上的大小，再用「应用当前页」或「应用所有页」写入。</p>
+                                <p>操作本模块时，<strong>上方主画布会自动切换为「结果预览」</strong>，直接显示处理后的 A4 成品页，拖动滑块可实时看到大小变化。</p>
                             </div>
                         </div>
                         <div class="step-item">
@@ -205,12 +225,22 @@
                                 <p>手机上整页不滚动：顶部是「已导入文件」与缩略图，中间是<strong>始终可见的取景框</strong>，下方控制面板占下半屏并<strong>独立滚动</strong>，滑动时会<strong>自动吸附</strong>到某个功能模块上；在面板里继续下拉时顶部 Header 会<strong>平滑收起</strong>，把空间让给取景框，上滑即可恢复</p>
                             </div>
                         </div>
+                        <div class="step-item">
+                            <div class="step-num">12</div>
+                            <div class="step-text">
+                                <strong>主画布双态</strong>
+                                <p>主画布有<strong>两种形态</strong>，左上角始终有标签提示当前看到的是什么：</p>
+                                <p>· <strong>[ 原图编辑 ]</strong> —— 带红框、分割线、密封线的原图，用于排版操作（默认状态）</p>
+                                <p>· <strong>[ 结果预览 ]</strong> —— 处理后的最终 A4 成品页（双页效果），用于确认输出比例</p>
+                                <p>在「输出比例调整」里操作会自动切到<strong>结果预览</strong>；点击其它模块（方向调整 / 编辑工具 / 擦除 / 密封线）则自动切回<strong>原图编辑</strong>，两种形态之间平滑淡入淡出，不会闪烁。</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="panel-divider"></div>
 
-                <div class="panel-section">
+                <div class="panel-section" data-canvas-mode="edit">
                     <h3>🔄 方向调整</h3>
                     <div class="tools-grid">
                         <div class="btn-group rotate-group">
@@ -252,7 +282,7 @@
                     </div>
                 </div>
 
-                <div class="panel-section">
+                <div class="panel-section" data-canvas-mode="edit">
                     <h3>🛠️ 编辑工具</h3>
                     <div class="tools-grid">
                         <div class="btn-group split-preset-group">
@@ -291,7 +321,7 @@
                     </div>
                 </div>
 
-                <div class="panel-section">
+                <div class="panel-section" data-canvas-mode="edit">
                     <h3>🧽 擦除内容（可选）</h3>
                     <div class="tools-grid">
                         <div class="btn-group erase-mode-group">
@@ -331,7 +361,7 @@
                     </div>
                 </div>
 
-                <div class="panel-section">
+                <div class="panel-section" data-canvas-mode="edit">
                     <!-- 标题与状态标签同行：状态紧跟在标题右侧，不再单独占一行 -->
                     <h3 class="seal-title-row">
                         <span>🔒 密封线调整（可选）</span>
@@ -384,7 +414,7 @@
                     </div>
                 </div>
 
-                <div class="panel-section">
+                <div class="panel-section" data-canvas-mode="preview">
                     <h3>📐 输出比例调整（可选）</h3>
                     <div class="tools-grid">
                         <div class="btn-group crop-zoom-group">
@@ -422,13 +452,6 @@
                     </div>
                 </div>
 
-                <!-- 「修改后文件预览」：独立模块，与其他功能区同级 -->
-                <div class="panel-section preview-section">
-                    <h3>🖼️ 修改后文件预览</h3>
-                    <div class="crop-preview-box">
-                        <canvas id="cropPreview" class="crop-preview-canvas"></canvas>
-                    </div>
-                </div>
 
                 <div class="spacer"></div>
 

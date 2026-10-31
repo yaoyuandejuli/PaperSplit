@@ -226,10 +226,14 @@ body {
 }
 
 /* ==========================================================================
-   A3 固定取景框
-   · 红框比例严格等于 A3 横版（420 : 297），用 aspect-ratio 锁定
-   · 框本身绝对静止：只有里面的图片可旋转 / 缩放 / 平移
-   · overflow: hidden —— 超出红框的图片部分一律隐藏
+   A3 固定取景框（双态共用容器）
+   · .a3-content 是「内容层」：固定 A3 横版比例（420 : 297），
+     原图编辑态与结果预览态都画在它里面 —— 切换时尺寸不变，画面不跳动
+   · .a3-frame  = 原图编辑态（红框 + 分割线 + 密封线的原图）
+   · .a3-preview = 结果预览态（处理后的最终 A4 成品页，双页效果）
+   · 两层用 opacity 交叉淡入淡出，切换平滑、不闪烁
+   · data-preview-ready="1" 表示预览已绘制完成，
+     未完成时保持原图可见，绝不出现空白画面
    ========================================================================== */
 .a3-stage {
     flex: 1 1 auto;
@@ -238,21 +242,22 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* 尺寸容器：让红框同时受宽度与高度约束，且始终保持 A3 比例 */
+    /* 尺寸容器：让内容层同时受宽度与高度约束，且始终保持 A3 比例 */
     container-type: size;
 }
 
-.a3-frame {
+/* 内容层：两种画布形态共用的 A3 比例容器 */
+.a3-content {
     position: relative;
     aspect-ratio: 420 / 297;
     /* 宽度 = 可用宽度 与 「可用高度 × 420/297」中的较小者 */
     width: min(100cqw, calc(100cqh * 420 / 297));
+    /* 边框随形态变色：编辑态 = 红框（可拖拽的取景框），预览态 = 主色（成品区） */
     border: 2px solid #ef4444;
     border-radius: 4px;
     overflow: hidden;
-    background: #ffffff;
     box-shadow: 0 2px 12px rgba(15, 23, 42, 0.22);
-    touch-action: none;
+    transition: border-color 0.22s ease;
 }
 
 /* 兜底：不支持容器查询单位时，按宽度铺满 */
@@ -261,10 +266,21 @@ body {
         container-type: normal;
     }
 
-    .a3-frame {
+    .a3-content {
         width: 100%;
         max-width: 100%;
     }
+}
+
+/* 原图编辑态：原图（分割线 / 密封线都画在里面） */
+.a3-frame {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #ffffff;
+    touch-action: none;
+    opacity: 1;
+    transition: opacity 0.22s ease;
 }
 
 /* 裁切区：图片在这里被裁切，红框的边框始终可见 */
@@ -300,6 +316,21 @@ body {
 .a3-tag-page {
     color: #ef4444;
     font-weight: 600;
+}
+
+/* 手机端：状态标签更紧凑，尽量少遮挡试卷内容 */
+@media (max-width: 768px) {
+    .canvas-mode-badge {
+        top: 6px;
+        left: 6px;
+        padding: 2px 7px;
+        font-size: 0.6rem;
+        gap: 3px;
+    }
+
+    .canvas-mode-badge .material-icons {
+        font-size: 12px;
+    }
 }
 
 /* 未载入文件时隐藏取景框，只显示空状态 */
@@ -444,10 +475,15 @@ a:focus-visible {
     background: #f8fafc;
 }
 
+/* 「导出为 PDF」：紫色主色，与全局 indigo/violet 色调保持一致 */
 .btn.success {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: var(--primary-gradient);
     color: white;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
+}
+
+.btn.success:hover:not(:disabled) {
+    filter: brightness(1.08);
 }
 
 .btn.success.large {
@@ -495,7 +531,7 @@ a:focus-visible {
 }
 
 .shadow-btn {
-    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4), 0 2px 4px -1px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4), 0 2px 4px -1px rgba(99, 102, 241, 0.2);
     transition: all 0.2s;
 }
 
@@ -640,23 +676,109 @@ a:focus-visible {
     color: #fff;
 }
 
-/* 「修改后文件预览」独立模块：标题由 .panel-section h3 承担，
-   这里只负责预览画布的外框 */
-.crop-preview-box {
-    width: 100%;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    background-color: #eef2f7;
-    padding: 8px;
+/* ------------------------------------------------------------------
+   结果预览态（主画布）
+   与原图编辑态叠在同一个内容层里，用 opacity 交叉淡入淡出
+   ------------------------------------------------------------------ */
+.a3-preview {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 浅石板灰底，让白色 A4 纸张从背景中凸显出来 */
+    background-color: #e2e8f0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
 }
 
-.crop-preview-canvas {
+.a3-preview-canvas {
     display: block;
     width: 100%;
-    height: auto;
-    /* 画布底色用浅石板灰，让白色 A4 纸张从背景中凸显出来 */
-    background-color: #e2e8f0;
-    border-radius: 4px;
+    height: 100%;
+}
+
+/* 预览态角标：纸张规格 + 页码（与原图态角标对称） */
+.a3-preview-tag {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    color: #475569;
+    font-size: 0.66rem;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    user-select: none;
+}
+
+.a3-preview-tag .a3-tag-page {
+    color: #6366f1;
+    font-weight: 600;
+}
+
+/* ------------------------------------------------------------------
+   画布状态标签（左上角）
+   明确告诉用户「当前看的是原图，还是处理后的成品」
+   ------------------------------------------------------------------ */
+.canvas-mode-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    /* 半透明深色底，压在图片上也清晰可读 */
+    background: rgba(15, 23, 42, 0.72);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28);
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    transition: background-color 0.22s ease, border-color 0.22s ease;
+}
+
+.canvas-mode-badge .material-icons {
+    font-size: 14px;
+}
+
+/* 预览态标签换成主色，一眼区分 */
+.canvas-mode-badge[data-mode="preview"] {
+    background: rgba(99, 102, 241, 0.92);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* ------------------------------------------------------------------
+   双态切换规则
+   只有「结果预览已绘制完成」才真正换画面，
+   否则继续显示原图 —— 避免切过去看到一片空白
+   ------------------------------------------------------------------ */
+.a3-content[data-mode="preview"][data-preview-ready="1"] .a3-frame {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.a3-content[data-mode="preview"][data-preview-ready="1"] .a3-preview {
+    opacity: 1;
+}
+
+/* 预览态：边框换成主色，一眼区分「成品区」与「可编辑的取景框」 */
+.a3-content[data-mode="preview"][data-preview-ready="1"] {
+    border-color: #6366f1;
 }
 
 .rotate-slider input[type="range"] {

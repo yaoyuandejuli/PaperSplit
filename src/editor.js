@@ -503,7 +503,7 @@ export function renderSplitLines() {
     // 同步「去除分割线」相关按钮与提示
     updateSplitRemoveUI();
 
-    // 通知外部：分割/密封/方向已变更，「修改后文件预览」需要重绘
+    // 通知外部：分割/密封/方向已变更，主画布的「结果预览」需要重绘
     document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
@@ -642,7 +642,7 @@ function createLineElement(initialX, type, index, onUpdate, clampFn, attrs) {
         lineEl.style[posProp] = `${v}%`;
         syncAria(v);
         onUpdate(v / 100);
-        // 位置变化后刷新「修改后文件预览」
+        // 位置变化后刷新主画布的「结果预览」
         document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
     };
 

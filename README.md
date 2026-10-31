@@ -95,7 +95,12 @@ npx http-server dist -p 8080
 - **密封区与分割线互不限制**：密封区域挖掉后，其余部分再按分割线分栏，两者可同时使用。
 - **擦除内容**：框选矩形或涂抹笔刷擦除多余内容，点「应用」后画布直接显示擦除效果，导出 PDF 时真实擦除。
 - **输出比例调整**（原「裁剪后调整」）：某栏太小看不清时，放大 / 缩小 / 重置，或直接拖滑块，「应用当前页」与「应用所有页」并排一行，比例在导出时真实生效。滑块做了**移动端防误触**处理：在控制面板里上下滑动页面时不会误改滑块值。
-- **修改后文件预览（独立模块）**：从「输出比例调整」里独立出来，与其它功能区**同级并列**，有自己的标题与卡片样式；实时显示当前页每一栏在成品 A4 上的实际效果，多页时自动换行排版、每页尽可能放大，画布高度按内容自适应，不再留多余空白。
+- **主画布双态切换（结果预览上移）**：原「修改后文件预览」模块**已从控制面板底部移除**，其内容**上移到中间主画布**，主画布因此有两种形态：
+  - **原图编辑态**（默认）：带红框、分割线、密封线的原图，用于排版操作。
+  - **结果预览态**：处理后的**最终 A4 成品页（双页效果）**，多页时自动换行排版、每页尽可能放大。
+  - **自动联动**：在「输出比例调整」里操作（放大 / 缩小 / 重置 / 拖滑块）自动切到**结果预览态**，并**实时响应缩放比例**；点击其它模块（方向调整 / 编辑工具 / 擦除内容 / 密封线调整）自动切回**原图编辑态**。
+  - **左上角状态标签**：画布左上角始终显示 `[ 原图编辑 ]` / `[ 结果预览 ]`，一眼看清当前看到的是什么，杜绝混淆。
+  - **平滑不闪烁**：两种形态共用同一个 A3 比例容器（尺寸不变、画面不跳动），用 `opacity` **交叉淡入淡出**（220ms）；预览画面**画好之后才淡入**，绝不出现"切过去是一片空白"。
 - **多文件合并** — 一次选择多个 PDF 与图片，合并成一份连续文档；左栏顶部显示已导入的文件（可移除单个文件、继续追加、点击跳转），下方是页面缩略图
 - **导出前排序** — 页面先后的唯一调整入口：导出前逐页拖动微调最终顺序，支持上下按钮与一键恢复默认，跨文件同样适用
 - **分区应用**：方向、编辑工具、密封线、输出比例调整四个分区都提供「应用当前页 / 应用所有页」两个并排按钮 —— 前者确认并保存本页设置，后者一键把设置复制到所有页面（密封线跨奇偶时自动镜像到另一侧，保持书页左右对称）。
@@ -103,7 +108,7 @@ npx http-server dist -p 8080
 - **编辑自动保存**：分割线、密封线、角度、缩放比例与擦除标记自动存在本机浏览器（localStorage），重开同一文件自动恢复，可一键清除。
 - **离线可用 & 响应式**：PDF worker、图标与字体全部本地打包，断网 / 内网照常使用；PC 与手机都能操作。
 - **手机端「固定视口」布局**：整页**不再上下滚动**，页面被拆成三段 —— 顶部是「已导入文件」**横向平铺条**（文件卡片左右滑动即可看全，「＋」继续添加、「×」移除某个文档）与页面缩略图，中间是**始终可见的大画布**（调参数时也能实时看到效果），底部是**占下半屏的控制面板**。
-- **手机端控制面板独立滚动 + 模块吸附**：面板内部单独滚动，**页面整体纹丝不动**；滑动时每个功能模块（方向调整 / 编辑工具 / 擦除内容 / 密封线 / 输出比例调整 / 预览 / 导出）都是独立的**吸附单元（Scroll Snap）**，滑到某个模块就稳稳停在那里。
+- **手机端控制面板独立滚动 + 模块吸附**：面板内部单独滚动，**页面整体纹丝不动**；滑动时每个功能模块（方向调整 / 编辑工具 / 擦除内容 / 密封线 / 输出比例调整 / 导出）都是独立的**吸附单元（Scroll Snap）**，滑到某个模块就稳稳停在那里。
 - **手机端 Header 随滚动折叠**：在底部控制面板里**继续下拉**，顶部 Header 会以 `translateY(-100%)` 平滑向上收起，并把占用的行高**自动还给取景框** —— 中间预览区随之向上填补空间、显示得更大；**上滑或回到面板顶部**时 Header 平滑向下展开。Logo 与页码始终保留（收起后取景框角标继续显示当前页码）。
 - **底部操作区更紧凑**：控制面板占屏比例由 48% 缩到 **43%**（约缩小 10%），内部间距同步压缩，**所有功能模块与按钮一个不少**。
 
@@ -152,6 +157,8 @@ npm run serve    # 构建版，先 npm run build，再访问 http://localhost:80
 │   ├── exporter.js     # PDF 导出
 │   ├── export-geometry.js # 切片范围与 A4 排版几何
 │   ├── crop-adjust.js  # 输出比例调整
+│   ├── canvas-mode.js  # 主画布双态（原图编辑 / 结果预览）管理
+│   ├── result-preview.js # 主画布上的 A4 成品结果绘制
 │   ├── slider-touch.js # 滑块触摸守卫（移动端防误触）
 │   ├── mask-editor.js  # 擦除内容（框选 + 涂抹）
 │   ├── storage.js      # 编辑配置本地保存 / 恢复
@@ -300,6 +307,17 @@ PDF、JPG、PNG。图片按单页处理。
 
 ### 2026-10-31
 
+- **主画布双态切换（结果预览上移）**：原先独立在控制面板底部的「🖼️ 修改后文件预览」模块**已整块移除**，其内容**上移到中间主画布**，主画布由此具备两种形态：
+  - **原图编辑态**（默认）：带红框、分割线、密封线的原图，用于排版操作；
+  - **结果预览态**：处理后的**最终 A4 成品页（双页效果）**，与导出所见完全一致。
+- **按分区自动联动**：在「输出比例调整」分区里操作（放大 / 缩小 / 重置 / 拖动比例滑块）时，主画布**立刻切换为结果预览态并实时响应缩放比例**；点击其它分区（方向调整 / 编辑工具 / 擦除内容 / 密封线调整）则**自动切回原图编辑态**。实现上用 `data-canvas-mode` 标注分区 + 面板事件委托，新增两个模块 `src/canvas-mode.js`（形态管理）与 `src/result-preview.js`（结果绘制）。
+- **左上角状态标签**：画布左上角新增 `[ 原图编辑 ]` / `[ 结果预览 ]` 标签，**随时提示当前看到的是什么**，避免把成品图误当成原图继续编辑。
+- **切换平滑、不闪烁**：两种形态共用同一个 A3 比例容器（`.a3-content`），尺寸不变、画面不跳动；两层用 `opacity` **交叉淡入淡出**（220ms）而非 `display` 硬切。预览画面**绘制完成后才淡入**（`data-preview-ready`），杜绝"切过去是一片空白"。预览态边框由红色换成主色，一眼区分「可编辑取景框」与「成品区」。
+- **结果预览性能优化**：页面内容画布按「页码 + 旋转角」缓存，拖动比例滑块时**只重绘版面、不重复渲染 PDF 页面**；同一帧内的多次请求合并成一次渲染，并按渲染令牌丢弃过期结果（不闪旧图）。
+- **「导出为 PDF」按钮改为紫色**：由绿色渐变改为全局主色紫（`--primary-gradient`，indigo → violet），文字保持白色、投影同步转紫，与整体风格统一。
+
+### 2026-10-31
+
 - **密封线新增「靠上 / 靠下」（水平方向）**：密封线从「只有左右」扩展为**四个方向** —— 左右是竖向密封带，上下是**横向密封带**（裁掉页面顶部 / 底部）。「靠上」「靠下」使用 `align_vertical_top` / `align_vertical_bottom` 水平线图标（竖线图标的横版），一眼可辨；横向密封带同样可拖动平移、拖两侧虚线调整厚度。导出的每一栏都会**按上下密封带裁掉对应高度**（实测导出位图高度由 100% 降到约 85%）。
 - **密封线 UI 重排**：上方保留「取消密封线 / 重置」，其下是状态徽标，再下方是**两行两列**的方向按钮（第一排 靠左 / 靠右，第二排 靠上 / 靠下），收在一个带边框的小卡片里，界面依然紧凑。
 - **状态统计与操作覆盖四个方向**：徽标统一显示**四个方向合计**的遮罩数量（如「已启用 · 4 处」）；「取消密封线」「重置」「应用当前页」「应用所有页」四个操作**同时作用于左右与上下**。批量应用时**左右随奇偶镜像、上下保持原位**（顶部永远是顶部）。
@@ -388,13 +406,16 @@ Everything happens inside your browser: files are never uploaded, and the app ke
 - **Seal region and split lines work together** — the seal strip is removed first, then the remaining area is split into columns; neither one constrains the other.
 - **Erase content** — box-select a rectangle or paint with a brush; "Apply" bakes the erasure into the page and it is really removed from the exported PDF.
 - **Post-crop zoom** — enlarge, shrink or reset a column that came out too small; "Apply to Current Page" and "Apply to All Pages" sit side by side.
-- **Modified File Preview (standalone module)** — split out of the post-crop panel into its own titled section, styled like every other tool module. It shows the resulting A4 pages live, wrapping into rows so every page stays as large as possible, and the canvas shrinks to fit so no empty space is left below.
+- **Dual-state main canvas** — the standalone "Modified File Preview" section has been **removed from the bottom of the control panel** and moved **into the main canvas**, which now has two states:
+  - **Original editing** (default) — the source page with its red frame, split lines and seal areas, used for layout work;
+  - **Result preview** — the final A4 pages (double-page view) exactly as they will be exported.
+  Working in the post-crop zoom module switches the canvas to the result preview automatically and updates it live as you drag the slider; touching any other module switches it back to the original. A badge in the top-left corner always says which state you are looking at (`[ Original ]` / `[ Result preview ]`). Both states share the same A3-proportioned frame and cross-fade smoothly — no flashing, no jumping.
 - **Apply per section** — every panel (orientation, editing tools, seal, post-crop zoom) offers "Apply to Current Page" and "Apply to All Pages" side by side: the first confirms and stores the current page's setup, the second copies it to every page (seal regions are mirrored across odd/even pages to keep the odd-left / even-right symmetry).
 - **A4 export at 2× resolution** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page. Pages are rendered at **400 DPI** (twice the previous 200 DPI) so a half of an A3 sheet comes out at 3255 × 4604 px — crisp when printed. Built-in pixel and dimension guards keep large canvases from crashing phones.
 - **Auto-save** — split lines, seal line, orientation, zoom ratio and erase marks are stored in your browser's `localStorage` and restored automatically when you reopen the same file.
 - **Offline & responsive** — the PDF worker, icons and fonts all ship with the app; works on desktop and mobile.
 - **Fixed-viewport mobile layout** — the page itself no longer scrolls. It is split into three bands: the horizontal "imported files" strip and page thumbnails on top, the **large canvas always visible** in the middle, and a **control panel filling the lower half** of the screen.
-- **Independent scrolling + scroll snap** — only the control panel scrolls; the page around it stays perfectly still. Every module (orientation, split tools, erase, seal, post-crop zoom, preview, export) is its own **scroll-snap** target, so the panel always comes to rest on a module boundary. On phones the imported-file list moves to the **top as a horizontally scrollable strip** (add more files with "＋", remove one with "×"), a **compact preview stays pinned to the top of the screen** while you scroll through the tools, and the export panel is no longer glued to the bottom — it appears only when you reach the end of the page.
+- **Independent scrolling + scroll snap** — only the control panel scrolls; the page around it stays perfectly still. Every module (orientation, split tools, erase, seal, post-crop zoom, export) is its own **scroll-snap** target, so the panel always comes to rest on a module boundary. On phones the imported-file list moves to the **top as a horizontally scrollable strip** (add more files with "＋", remove one with "×"), a **compact preview stays pinned to the top of the screen** while you scroll through the tools, and the export panel is no longer glued to the bottom — it appears only when you reach the end of the page.
 - **Weak-server friendly** — the PDF parsing component is inlined into the build, so it no longer needs a separate request; combined with a retrying fallback, it loads even on servers with the wrong MIME type or limited concurrency.
 
 **Getting started**

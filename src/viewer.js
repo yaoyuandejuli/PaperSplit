@@ -179,6 +179,10 @@ export function updatePageControls() {
     if (elements.a3PageTag) {
         elements.a3PageTag.textContent = `${state.currentPage} / ${state.totalPages}`;
     }
+    // 结果预览态的角标同步页码
+    if (elements.previewPageTag) {
+        elements.previewPageTag.textContent = `${state.currentPage} / ${state.totalPages}`;
+    }
     elements.prevPageBtn.disabled = state.currentPage <= 1;
     elements.nextPageBtn.disabled = state.currentPage >= state.totalPages;
 }

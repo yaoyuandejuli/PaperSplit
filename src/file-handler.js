@@ -9,6 +9,8 @@ import { state, resetState } from './state.js';
 import { elements } from './dom.js';
 import { renderThumbnails, renderCurrentPage, updatePageControls } from './viewer.js';
 import { syncCropZoomUI, syncCropZoomFromPage } from './crop-adjust.js';
+import { clearResultPreviewCache, requestResultPreview } from './result-preview.js';
+import { setCanvasMode, CANVAS_MODE } from './canvas-mode.js';
 import { exitMaskMode, renderMasks } from './mask-editor.js';
 import { getPageConfig, syncRotationUI } from './editor.js';
 import { appendDocument, collectionFingerprint } from './documents.js';
@@ -68,6 +70,10 @@ async function importFiles(files, mode) {
         //   否则追加导入时新文件会与旧文件撞 id，页面映射就会错位）
         releaseDocuments();
         resetState();
+        // 清空结果预览的页面内容缓存（避免用到上一份文件的画面）
+        clearResultPreviewCache();
+        // 新文件 → 主画布回到「原图编辑态」
+        setCanvasMode(CANVAS_MODE.EDIT);
         state.suppressSave = true;
     }
 
@@ -165,6 +171,8 @@ async function importFiles(files, mode) {
     renderFileList();
     await renderThumbnails();
     await renderCurrentPage();
+    // 预热结果预览：用户在「输出比例调整」里操作时可立即切过去，无需等待
+    requestResultPreview();
     state.suppressSave = false;
 }
 
