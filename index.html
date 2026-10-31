@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<!--
+  ⚠️ 请勿直接双击打开本文件（file:// 协议）。
+  浏览器禁止 file:// 加载 ES 模块，src/ 里的 pdfjs-dist / jspdf / material-icons
+  都是裸模块标识符，直接打开会「界面能显示但所有按钮都没反应」。
+  正确做法：① 在线体验 https://yaoyuandejuli.github.io/PaperSplit/
+            ② 把 dist/ 目录交给静态服务器（npx serve dist）
+            ③ 源码版：npm install && npm run dev
+-->
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperSplit - 试卷本地拆分，一键适配A4打印</title>
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
+  <script type="module" crossorigin src="./assets/index-Cpfv3avX.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-DhjnTqfP.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- 顶部只保留 Logo 和 用户信息 -->
+        <header class="navbar">
+            <div class="branding">
+                <span class="material-icons logo-icon">content_cut</span>
+                <div class="brand-text">
+                    <span class="logo-text">PaperSplit</span>
+                    <span class="logo-slogan">试卷本地拆分，一键适配A4打印</span>
+                </div>
+            </div>
+
+            <!-- Central Navigation -->
+            <div class="top-nav-controls">
+                <button id="changeFileBtn" class="btn secondary small-btn" title="更换文件">
+                    <span class="material-icons">folder_open</span> <span class="btn-text">切换文件</span>
+                </button>
+                <div class="v-divider"></div>
+                <div class="page-nav-compact">
+                    <button id="prevPageBtn" class="btn icon-only" disabled aria-label="上一页" title="上一页">
+                        <span class="material-icons">chevron_left</span>
+                    </button>
+                    <span id="pageInfo" class="page-number-display">0 / 0</span>
+                    <button id="nextPageBtn" class="btn icon-only" disabled aria-label="下一页" title="下一页">
+                        <span class="material-icons">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="user-profile">
+                <a href="https://github.com/TwoBall/PaperSplit" target="_blank" class="user-badge"
+                    style="text-decoration: none;" title="View on GitHub">
+                    <span class="material-icons">code</span>
+                    <span class="username">GitHub</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- 三栏布局主体 -->
+        <main class="main-layout">
+            <!-- 左侧：已导入文件清单 + 缩略图 -->
+            <aside class="left-panel custom-scrollbar">
+                <!-- 导入文件管理（手机端收在右侧，点击标题展开） -->
+                <div class="file-list-box" id="fileListBox" hidden>
+                    <div class="file-list-top">
+                        <button type="button" class="file-list-head" id="fileListToggle"
+                            aria-expanded="false" aria-controls="fileList">
+                            <span class="material-icons file-list-icon" aria-hidden="true">folder_open</span>
+                            <span class="file-list-title">导入文件管理</span>
+                            <span class="file-list-count" id="fileListCount"></span>
+                            <span class="material-icons file-list-caret" aria-hidden="true">chevron_left</span>
+                        </button>
+                        <div class="file-list-actions">
+                            <button type="button" class="file-add-btn" id="addFilesBtn"
+                                title="添加文件：把新文件追加到已导入列表的末尾，保留当前全部编辑">
+                                <span class="material-icons" aria-hidden="true">playlist_add</span>
+                                <span class="file-add-text">添加文件</span>
+                                <span class="sr-only">添加文件</span>
+                            </button>
+                            <button type="button" class="file-add-btn import-new" id="importNewBtn"
+                                title="导入新文件：以全新文件重新开始，清空当前编辑并替换全部内容">
+                                <span class="material-icons" aria-hidden="true">upload_file</span>
+                                <span class="file-add-text">导入新文件</span>
+                                <span class="sr-only">导入新文件</span>
+                            </button>
+                        </div>
+                    </div>
+                    <ul class="file-list" id="fileList"></ul>
+                </div>
+
+                <!-- 缩略图动态生成（手机端为主区域，放大展示） -->
+                <div class="thumbnails-panel" id="thumbnailsPanel"></div>
+            </aside>
+
+            <!-- 中间：工作区 (支持拖拽上传) -->
+            <section class="center-panel" id="canvasContainer">
+                <!-- 拖拽遮罩 -->
+                <div id="dragOverlay" class="drag-overlay hidden">
+                    <span class="material-icons">cloud_upload</span>
+                    <p>释放文件以上传</p>
+                </div>
+
+                <!-- A3 固定取景框
+                     · 红色实线边框，比例严格等于 A3 横版（420 : 297）
+                     · 框本身绝对静止，图片在框内旋转 / 缩放，超出部分被 overflow:hidden 裁掉 -->
+                <div class="a3-stage" id="a3Stage">
+                    <!-- 内容层：固定 A3 比例的纸张框，两种画布形态互斥显示 -->
+                    <div class="a3-content" id="a3Content">
+                        <!-- 原图编辑态：带红框、分割线、密封线的原图 -->
+                        <div class="a3-frame" id="a3Frame">
+                            <div class="a3-clip" id="a3Clip">
+                                <div id="canvasWrapper" class="canvas-wrapper"></div>
+                            </div>
+                            <!-- 角标：纸张规格 + 当前页码（Header 折叠后仍可看页码） -->
+                            <div class="a3-frame-tag" aria-hidden="true">
+                                <span class="a3-tag-spec">A3 · 420×297</span>
+                                <span class="a3-tag-page" id="a3PageTag">1 / 1</span>
+                            </div>
+                        </div>
+
+                        <!-- 结果预览态：处理后的最终 A4 成品页 -->
+                        <div class="a3-preview" id="a3Preview" aria-hidden="true">
+                            <canvas id="resultPreview" class="a3-preview-canvas"></canvas>
+                            <div class="a3-preview-tag" aria-hidden="true">
+                                <span class="a3-tag-spec">A4 · 210×297</span>
+                                <span class="a3-tag-page" id="previewPageTag">1 / 1</span>
+                            </div>
+                        </div>
+
+                        <!-- 画布状态标签：左上角提示当前看的是原图还是成品结果 -->
+                        <div class="canvas-mode-badge" id="canvasModeBadge" data-mode="edit">
+                            <span class="material-icons" id="canvasModeIcon">edit</span>
+                            <span id="canvasModeText">[ 原图编辑 ]</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="empty-state" id="emptyState">
+                    <span class="material-icons">cloud_upload</span>
+                    <h3>点击上传或拖拽文件</h3>
+                    <p class="sub-text">支持 PDF 或图片文件，可一次选择多个</p>
+                    <button id="uploadBtn" class="btn primary large-btn">
+                        选择文件
+                    </button>
+                </div>
+            </section>
+
+            <!-- 右侧：控制面板 -->
+            <aside class="right-panel custom-scrollbar">
+
+                <div class="panel-section guide-section">
+                    <button type="button" class="guide-toggle" id="guideToggle"
+                        aria-expanded="false" aria-controls="guideContent">
+                        <span class="guide-toggle-title">📋 操作指南</span>
+                        <span class="guide-toggle-hint" id="guideHint">点击展开</span>
+                        <span class="material-icons guide-chevron" aria-hidden="true">expand_more</span>
+                    </button>
+                    <div class="guide-steps" id="guideContent" hidden>
+                        <div class="step-item">
+                            <div class="step-num">1</div>
+                            <div class="step-text">
+                                <strong>导入试卷</strong>
+                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；左上角「导入文件管理」区可滑动查看全部文档：点「添加文件」把新文件追加到末尾（保留当前编辑），点「导入新文件」以全新文件重新开始（清空并替换），点「×」移除单个文档</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">2</div>
+                            <div class="step-text">
+                                <strong>方向校正</strong>
+                                <p>文件斜歪时，用「左转 / 右转」把内容转正，「重置」可归零（每页独立，角度实时显示）；滑块两侧的「−」「+」可逐 0.5° 微调，滑块下方的「应用当前页」保存到本页，或「应用所有页」一键复制到全部页面</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">3</div>
+                            <div class="step-text">
+                                <strong>调整分割</strong>
+                                <p>点「两栏」一分为二、点「三栏」一分为三，「重置」可恢复默认单中线；也可拖动红色实线微调，双击某条线删除。调好后用「应用当前页」保存到本页，或「应用所有页」一键复制到全部页面</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">4</div>
+                            <div class="step-text">
+                                <strong>擦除内容（可选）</strong>
+                                <p>框选或涂抹要擦除的内容，点「应用」后画布直接显示擦除后的效果；点「重置」可清除本页全部擦除痕迹</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">5</div>
+                            <div class="step-text">
+                                <strong>密封线调整（可选）</strong>
+                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；开启后<strong>直接拖动斜纹区即可整体平移</strong>，拖动两侧虚线可调整范围（位置不限）。<strong>「左侧」「右侧」「上侧」「下侧」四个方向可独立开关、可同时存在</strong> —— 左右是竖向密封带，上下是横向密封带（裁掉顶部 / 底部）。「重置」可清除本页全部密封区域</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">6</div>
+                            <div class="step-text">
+                                <strong>输出比例调整（可选）</strong>
+                                <p>裁剪后的文字过小，使用「放大/缩小/重置」或下方滑块调整成品页上的大小，再用「应用当前页」或「应用所有页」写入。</p>
+                                <p>操作本模块时，<strong>上方主画布会自动切换为「结果预览」</strong>，直接显示处理后的 A4 成品页，拖动滑块可实时看到大小变化。</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">7</div>
+                            <div class="step-text">
+                                <strong>导出前排序</strong>
+                                <p>如需调整页面先后，点「导出前排序」逐页拖动调整（跨文件也可以）</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">8</div>
+                            <div class="step-text">
+                                <strong>文件导出</strong>
+                                <p>文件调整完成之后，点击「导出为 PDF」导出标准 A4 的 PDF；导出按 <strong>400 DPI（2 倍高清）</strong> 渲染，打印更锐利</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">9</div>
+                            <div class="step-text">
+                                <strong>自动保存</strong>
+                                <p>编辑内容自动保存在本机浏览器，重新打开同一文件即可恢复分割线、旋转与擦除设置；数据不会上传，可用「清除本文件保存记录」重置</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">10</div>
+                            <div class="step-text">
+                                <strong>A3 取景框</strong>
+                                <p>中间预览区是一个<strong>固定不动的红色实线框</strong>，比例严格等于 A3 横版（420×297mm）；试卷图片始终放在框内显示，旋转或放大后<strong>超出红框的部分会被自动隐藏</strong>。双指可缩放 / 平移图片，双击画面复位。</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">11</div>
+                            <div class="step-text">
+                                <strong>手机端布局</strong>
+                                <p>手机上整页不滚动：顶部是「已导入文件」与缩略图，中间是<strong>始终可见的取景框</strong>，下方控制面板占下半屏并<strong>独立滚动</strong>，滑动时会<strong>自动吸附</strong>到某个功能模块上；在面板里继续下拉时顶部 Header 会<strong>平滑收起</strong>，把空间让给取景框，上滑即可恢复</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-num">12</div>
+                            <div class="step-text">
+                                <strong>主画布双态</strong>
+                                <p>主画布有<strong>两种形态</strong>，左上角始终有标签提示当前看到的是什么：</p>
+                                <p>· <strong>[ 原图编辑 ]</strong> —— 带红框、分割线、密封线的原图，用于排版操作（默认状态）</p>
+                                <p>· <strong>[ 打印结果预览 ]</strong> —— 处理后的最终 A4 成品页（双页效果），用于确认输出比例</p>
+                                <p>在「输出比例调整」里操作会自动切到<strong>打印结果预览</strong>；点击其它模块（方向调整 / 编辑工具 / 擦除 / 密封线）则自动切回<strong>原图编辑</strong>，两种形态之间平滑淡入淡出，不会闪烁。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-divider"></div>
+
+                <div class="panel-section" data-canvas-mode="edit">
+                    <h3>🔄 方向调整</h3>
+                    <div class="tools-grid">
+                        <div class="btn-group rotate-group">
+                            <button id="rotateLeftBtn" class="btn secondary" disabled title="逆时针旋转 90°">
+                                <span class="material-icons">rotate_left</span> 左转
+                            </button>
+                            <button id="resetRotationBtn" class="btn secondary" disabled title="将当前页旋转角度重置为 0°">
+                                <span class="material-icons">restart_alt</span> 重置
+                            </button>
+                            <button id="rotateRightBtn" class="btn secondary" disabled title="顺时针旋转 90°">
+                                <span class="material-icons">rotate_right</span> 右转
+                            </button>
+                        </div>
+                        <div class="rotate-slider">
+                            <div class="rotate-fine-label">
+                                <span>微调纠偏<span class="label-extra">（±15°）</span></span>
+                                <span class="status-chip" id="rotateAngle">0°</span>
+                            </div>
+                            <div class="fine-stepper">
+                                <button type="button" id="rotateFineMinusBtn" class="fine-step-btn" disabled
+                                    title="角度减少 0.5°" aria-label="角度减少 0.5 度">−</button>
+                                <input type="range" id="rotateFineSlider" min="-15" max="15" step="0.5" value="0" disabled
+                                    aria-label="微调纠偏角度" />
+                                <button type="button" id="rotateFinePlusBtn" class="fine-step-btn" disabled
+                                    title="角度增加 0.5°" aria-label="角度增加 0.5 度">+</button>
+                            </div>
+                            <span class="rotate-slider-val"><span id="rotateFineVal">0</span>°</span>
+                        </div>
+                        <div class="btn-group rotate-apply-row">
+                            <button id="applyRotateCurrentBtn" class="btn secondary" disabled
+                                title="把当前角度应用到当前页并保存">
+                                <span class="material-icons">check_circle</span> 应用当前页
+                            </button>
+                            <button id="applyRotateAllBtn" class="btn secondary" disabled
+                                title="把当前页的方向角度应用到所有页面">
+                                <span class="material-icons">done_all</span> 应用所有页
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section" data-canvas-mode="edit">
+                    <h3>🛠️ 编辑工具</h3>
+                    <div class="tools-grid">
+                        <div class="btn-group split-preset-group">
+                            <button id="splitHalfBtn" class="btn secondary" disabled title="把文档平均分成两栏（一分为二）">
+                                <span class="material-icons">vertical_split</span> 两栏
+                            </button>
+                            <button id="resetDefaultsBtn" class="btn secondary" disabled
+                                title="重置当前页分割线为默认（一条中线，一分为二）">
+                                <span class="material-icons">restart_alt</span> 重置
+                            </button>
+                            <button id="splitThirdBtn" class="btn secondary" disabled title="把文档平均分成三栏（一分为三）">
+                                <span class="material-icons">view_column</span> 三栏
+                            </button>
+                        </div>
+
+                        <div class="btn-group">
+                            <button id="addSplitBtn" class="btn secondary" disabled title="在最大间隙处新增一条分割线，可分成多份">
+                                <span class="material-icons">add</span> 增加分割线
+                            </button>
+                            <button id="removeSplitBtn" class="btn secondary" disabled
+                                title="开启后点击画布上的分割线即可直接删除">
+                                <span class="material-icons">remove_circle_outline</span> 去除分割线
+                            </button>
+                        </div>
+
+                        <div class="btn-group edit-apply-row">
+                            <button id="applySplitCurrentBtn" class="btn secondary" disabled
+                                title="把当前页的分割设置应用到当前页并保存">
+                                <span class="material-icons">check_circle</span> 应用当前页
+                            </button>
+                            <button id="applyToAllBtn" class="btn secondary" disabled
+                                title="把当前页的分割设置复制到所有页面">
+                                <span class="material-icons">done_all</span> 应用所有页
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section" data-canvas-mode="edit">
+                    <h3 class="seal-title-row">
+                        <span>🧽 擦除内容（可选）</span>
+                        <span class="status-chip" id="maskCount">尚未擦除</span>
+                    </h3>
+                    <div class="tools-grid">
+                        <div class="btn-group erase-mode-group">
+                            <button id="maskToggleBtn" class="btn secondary" disabled
+                                title="开启后可在图上拖拽框选要擦除的矩形区域，导出时该区域被覆盖为白色">
+                                <span class="material-icons">crop_square</span> 框选擦除
+                            </button>
+                            <button id="maskBrushBtn" class="btn secondary" disabled
+                                title="开启后按住鼠标涂抹，笔迹经过的内容在导出时被擦除">
+                                <span class="material-icons">brush</span> 涂抹擦除
+                            </button>
+                        </div>
+
+                        <div class="rotate-slider">
+                            <div class="rotate-fine-label">笔刷大小<span class="label-extra">（相对页宽）</span></div>
+                            <input type="range" id="maskBrushSlider" min="1" max="20" step="1" value="6" disabled />
+                            <span class="rotate-slider-val"><span id="maskBrushVal">6</span>%</span>
+                        </div>
+
+                        <div class="btn-group">
+                            <button id="maskUndoBtn" class="btn secondary" disabled title="撤销上一次擦除操作">
+                                <span class="material-icons">undo</span> 撤销
+                            </button>
+                            <button id="clearMasksBtn" class="btn secondary" disabled
+                                title="重置擦除：清除当前页所有擦除标记，并恢复已擦除区域">
+                                <span class="material-icons">restart_alt</span> 重置
+                            </button>
+                        </div>
+
+                        <button id="maskApplyBtn" class="btn primary full-width" disabled
+                            title="把标记的擦除区域真正应用到页面：画布直接显示擦除后的内容">
+                            <span class="material-icons">done_all</span> 应用
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section" data-canvas-mode="edit">
+                    <!-- 标题与状态标签同行：状态紧跟在标题右侧，不再单独占一行 -->
+                    <h3 class="seal-title-row">
+                        <span>🔒 密封线调整（可选）</span>
+                        <span class="status-chip seal-state" id="sealStatus">未启用</span>
+                    </h3>
+                    <div class="tools-grid">
+                        <div class="btn-group seal-action-row">
+                            <button id="toggleSealLineBtn" class="btn secondary" disabled
+                                title="开启密封区域（默认同时打开靠左与靠右，各占 15%）；再次点击取消全部密封区域">
+                                <span class="material-icons">format_shapes</span> 去除密封线
+                            </button>
+                            <button id="resetSealBtn" class="btn secondary" disabled
+                                title="清除当前页所有密封区域（左右 + 上下，不影响分割线）">
+                                <span class="material-icons">restart_alt</span> 重置
+                            </button>
+                        </div>
+
+                        <!-- 四个方向：左右（竖向密封带）与上下（横向密封带），可独立开关、可同时存在 -->
+                        <div class="seal-direction-block">
+                            <div class="btn-group seal-side-row">
+                                <button id="sealLeftBtn" class="btn secondary" disabled title="把密封区域贴到页面左边缘（保持当前宽度）">
+                                    <span class="material-icons">align_horizontal_left</span> 左侧
+                                </button>
+                                <button id="sealRightBtn" class="btn secondary" disabled title="把密封区域贴到页面右边缘（保持当前宽度）">
+                                    <span class="material-icons">align_horizontal_right</span> 右侧
+                                </button>
+                            </div>
+
+                            <div class="btn-group seal-side-row">
+                                <button id="sealTopBtn" class="btn secondary" disabled title="把密封区域贴到页面顶部（保持当前高度）">
+                                    <span class="material-icons">align_vertical_top</span> 上侧
+                                </button>
+                                <button id="sealBottomBtn" class="btn secondary" disabled title="把密封区域贴到页面底部（保持当前高度）">
+                                    <span class="material-icons">align_vertical_bottom</span> 下侧
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <div class="btn-group seal-apply-row">
+                            <button id="applySealCurrentBtn" class="btn secondary" disabled
+                                title="把当前页的密封区域应用到当前页并保存">
+                                <span class="material-icons">check_circle</span> 应用当前页
+                            </button>
+                            <button id="sealApplyAllBtn" class="btn secondary" disabled
+                                title="把密封区域应用到所有页面（左右随奇偶镜像，上下保持不变）">
+                                <span class="material-icons">done_all</span> 应用所有页
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section" data-canvas-mode="preview">
+                    <h3 class="seal-title-row">
+                        <span>📐 输出比例调整（可选）</span>
+                        <span class="status-chip" id="cropZoomState">已应用</span>
+                    </h3>
+                    <div class="tools-grid">
+                        <div class="btn-group crop-zoom-group">
+                            <button id="cropZoomOutBtn" class="btn secondary" disabled title="调小裁剪结果">
+                                <span class="material-icons">remove</span> 缩小
+                            </button>
+                            <button id="cropZoomResetBtn" class="btn secondary" disabled title="恢复 100%">
+                                <span class="material-icons">restart_alt</span> 重置
+                            </button>
+                            <button id="cropZoomInBtn" class="btn secondary" disabled title="放大裁剪结果">
+                                <span class="material-icons">add</span> 放大
+                            </button>
+                        </div>
+                        <div class="rotate-slider">
+                            <div class="rotate-fine-label">
+                                <span>输出比例<span class="label-extra">（成品页大小）</span></span>
+                                <span class="status-chip" id="cropZoomApplied">100%</span>
+                            </div>
+                            <input type="range" id="cropZoomSlider" min="50" max="200" step="5" value="100" disabled />
+                            <span class="rotate-slider-val"><span id="cropZoomVal">100</span>%</span>
+                        </div>
+                        <div class="btn-group crop-apply-row">
+                            <button id="applyCropZoomBtn" class="btn primary" disabled
+                                title="把当前比例应用到本页，之后导出时生效">
+                                <span class="material-icons">check_circle</span> 应用当前页
+                            </button>
+                            <button id="applyCropZoomAllBtn" class="btn secondary" disabled
+                                title="把当前比例应用到所有页面，之后导出时生效">
+                                <span class="material-icons">done_all</span> 应用所有页
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="spacer"></div>
+
+                <div class="panel-section footer-actions">
+                    <!-- Hidden File Input（支持多选） -->
+                    <input type="file" id="fileInput" accept="application/pdf,image/*" multiple hidden>
+
+                    <button id="openSortBtn" class="btn secondary full-width" disabled
+                        title="导出前逐页调整顺序：拖动页面卡片或用上下按钮移动，确定后再导出">
+                        <span class="material-icons">sort</span> 导出前排序
+                    </button>
+
+                    <button id="clearSaveBtn" class="btn secondary full-width" disabled
+                        title="清除本文件已保存的编辑配置（分割线 / 旋转 / 擦除 / 裁剪比例），下次打开时不再自动恢复">
+                        <span class="material-icons">delete_sweep</span>
+                        <span class="btn-label-long">清除本文件保存记录</span>
+                    </button>
+
+                    <!-- 导出模式（含「等比留白」）紧挨导出按钮，选择完即可直接导出 -->
+                    <div class="export-options">
+                        <div class="export-head">
+                            <label class="sub-label export-title" for="exportFitSelect">文件导出</label>
+                            <span class="export-size-note">成品页 210×297mm · 400 DPI</span>
+                        </div>
+                        <select id="exportFitSelect" class="select-input">
+                            <option value="a4-fit" selected>标准 A4 · 等比留白（不变形）</option>
+                            <option value="a4-fill">标准 A4 · 拉伸填满</option>
+                            <option value="a4-cover">标准 A4 · 等比填满（超出裁切）</option>
+                        </select>
+                    </div>
+
+                    <button id="exportBtn" class="btn success full-width large shadow-btn" disabled>
+                        <span class="material-icons">save_alt</span> 导出为 PDF (A4)
+                    </button>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- 导出前手动排序面板 -->
+    <div class="sort-panel" id="sortPanel" hidden role="dialog" aria-modal="true" aria-labelledby="sortPanelTitle">
+        <div class="sort-panel-mask" id="sortPanelMask"></div>
+        <div class="sort-panel-card">
+            <div class="sort-panel-head">
+                <div class="sort-panel-title-wrap">
+                    <span class="material-icons" aria-hidden="true">sort</span>
+                    <h3 id="sortPanelTitle">导出前排序</h3>
+                    <span class="sort-panel-count" id="sortPanelCount"></span>
+                </div>
+                <button type="button" class="sort-panel-close" id="sortPanelClose" aria-label="关闭">
+                    <span class="material-icons" aria-hidden="true">close</span>
+                </button>
+            </div>
+
+            <p class="sort-panel-hint">拖动页面卡片调整顺序，也可用右侧上下按钮逐页移动；点击「应用顺序」后生效。</p>
+
+            <ol class="sort-list" id="sortPanelList"></ol>
+
+            <div class="sort-panel-foot">
+                <button type="button" class="btn secondary" id="sortPanelReset">
+                    <span class="material-icons">restart_alt</span> 恢复默认顺序
+                </button>
+                <div class="sort-panel-foot-right">
+                    <button type="button" class="btn secondary" id="sortPanelCancel">取消</button>
+                    <button type="button" class="btn primary" id="sortPanelApply">
+                        <span class="material-icons">check</span> 应用顺序
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!--
+      本地文件方式打开时的友好提示
+      浏览器出于安全限制不允许 file:// 协议加载 ES 模块，表现为「界面能显示但所有按钮没反应」，
+      这里直接给出正确做法，避免被误认为「版本不对 / 页面坏了」。
+    -->
+    <script>
+        if (location.protocol === 'file:') {
+            window.addEventListener('DOMContentLoaded', function () {
+                // 源码版的入口是 src/main.js；构建版会被替换成 ./assets/index-*.js
+                var isSource = !!document.querySelector('script[src*="src/main.js"]');
+                var box = document.createElement('div');
+                box.setAttribute('role', 'alert');
+                box.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.94);color:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;';
+                box.innerHTML =
+                    '<div style="max-width:660px;line-height:1.75">' +
+                    '<h2 style="margin:0 0 14px;font-size:21px">请通过本地服务器打开</h2>' +
+                    '<p style="margin:0 0 12px;color:#cbd5e1">浏览器出于安全限制，不允许用 <code style="color:#fbbf24">file://</code> 协议加载 ES 模块，所以页面脚本无法运行——' +
+                    '界面能显示，但<b>所有按钮都没有反应</b>。这不是版本问题，代码是好的。</p>' +
+                    '<p style="margin:0 0 8px;color:#cbd5e1">改用以下任一方式即可：</p>' +
+                    '<pre style="background:#1e293b;padding:14px;border-radius:8px;overflow:auto;color:#e2e8f0">' +
+                    (isSource
+                        ? 'npm install\nnpm run dev        # 源码版：先安装依赖再启动开发服务器'
+                        : 'npx serve .          # 构建版：把当前目录交给静态服务器') +
+                    '</pre>' +
+                    '<p style="margin:10px 0 0;color:#94a3b8">也可以直接使用在线版本：' +
+                    '<a style="color:#818cf8" href="https://yaoyuandejuli.github.io/PaperSplit/">yaoyuandejuli.github.io/PaperSplit</a></p>' +
+                    '</div>';
+                document.body.appendChild(box);
+            });
+        }
+
+        /*
+          服务器能力不足时的提醒
+          部分简易服务器（如 python -m http.server）使用 HTTP/1.0、不支持 keep-alive，
+          浏览器并发拉取 CSS / 字体 / 主脚本时连接会被直接断开（浏览器随后会重试，
+          所以多数情况下最终还能显示出来，只是明显变慢；偶尔重试也失败就会样式错乱）。
+          这里监听资源加载失败事件，命中时给出一句提醒和可执行的解决办法。
+        */
+        (function () {
+            if (location.protocol === 'file:') return;
+
+            var failed = [];
+            window.addEventListener('error', function (e) {
+                var el = e.target;
+                if (!el || !el.tagName) return;
+                var tag = el.tagName.toUpperCase();
+                if (tag !== 'LINK' && tag !== 'SCRIPT' && tag !== 'IMG') return;
+                var href = el.href || el.src || '';
+                if (!href || href.startsWith('data:')) return;
+                if (/favicon/i.test(href)) return; // 图标缺失无关紧要
+                failed.push(href);
+            }, true);
+
+            window.addEventListener('DOMContentLoaded', function () {
+                setTimeout(function () {
+                    var noStyles = !(document.styleSheets && document.styleSheets.length > 0);
+                    if (!noStyles && failed.length === 0) return; // 一切正常，不打扰用户
+
+                    var banner = document.createElement('div');
+                    banner.setAttribute('role', 'status');
+                    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;' +
+                        'background:#7c2d12;color:#fde68a;padding:12px 18px;line-height:1.7;font-size:14px;' +
+                        'font-family:system-ui,-apple-system,"Segoe UI",sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25);';
+                    var code = 'background:rgba(0,0,0,.28);padding:1px 6px;border-radius:4px;font-family:ui-monospace,Consolas,monospace';
+                    var reason = noStyles
+                        ? '页面样式完全没有加载，说明服务器没有正常响应资源'
+                        : '检测到部分资源加载失败，页面可能会样式错乱或加载很慢';
+                    banner.innerHTML =
+                        '<b>' + reason + '</b><br>' +
+                        '常见原因：服务器扛不住浏览器的并发请求（多为 HTTP/1.0、不支持 keep-alive 的简易服务器）。<br>' +
+                        '建议改用项目自带服务器：<code style="' + code + '">npm run serve</code>' +
+                        '（或 <code style="' + code + '">npx serve dist</code>）；' +
+                        '在线版本：<a style="color:#fcd34d" href="https://yaoyuandejuli.github.io/PaperSplit/">yaoyuandejuli.github.io/PaperSplit</a>' +
+                        ' <button type="button" style="margin-left:10px;background:rgba(0,0,0,.28);color:#fde68a;border:1px solid rgba(253,230,138,.45);' +
+                        'border-radius:6px;padding:3px 10px;cursor:pointer;font-size:13px">知道了</button>';
+                    banner.querySelector('button').addEventListener('click', function () {
+                        banner.remove();
+                    });
+                    document.body.appendChild(banner);
+                }, 2500);
+            });
+        })();
+    </script>
+</body>
+
+</html>
