@@ -59,11 +59,6 @@ export function resetView() {
     applyViewTransform();
 }
 
-/** 当前是否处于放大状态（>1 表示用户放大过） */
-export function isZoomed() {
-    return view.zoom > 1.001;
-}
-
 /** 限制缩放倍率 */
 function clampZoom(z) {
     return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));

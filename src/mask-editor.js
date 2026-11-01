@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { getPageConfig } from './editor.js';
+import { getPageConfig, notifyConfigChanged } from './editor.js';
 import { drawEraseStroke } from './utils.js';
 
 /**
@@ -220,15 +220,25 @@ export function renderMasks() {
     const wrapper = elements.canvasWrapper;
     if (!wrapper) return;
 
-    // 清理旧的矩形框
-    wrapper.querySelectorAll('.mask-rect').forEach(e => e.remove());
-
     const cfg = state.pagesData[state.currentPage];
     const masks = (cfg && Array.isArray(cfg.masks)) ? cfg.masks : [];
     const strokes = (cfg && Array.isArray(cfg.strokes)) ? cfg.strokes : [];
 
+    // 复用已有的遮罩框：只更新位置与样式，不重建 DOM。
+    // 擦除标记通常只有几处，重建的开销不大；但擦除标记与画布是分开的图层，
+    // 拖动标记时只改样式即可，没必要动 DOM 结构。
+    // 注意排除 .mask-draft —— 那是框选过程中的临时元素，不属于已保存的标记。
+    const existing = wrapper.querySelectorAll('.mask-rect:not(.mask-draft)');
+    for (let i = existing.length - 1; i >= masks.length; i--) {
+        existing[i].remove();
+    }
+
     masks.forEach((m, idx) => {
-        const el = document.createElement('div');
+        let el = existing[idx];
+        if (!el) {
+            el = document.createElement('div');
+            wrapper.appendChild(el);
+        }
         el.className = m.applied ? 'mask-rect applied' : 'mask-rect';
         el.dataset.maskIndex = String(idx);
         el.title = m.applied ? '已应用擦除（如需修改请先撤销）' : '拖动可移动位置，点击可删除';
@@ -236,11 +246,30 @@ export function renderMasks() {
         el.style.top = `${m.y * 100}%`;
         el.style.width = `${m.w * 100}%`;
         el.style.height = `${m.h * 100}%`;
-        wrapper.appendChild(el);
     });
 
     renderStrokeOverlay(strokes);
     updateMaskUI();
+}
+
+/**
+ * 某一页是否已有「已应用」的擦除内容
+ *
+ * 页面画布来自共享位图缓存，而「已应用」的擦除标记是要**烘焙进画布**的
+ * （画布直接显示擦除后的内容）。两者相遇时必须先复制一份画布，
+ * 否则缓存里的画面会被永久涂白，撤销擦除也回不来。
+ *
+ * @param {number} [pageIndex=state.currentPage] 页面索引
+ * @returns {boolean} 是否存在已应用的擦除内容
+ */
+export function hasAppliedErasures(pageIndex = state.currentPage) {
+    const cfg = state.pagesData[pageIndex];
+    if (!cfg) return false;
+    const masks = Array.isArray(cfg.masks) ? cfg.masks : [];
+    const strokes = Array.isArray(cfg.strokes) ? cfg.strokes : [];
+    for (const m of masks) if (m.applied) return true;
+    for (const s of strokes) if (s.applied) return true;
+    return false;
 }
 
 /**
@@ -288,8 +317,8 @@ function renderStrokeOverlay(strokes) {
     if (!wrapper) return;
 
     const pageCanvas = wrapper.querySelector('.page-canvas');
-    const W = pageCanvas ? pageCanvas.width : Math.round(wrapper.clientWidth);
-    const H = pageCanvas ? pageCanvas.height : Math.round(wrapper.clientHeight);
+    const W = Math.max(1, pageCanvas ? pageCanvas.width : Math.round(wrapper.clientWidth));
+    const H = Math.max(1, pageCanvas ? pageCanvas.height : Math.round(wrapper.clientHeight));
 
     let overlay = wrapper.querySelector('.mask-overlay-canvas');
     if (!overlay) {
@@ -297,28 +326,32 @@ function renderStrokeOverlay(strokes) {
         overlay.className = 'mask-overlay-canvas';
         wrapper.appendChild(overlay);
     }
-    overlay.width = Math.max(1, W);
-    overlay.height = Math.max(1, H);
-    overlay.style.width = `${overlay.width}px`;
-    overlay.style.height = `${overlay.height}px`;
+    // 只有尺寸真的变了才重新设置 —— 给 canvas 赋 width/height 会清空画布并重新分配显存，
+    // 旋转 / 翻页时尺寸不变，重复赋值纯属浪费（一张全尺寸画布的分配+清空并不便宜）。
+    if (overlay.width !== W || overlay.height !== H) {
+        overlay.width = W;
+        overlay.height = H;
+        overlay.style.width = `${W}px`;
+        overlay.style.height = `${H}px`;
+    }
 
     const ctx = overlay.getContext('2d');
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    ctx.clearRect(0, 0, W, H);
 
     // 已完成的笔迹：待应用=红色标记；已应用=极淡轮廓（内容已被真正擦除）
     for (const s of strokes) {
         if (s.applied) {
-            drawEraseStroke(ctx, s, overlay.width, overlay.height, {
+            drawEraseStroke(ctx, s, W, H, {
                 fillStyle: 'rgba(148, 163, 184, 0.10)',
                 lineStyle: 'rgba(100, 116, 139, 0.45)'
             });
         } else {
-            drawEraseStroke(ctx, s, overlay.width, overlay.height, MARK_STYLE);
+            drawEraseStroke(ctx, s, W, H, MARK_STYLE);
         }
     }
     // 正在涂抹的笔迹（实时预览）
     if (drag && drag.type === 'brush' && drag.stroke) {
-        drawEraseStroke(ctx, drag.stroke, overlay.width, overlay.height, MARK_STYLE);
+        drawEraseStroke(ctx, drag.stroke, W, H, MARK_STYLE);
     }
 }
 
@@ -379,7 +412,7 @@ function updateMaskUI() {
 
 /** 通知外部：配置已变更，主画布的「结果预览」需重绘 */
 function dispatchConfigChanged() {
-    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
+    notifyConfigChanged();
 }
 
 /* ------------------------------------------------------------------ */

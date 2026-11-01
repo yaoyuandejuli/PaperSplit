@@ -1,12 +1,19 @@
+# PaperSplit · Node 版（用项目自带零依赖服务器 scripts/serve.js）
+# ------------------------------------------------------------
+# 与 nginx 版功能完全一致，只是运行阶段改用 Node 内置模块起服务，
+# 不引入 nginx 依赖，镜像更小。用法：
+#      docker compose -f deploy/docker-compose.node.yml up -d --build
+#      # 或拉取镜像后直接跑：
+#      docker run -d --name papersplit-node -p 8080:8080 papersplit-node:latest
+# 访问 http://<设备IP>:8080
+# ------------------------------------------------------------
 services:
   papersplit:
-    image: node:22-alpine
-    container_name: papersplit
-    restart: unless-stopped
-    working_dir: /app
-    command: ["node", "scripts/serve.js", "8080"]
+    build:
+      context: ..
+      dockerfile: Dockerfile.node
+    image: papersplit-node:latest
+    container_name: papersplit-node
     ports:
       - "8080:8080"
-    volumes:
-      # ←←← 改成你自己的路径
-      - .:/app:ro
+    restart: unless-stopped

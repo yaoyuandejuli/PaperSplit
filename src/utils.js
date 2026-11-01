@@ -107,6 +107,24 @@ export function rotatedBounds(w, h, deg) {
 }
 
 /**
+ * 复制一张画布（新建同尺寸画布并把内容画过去）
+ *
+ * 用途：位图缓存里的画布是**共享**的，任何需要在画布上作画的操作
+ * （如烘焙「已应用」的擦除区域）都必须先复制一份，
+ * 否则会污染缓存，让撤销擦除后仍残留白块。
+ *
+ * @param {HTMLCanvasElement} src 源画布
+ * @returns {HTMLCanvasElement} 独立的新画布
+ */
+export function cloneCanvas(src) {
+    const out = document.createElement('canvas');
+    out.width = src.width;
+    out.height = src.height;
+    out.getContext('2d').drawImage(src, 0, 0);
+    return out;
+}
+
+/**
  * 将画布按指定角度旋转，返回新的画布。
  * 画布尺寸取「旋转后的外接矩形」，因此 0°/90°/180°/270° 及任意角度都不会裁切内容。
  * 所有分割线 / 密封线 / 切片坐标都定义在「旋转后的显示坐标系」中，

@@ -1,12 +1,13 @@
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { renderSplitLines, getPageConfig, syncRotationUI } from './editor.js';
-import { renderMasks, renderAppliedErasures } from './mask-editor.js';
-import { rotateCanvas } from './utils.js';
+import { renderSplitLines, getPageConfig, syncRotationUI, notifyConfigChanged } from './editor.js';
+import { renderMasks, renderAppliedErasures, hasAppliedErasures } from './mask-editor.js';
+import { rotateCanvas, cloneCanvas } from './utils.js';
 import { syncCropZoomFromPage } from './crop-adjust.js';
 import { getPageSource, reorderPages } from './documents.js';
 import { showToast } from './toast.js';
 import { setFitScale, resetView } from './viewport.js';
+import { getPageRaster, getPageSize } from './page-raster.js';
 
 /**
  * 渲染质量系数
@@ -20,6 +21,16 @@ const MAX_RENDER_SCALE_IMAGE = 1;
 
 /** 单轴渲染像素上限（防止超大页面把移动端内存打爆） */
 const MAX_RENDER_DIM = 2800;
+
+/**
+ * 渲染倍率量化步长
+ *
+ * 窗口拖动时取景框尺寸每变一点，适配倍率就变一点，
+ * 若按精确倍率渲染，每次都是全新尺寸 —— PDF 会被反复重绘。
+ * 把倍率归到固定档位后，相邻尺寸会命中同一份缓存位图，
+ * 只有跨档时才会真正重新渲染。
+ */
+const RENDER_SCALE_STEP = 1 / 16;
 
 /**
  * 上一次渲染的基准信息
@@ -106,6 +117,8 @@ export function rotatePage(delta) {
     state.rotationBase = config.rotation;
     syncRotationUI();
     renderCurrentPage();
+    // 方向变了 → 结果预览与自动保存都要跟上
+    notifyConfigChanged();
 }
 
 /**
@@ -117,6 +130,7 @@ export function resetRotation() {
     state.rotationBase = 0;
     syncRotationUI();
     renderCurrentPage();
+    notifyConfigChanged();
 }
 
 /**
@@ -130,6 +144,7 @@ export function setPageRotation(angle) {
     config.rotation = ((v % 360) + 360) % 360;
     syncRotationUI();
     renderCurrentPage();
+    notifyConfigChanged();
 }
 
 /**
@@ -147,12 +162,14 @@ export function applyRotationToCurrent() {
     // 比较两个角度是否等价（0 与 360 同义）
     const diff = Math.abs((((target - current) % 360) + 540) % 360 - 180);
     if (diff >= 0.01) {
+        // setPageRotation 内部已派发 config-changed
         setPageRotation(target);
+    } else {
+        notifyConfigChanged();
     }
 
     const angle = getPageConfig(state.currentPage).rotation || 0;
     showToast(`方向角度已应用到当前页（${angle}°）`, 'success');
-    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
 /**
@@ -199,8 +216,6 @@ export async function renderCurrentPage() {
     // 每次渲染分配一个唯一令牌；异步完成后若令牌已过期则丢弃，避免并发渲染叠加重影
     const myToken = ++renderToken;
 
-    let canvas, baseW, baseH, renderScale;
-
     const rotation = getPageConfig(state.currentPage).rotation || 0;
 
     // 解析当前页来自哪个文件（多文件合并后，每页可能来源不同）
@@ -209,51 +224,38 @@ export async function renderCurrentPage() {
 
     const box = getViewportBox();
 
-    if (source.isPdf) {
-        const page = await source.doc.pdfDoc.getPage(source.localPage);
-        const unscaledViewport = page.getViewport({ scale: 1 });
-        baseW = unscaledViewport.width;
-        baseH = unscaledViewport.height;
+    // 页面原始尺寸（不随倍率变化）—— 用于计算适配系数
+    const size = await getPageSize(source);
+    if (myToken !== renderToken) return;
+    const baseW = size.w;
+    const baseH = size.h;
 
-        // 适配系数基于「未旋转」的页面尺寸 —— 纸张在屏幕上的大小不随旋转改变，
-        // 旋转后超出取景框的部分由红框裁切（所见即所得）
-        const fit = computeFitScale(baseW, baseH, box.w, box.h);
-        renderScale = computeRenderScale(fit, MAX_RENDER_SCALE_PDF);
-        renderScale = Math.min(renderScale, MAX_RENDER_DIM / baseW, MAX_RENDER_DIM / baseH);
+    // 适配系数基于「未旋转」的页面尺寸 —— 纸张在屏幕上的大小不随旋转改变，
+    // 旋转后超出取景框的部分由红框裁切（所见即所得）
+    const fit = computeFitScale(baseW, baseH, box.w, box.h);
+    const maxScale = source.isPdf ? MAX_RENDER_SCALE_PDF : MAX_RENDER_SCALE_IMAGE;
+    let renderScale = computeRenderScale(fit, maxScale);
+    renderScale = Math.min(renderScale, MAX_RENDER_DIM / baseW, MAX_RENDER_DIM / baseH);
 
-        const viewport = page.getViewport({ scale: renderScale });
-        canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+    // 栅格化走缓存：同一页同一倍率不会重复渲染 PDF，
+    // 旋转 / 微调时只需重新做一次画布变换，手感跟手得多
+    const raster = await getPageRaster(source, renderScale);
+    if (myToken !== renderToken) return;
+    if (!raster) return;
 
-        await page.render({
-            canvasContext: context,
-            viewport: viewport
-        }).promise;
-    } else {
-        // 图片渲染
-        const img = new Image();
-        await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = source.doc.imageUrl;
-        });
-        baseW = img.width;
-        baseH = img.height;
-
-        const fit = computeFitScale(baseW, baseH, box.w, box.h);
-        renderScale = computeRenderScale(fit, MAX_RENDER_SCALE_IMAGE);
-
-        canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(baseW * renderScale));
-        canvas.height = Math.max(1, Math.round(baseH * renderScale));
-        const context = canvas.getContext('2d');
-        context.drawImage(img, 0, 0, canvas.width, canvas.height);
-    }
+    // 用「实际渲染倍率」换算显示缩放：位图分辨率可能被归到相邻档位，
+    // 但页面在屏幕上的显示尺寸恒为「原始尺寸 × 适配系数」，与倍率无关，
+    // 因此画面几何与改造前完全一致。
+    renderScale = raster.scale;
 
     // 应用方向旋转，得到显示画布。分割线/密封线/切片坐标均基于此旋转后坐标系。
-    canvas = rotateCanvas(canvas, rotation);
+    const rotated = rotateCanvas(raster.canvas, rotation);
+    // 0° 时 rotateCanvas 直接返回源画布 —— 那张画布来自共享缓存。
+    // 只有当需要把「已应用」的擦除标记烘焙进去时才必须复制一份：
+    // 否则缓存里的画面会被永久涂白，撤销擦除也回不来。
+    const canvas = (rotated === raster.canvas && hasAppliedErasures())
+        ? cloneCanvas(raster.canvas)
+        : rotated;
     // 注意：旋转会生成新画布，类名需在此处重新设置
     canvas.className = 'page-canvas';
 
@@ -263,15 +265,18 @@ export async function renderCurrentPage() {
     // 渲染期间若有更新的渲染请求（翻页/缩放），则放弃本次结果
     if (myToken !== renderToken) return;
 
-    elements.canvasWrapper.innerHTML = ''; // 清除旧的 Canvas 和裁切线
+    // 只替换页面画布，保留其余覆盖层 DOM
+    // （分割线 / 密封区 / 擦除标记都会在下面各自重建，
+    //   但「涂抹笔迹图层」是一张全尺寸画布，重建它意味着重新分配一大块显存）
+    const oldCanvas = elements.canvasWrapper.querySelector('canvas.page-canvas');
+    if (oldCanvas) oldCanvas.remove();
     elements.canvasWrapper.style.width = `${canvas.width}px`;
     elements.canvasWrapper.style.height = `${canvas.height}px`;
     elements.canvasWrapper.appendChild(canvas);
 
     // 显示尺寸 = 内容尺寸 × 适配系数（渲染倍率由 CSS 抵消）
-    const finalFit = computeFitScale(baseW, baseH, box.w, box.h);
-    lastRender = { baseW, baseH, renderScale, fit: finalFit };
-    setFitScale(finalFit / renderScale);
+    lastRender = { baseW, baseH, renderScale, fit };
+    setFitScale(fit / renderScale);
 
     // 恢复或添加默认裁切线
     renderSplitLines();

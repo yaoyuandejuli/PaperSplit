@@ -10,6 +10,7 @@ import { elements } from './dom.js';
 import { renderThumbnails, renderCurrentPage, updatePageControls } from './viewer.js';
 import { syncCropZoomUI, syncCropZoomFromPage } from './crop-adjust.js';
 import { clearResultPreviewCache, requestResultPreview } from './result-preview.js';
+import { clearPageRasterCache } from './page-raster.js';
 import { setCanvasMode, CANVAS_MODE } from './canvas-mode.js';
 import { exitMaskMode, renderMasks } from './mask-editor.js';
 import { getPageConfig, syncRotationUI } from './editor.js';
@@ -72,6 +73,8 @@ async function importFiles(files, mode) {
         resetState();
         // 清空结果预览的页面内容缓存（避免用到上一份文件的画面）
         clearResultPreviewCache();
+        // 清空共享位图缓存（同样避免用到上一份文件的画面）
+        clearPageRasterCache();
         // 新文件 → 主画布回到「原图编辑态」
         setCanvasMode(CANVAS_MODE.EDIT);
         state.suppressSave = true;
@@ -329,44 +332,6 @@ async function buildBlobWorkerUrl() {
         }
     }
     return null;
-}
-
-/**
- * 加载失败时给出可执行的排查提示
- *
- * 真实内网环境里最常见的两个原因：
- *   ① 服务器并发能力不足 / 连接被重置（老版本 python -m http.server、部分一键部署工具）；
- *   ② 服务器没有正确设置 MIME 类型（把 .js 返回成 application/octet-stream）。
- * 两者都会表现为「无法加载 PDF 文件」，但解法不同，因此分开提示。
- */
-function showLoadFailure(error) {
-    const msg = String((error && error.message) || '').toLowerCase();
-    const isNetwork = /worker|fetch|network|failed to load|connection|module script|mime|import/i.test(msg);
-
-    const lines = [
-        '无法加载 PDF 文件。',
-        '',
-        '常见原因与解决办法：',
-        '',
-        '① 本地服务器并发不足 / 连接被重置',
-        '   简易服务器（如老版本 python -m http.server）处理不了浏览器的并发请求，',
-        '   导致 PDF 解析组件加载失败。',
-        '   解决：改用能并发处理的静态服务器，例如：',
-        '      npx serve dist',
-        '      npx http-server dist -p 8080',
-        '',
-        '② 服务器没有正确设置 MIME 类型',
-        '   把 .js 返回成 application/octet-stream 时，浏览器会拒绝执行 PDF 解析组件。',
-        '   解决：确认服务器对该文件返回 application/javascript。',
-        '',
-        '若用源码方式运行，请确认已执行 npm install，并且是用 npm run dev 启动（不要直接双击 index.html）。'
-    ];
-
-    if (!isNetwork) {
-        lines.splice(1, 0, '如果文件本身可以被正常打开，请先确认它不是加密或损坏的 PDF。', '');
-    }
-
-    alert(lines.join('\n'));
 }
 
 /**

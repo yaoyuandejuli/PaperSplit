@@ -23,6 +23,7 @@ import { getPageSource } from './documents.js';
 import { getPageConfig } from './editor.js';
 import { rotateCanvas, buildEraseOverlay } from './utils.js';
 import { getSliceRanges, getVerticalRange, computePlacement, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
+import { getPageRaster, getPageSize } from './page-raster.js';
 
 /** A4 竖版宽高比（宽 / 高） */
 const ASPECT = A4_WIDTH / A4_HEIGHT;
@@ -61,6 +62,10 @@ async function getWorkCanvas() {
 
 /**
  * 渲染当前页内容画布（已应用方向旋转）
+ *
+ * 走共享的位图缓存：预览与主画布共用同一份「未旋转」页面位图，
+ * 旋转时只做一次画布变换，不再重复渲染 PDF。
+ *
  * @param {number} [targetWidth=1200] 渲染宽度（像素），越大越清晰
  */
 export async function renderPageContentCanvas(targetWidth = RENDER_WIDTH) {
@@ -70,31 +75,17 @@ export async function renderPageContentCanvas(targetWidth = RENDER_WIDTH) {
     const source = getPageSource(state.currentPage);
     if (!source) return null;
 
-    let src;
-    if (source.isPdf) {
-        const page = await source.doc.pdfDoc.getPage(source.localPage);
-        const base = page.getViewport({ scale: 1 });
-        const scale = Math.min(2, targetWidth / base.width);
-        const viewport = page.getViewport({ scale });
-        src = document.createElement('canvas');
-        src.width = viewport.width;
-        src.height = viewport.height;
-        await page.render({ canvasContext: src.getContext('2d'), viewport }).promise;
-    } else {
-        const img = new Image();
-        img.src = source.doc.imageUrl;
-        await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-        });
-        const scale = Math.min(2, targetWidth / img.width);
-        src = document.createElement('canvas');
-        src.width = Math.round(img.width * scale);
-        src.height = Math.round(img.height * scale);
-        src.getContext('2d').drawImage(img, 0, 0, src.width, src.height);
-    }
+    // 预览按固定宽度渲染（最多放大 2 倍），
+    // 这样每一栏在 A4 上的成像尺寸与导出结果一致。
+    // 预览是固定倍率，不做档位量化 —— 它的分辨率直接决定预览清晰度。
+    const size = await getPageSize(source);
+    if (!size || !(size.w > 0)) return null;
+    const scale = Math.min(2, targetWidth / size.w);
 
-    return rotateCanvas(src, rotation);
+    const raster = await getPageRaster(source, scale, false);
+    if (!raster) return null;
+
+    return rotateCanvas(raster.canvas, rotation);
 }
 
 /**
@@ -137,14 +128,6 @@ let renderWaiters = [];
 let previewReady = false;
 
 /**
- * 结果预览是否已就绪（至少成功绘制过一次）
- * @returns {boolean}
- */
-export function isResultPreviewReady() {
-    return previewReady;
-}
-
-/**
  * 请求重绘结果预览（按帧合并，滑块拖动时也不卡）
  * @returns {Promise<void>} 本次绘制完成时兑现
  */
@@ -165,11 +148,15 @@ export function requestResultPreview() {
 
 /**
  * 延迟刷新结果预览（避免拖动分割线时高频重绘）
+ *
+ * 处于「原图编辑态」时预览层是不可见的（opacity=0），
+ * 这时重绘纯属浪费 —— 切到预览态时 canvas-mode.js 会主动补一次重绘。
  */
 export function scheduleResultPreview() {
     clearTimeout(previewTimer);
     previewTimer = setTimeout(() => {
         previewTimer = null;
+        if (state.canvasMode !== 'preview') return;
         requestResultPreview();
     }, 240);
 }

@@ -75,7 +75,6 @@ export const elements = {
     dragOverlay: document.getElementById('dragOverlay'),
 
     // A3 固定取景框（红框比例 = A3 横版 420:297，内部裁切超出部分）
-    a3Stage: document.getElementById('a3Stage'),
     // 内容层：承载「原图编辑态」与「结果预览态」两层，data-mode 控制互斥显示
     a3Content: document.getElementById('a3Content'),
     a3Frame: document.getElementById('a3Frame'),

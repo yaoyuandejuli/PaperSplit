@@ -178,16 +178,6 @@ export function clearEditConfig(fingerprint) {
     } catch (e) { /* 忽略 */ }
 }
 
-/** 是否有某文件的保存记录（用于「恢复默认」后判断是否要清记录） */
-export function hasEditConfig(fingerprint) {
-    if (!fingerprint) return false;
-    try {
-        return !!localStorage.getItem(storageKey(fingerprint));
-    } catch (e) {
-        return false;
-    }
-}
-
 /** 淘汰超出数量上限的最旧记录 */
 function pruneOldRecords() {
     try {

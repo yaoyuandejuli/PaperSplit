@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+# ============================================================
+# PaperSplit · 多阶段构建（Node 版，使用项目自带零依赖服务器）
+# 与 nginx 版等价，只是运行阶段改用 scripts/serve.js 提供静态服务，
+# 不依赖 nginx，镜像更小依赖链更短。
+# ============================================================
+
+# ---------- 构建阶段 ----------
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# ---------- 运行阶段：node scripts/serve.js 8080 ----------
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/scripts ./scripts
+COPY --from=build /app/package.json ./package.json
+EXPOSE 8080
+CMD ["node", "scripts/serve.js", "8080"]

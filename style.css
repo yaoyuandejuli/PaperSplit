@@ -1747,6 +1747,19 @@ body.mask-rect-dragging {
         padding: 0;
     }
 
+    /* 手机端：操作按钮组收紧到内容宽度并贴右，避免「＋」被推到标题行左侧 */
+    .left-panel .file-list-actions {
+        width: auto;
+        margin-left: auto;
+        justify-content: flex-end;
+    }
+
+    /* 手机端：顶栏「切换文件」已提供「替换全部」能力，文件条里只保留主按钮「＋ 添加文件」，
+       让「＋」紧贴标题行右侧（顶栏换文件入口在窄屏下依旧可达） */
+    .left-panel .file-add-btn.import-new {
+        display: none;
+    }
+
     /* 桌面端遗留的「展开浮层」样式在手机端不再需要：
        清单常驻横向平铺，任何展开态都退回普通流内布局 */
     .left-panel .file-list-box.expanded {

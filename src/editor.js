@@ -7,6 +7,17 @@ import { normalizeSeal, getSealRanges, getSealBands, SEAL_MIN_W, SEAL_MAX_W } fr
 const SEAL_DEFAULT_W = 0.15;
 
 /**
+ * 已经完成「旧存档字段迁移」的页面配置
+ *
+ * 迁移只需做一次（把旧字段形态规整成现行结构），
+ * 但 getPageConfig 在拖动、渲染等热路径上会被反复调用 ——
+ * 若每次都重跑迁移（含遍历全部擦除标记），会白白消耗主线程时间。
+ * 用 WeakSet 记录「已迁移」的对象即可：配置对象一旦被替换，
+ * 新对象不在集合里，会自动重新迁移一次。
+ */
+const migratedConfigs = new WeakSet();
+
+/**
  * 获取或初始化当前页面的配置
  * 结构: {
  *   splitLines: number[],                   // 分割线位置比例 (0-1)，多条 => 分栏
@@ -37,6 +48,9 @@ export function getPageConfig(pageIndex) {
     }
     const cfg = state.pagesData[pageIndex];
 
+    // 已迁移过就直接返回（热路径上的常见情况）
+    if (migratedConfigs.has(cfg)) return cfg;
+
     // 兼容旧存档：{ x, type } 或单个 { x0, x1 } 形态 → 统一转为数组
     if (cfg.sealLine !== undefined || cfg.sealRange !== undefined) {
         const legacy = cfg.sealRange !== undefined ? cfg.sealRange : cfg.sealLine;
@@ -57,7 +71,23 @@ export function getPageConfig(pageIndex) {
     // 兼容旧数据（标记没有 applied 字段）
     for (const m of cfg.masks) if (typeof m.applied !== 'boolean') m.applied = false;
     for (const s of cfg.strokes) if (typeof s.applied !== 'boolean') s.applied = false;
+
+    migratedConfigs.add(cfg);
     return cfg;
+}
+
+/**
+ * 通知外部：页面配置已变更
+ *
+ * 触发两件事：
+ *  · 「结果预览」按新配置重绘
+ *  · 编辑配置自动落盘（防抖写 localStorage）
+ *
+ * 只有配置**真的变了**时才需要调用 ——
+ * 单纯的重新渲染（翻页、缩放窗口、旋转后的重绘）不应触发写盘。
+ */
+export function notifyConfigChanged() {
+    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
 /**
@@ -101,21 +131,29 @@ function renderSealZones(config) {
     const wrapper = elements.canvasWrapper;
     if (!wrapper) return;
 
-    // 区域数量可能变化 —— 整体重建，保证每个遮罩与配置一一对应
-    wrapper.querySelectorAll('.seal-zone').forEach(z => z.remove());
+    const seals = collectSeals(config);
 
-    collectSeals(config).forEach((item) => {
-        const zone = document.createElement('div');
+    // 复用已有遮罩：数量不变时只更新位置，避免反复重建 DOM 与重新绑定拖拽事件
+    const existing = wrapper.querySelectorAll('.seal-zone');
+    for (let i = existing.length - 1; i >= seals.length; i--) {
+        existing[i].remove();
+    }
+
+    seals.forEach((item, i) => {
+        let zone = existing[i];
+        if (!zone) {
+            zone = document.createElement('div');
+            zone.appendChild(Object.assign(document.createElement('span'), {
+                className: 'seal-zone-tag',
+                textContent: '密封区'
+            }));
+            wrapper.appendChild(zone);
+            bindSealZoneDrag(zone);
+        }
         zone.className = item.axis === 'y' ? 'seal-zone seal-zone-h' : 'seal-zone';
         zone.dataset.sealAxis = item.axis;
         zone.dataset.sealList = item.list;
         zone.dataset.sealIndex = String(item.index);
-        zone.appendChild(Object.assign(document.createElement('span'), {
-            className: 'seal-zone-tag',
-            textContent: '密封区'
-        }));
-        wrapper.appendChild(zone);
-        bindSealZoneDrag(zone);
         applySealZoneStyle(zone, item);
     });
 }
@@ -131,6 +169,9 @@ function applySealZoneStyle(zone, item) {
 
     if (isY) {
         // 上下：横向密封带（顶部 / 底部）
+        // 先清掉另一轴向可能残留的样式（遮罩会被复用，轴向可能改变）
+        zone.style.width = 'auto';
+        zone.style.bottom = 'auto';
         zone.style.left = '0%';
         zone.style.right = '0%';
         zone.style.top = pct(item.start);
@@ -138,6 +179,8 @@ function applySealZoneStyle(zone, item) {
         zone.title = `密封区域 纵向 ${pct(item.start)} ~ ${pct(item.end)}：拖动可整体移动，拖两侧虚线可调整范围`;
     } else {
         // 左右：竖向密封带（左侧 / 右侧）
+        zone.style.height = 'auto';
+        zone.style.right = 'auto';
         zone.style.top = '0%';
         zone.style.bottom = '0%';
         zone.style.left = pct(item.start);
@@ -155,7 +198,9 @@ function applySealZoneStyle(zone, item) {
  * @param {HTMLElement} zone 遮罩元素
  */
 function bindSealZoneDrag(zone) {
-    const isY = zone.dataset.sealAxis === 'y';
+    // 遮罩元素会被复用，轴向可能随配置变化 —— 每次都从 dataset 现读，
+    // 不能在绑定时把 isY 固定下来（否则复用后会用错轴向读写配置）
+    const isYAxis = () => zone.dataset.sealAxis === 'y';
 
     let dragging = false;
     let startPos = 0;
@@ -166,6 +211,7 @@ function bindSealZoneDrag(zone) {
 
     /** 读取当前密封带（x 轴取 x0/x1，y 轴取 y0/y1） */
     const readSeal = () => {
+        const isY = isYAxis();
         const cfg = getPageConfig(state.currentPage);
         const list = isY ? getSealBands(cfg) : getSealRanges(cfg);
         const s = list[Number(zone.dataset.sealIndex)];
@@ -176,7 +222,7 @@ function bindSealZoneDrag(zone) {
     /** 找到该密封带的两条边界虚线 */
     const findEdges = () => {
         const idx = zone.dataset.sealIndex;
-        const axisAttr = isY ? '[data-seal-axis="y"]' : '';
+        const axisAttr = isYAxis() ? '[data-seal-axis="y"]' : '';
         const sel = `.split-line.seal${axisAttr}[data-seal-index="${idx}"]`;
         return {
             a: elements.canvasWrapper ? elements.canvasWrapper.querySelector(`${sel}[data-seal-edge="0"]`) : null,
@@ -189,7 +235,7 @@ function bindSealZoneDrag(zone) {
         if (!cur) return;
 
         dragging = true;
-        startPos = isY ? clientY : clientX;
+        startPos = isYAxis() ? clientY : clientX;
         startStart = cur.start;
         draft = { ...cur };
 
@@ -202,6 +248,7 @@ function bindSealZoneDrag(zone) {
 
     const onMove = (clientX, clientY) => {
         if (!dragging || !draft) return;
+        const isY = isYAxis();
         const rect = elements.canvasWrapper.getBoundingClientRect();
         const size = isY ? rect.height : rect.width;
         if (!size) return;
@@ -232,6 +279,7 @@ function bindSealZoneDrag(zone) {
         dragging = false;
         zone.classList.remove('dragging-zone');
         if (draft) {
+            const isY = isYAxis();
             const cfg = getPageConfig(state.currentPage);
             const idx = Number(zone.dataset.sealIndex);
             if (isY) {
@@ -407,6 +455,11 @@ function enableApplyButtons() {
 
 /**
  * 渲染当前页的所有辅助线 (切割线 + 密封线)
+ *
+ * 这是一个**纯渲染**函数：只把当前配置画到 DOM 上，不派发任何事件。
+ * 配置真的变了的地方由调用方显式调用 notifyConfigChanged() ——
+ * 否则翻页 / 缩放窗口这类「只是重新画一遍」的操作，
+ * 也会白白触发一次结果预览重绘与 localStorage 写盘。
  */
 export function renderSplitLines() {
     // 清除现有的线
@@ -480,7 +533,6 @@ export function renderSplitLines() {
     // 更新按钮状态：文字恒为「去除密封线」（不随状态变化），
     // 只用颜色区分「已启用 / 未启用」—— 启用时呈蓝色（active-state）。
     const anySeal = seals.length + bands.length > 0;
-    elements.toggleSealLineBtn.innerHTML = '<span class="material-icons">format_shapes</span> 去除密封线';
     elements.toggleSealLineBtn.classList.toggle('active-state', anySeal);
 
     // 遮罩与状态显示
@@ -501,9 +553,6 @@ export function renderSplitLines() {
 
     // 同步「去除分割线」相关按钮与提示
     updateSplitRemoveUI();
-
-    // 通知外部：分割/密封/方向已变更，主画布的「结果预览」需要重绘
-    document.dispatchEvent(new CustomEvent('papersplit:config-changed'));
 }
 
 /**
@@ -775,6 +824,7 @@ function createLineElement(initialX, type, index, onUpdate, clampFn, attrs) {
             const cfg = getPageConfig(state.currentPage);
             cfg.splitLines.splice(index, 1);
             renderSplitLines();
+            notifyConfigChanged();
         });
     }
 
@@ -864,6 +914,7 @@ export function addSplitLine() {
     config.splitLines.push(gapMid);
     config.splitLines.sort((a, b) => a - b);
     renderSplitLines();
+    notifyConfigChanged();
 }
 
 /* ------------------------------------------------------------------ */
@@ -876,8 +927,8 @@ export function addSplitLine() {
  */
 export function toggleRemoveSplitMode() {
     state.removeSplitMode = !state.removeSplitMode;
+    // renderSplitLines 内部已同步「去除分割线」按钮与提示
     renderSplitLines();
-    updateSplitRemoveUI();
 }
 
 /** 退出去除分割线模式 */
@@ -885,7 +936,6 @@ export function exitRemoveSplitMode() {
     if (!state.removeSplitMode) return;
     state.removeSplitMode = false;
     renderSplitLines();
-    updateSplitRemoveUI();
 }
 
 /**
@@ -906,6 +956,7 @@ function removeSplitLineAt(index) {
     renderSplitLines();
     updateSplitRemoveUI();
     flashSplitRemoved();
+    notifyConfigChanged();
 }
 
 /** 同步「去除分割线」相关的按钮与提示文案 */
@@ -969,6 +1020,7 @@ export function setSplitColumns(n) {
 
     config.splitLines = lines;
     renderSplitLines();
+    notifyConfigChanged();
 }
 
 /**
@@ -998,6 +1050,7 @@ export function setSealSide(side) {
         if (isY) config.sealBands = seals;
         else config.sealRanges = seals;
         renderSplitLines();
+        notifyConfigChanged();
         return;
     }
 
@@ -1033,6 +1086,7 @@ export function setSealSide(side) {
     else config.sealRanges = kept;
 
     renderSplitLines();
+    notifyConfigChanged();
 }
 
 /**
@@ -1058,6 +1112,7 @@ export function toggleSealLine() {
     }
 
     renderSplitLines();
+    notifyConfigChanged();
 }
 
 
@@ -1076,6 +1131,7 @@ export function resetSplitLayout() {
 
     renderSplitLines();
     updateSplitRemoveUI();
+    notifyConfigChanged();
 }
 
 /**
@@ -1088,6 +1144,7 @@ export function resetSealAreas() {
     config.sealBands = [];
 
     renderSplitLines();
+    notifyConfigChanged();
 }
 
 /**

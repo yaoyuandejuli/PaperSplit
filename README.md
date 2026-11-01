@@ -112,6 +112,13 @@ npx http-server dist -p 8080
 - **手机端 Header 随滚动折叠**：在底部控制面板里**继续下拉**，顶部 Header 会以 `translateY(-100%)` 平滑向上收起，并把占用的行高**自动还给取景框** —— 中间预览区随之向上填补空间、显示得更大；**上滑或回到面板顶部**时 Header 平滑向下展开。Logo 与页码始终保留（收起后取景框角标继续显示当前页码）。
 - **底部操作区更紧凑**：控制面板占屏比例由 48% 缩到 **43%**（约缩小 10%），内部间距同步压缩，**所有功能模块与按钮一个不少**。
 
+**最新功能（2026-11-01）**
+
+- **导入文件管理（左上角）**：原「已导入文件」升级为「导入文件管理」，并拆出两个独立入口 ——「添加文件」把新文件**追加到列表末尾**（保留当前全部编辑），「导入新文件」以**全新文件重新开始**（清空并替换当前内容），分别对应底层的 `append` / `replace` 导入模式。
+- **缩略图拖拽排序**：左侧页面缩略图支持**直接手动拖动调整顺序**，每页的分割线 / 密封线 / 旋转 / 擦除等编辑配置会跟着页面一起搬家，排序即所见即所得。
+- **编辑面板自适应**：右侧控制面板宽度改为 `clamp(320px, 23vw, 400px)`，随常用显示尺寸动态伸缩，宽屏更舒展、窄屏不拥挤。
+- **导入前配色优化（手机版 + 电脑版）**：未添加文档时的功能调整区改为更柔和的紫调（渐变背景 + 虚线边框 + 紫色图标），与整体站点配色统一；同时补上了此前在 `:root` 中从未定义却被多处引用的 `--primary-light` / `--text-color` 等主题变量，消除潜在配色异常。
+
 <a id="dev"></a>
 
 ## 🚀 快速开始
@@ -188,26 +195,31 @@ npm run publish:pages               # 推到 gh-pages 分支，1-2 分钟生效
 
 ### Docker 部署（飞牛 NAS / 群晖 / 任意 NAS）
 
-仓库里已备好两份现成的 compose 文件（`deploy/` 目录），克隆后改一行路径就能用。
+仓库已内置完整 Docker 方案：`Dockerfile`（nginx 多阶段构建）、`Dockerfile.node`（Node 版）、`deploy/docker-compose.yml` / `deploy/docker-compose.node.yml`（对应两种运行方式），以及 `.github/workflows/publish-docker.yml`（把镜像发布到 GHCR）。
 
-**方案一：nginx（推荐）** —— 只托管 `dist/` 静态文件，镜像小、并发强、最稳
+**方式一：克隆后本地构建（最简单，无需本机装 Node）**
 
 ```bash
 git clone https://github.com/yaoyuandejuli/PaperSplit.git /vol1/docker/papersplit
 cd /vol1/docker/papersplit
-# 编辑 deploy/docker-compose.yml，把 volumes 的路径改成你的实际目录
-docker compose -f deploy/docker-compose.yml up -d
+docker compose -f deploy/docker-compose.yml up -d --build     # nginx 版（推荐）
+# 或 Node 版：
+docker compose -f deploy/docker-compose.node.yml up -d --build
 ```
 
-**方案二：Node 版** —— 用项目自带的服务器（无需额外依赖）
+容器内会自动用源码重新生成 `dist/` 并用 nginx 托管，**始终是最新代码**；以后更新只要 `git pull` 再 `docker compose up -d --build` 即可。
+
+**方式二：直接拉取镜像（推荐给只想用的人）**
+
+首次使用前，先在仓库 **Settings → Actions → General** 把 *Workflow permissions* 设为 **Read and write permissions**，之后每次 push 到 `master` 都会由 `publish-docker.yml` 自动构建并推送镜像：
 
 ```bash
-cd /vol1/docker/papersplit
-docker compose -f deploy/docker-compose.node.yml up -d
+docker pull ghcr.io/yaoyuandejuli/papersplit:latest
+docker run -d --name papersplit -p 8080:80 ghcr.io/yaoyuandejuli/papersplit:latest
+# 浏览器打开 http://<你的设备IP>:8080
 ```
 
-> 两种方案都直接托管**仓库里已构建好的 `dist/`**（构建产物已随仓库提交），所以容器内无需装依赖、无需执行构建。
-> 以后更新只要在宿主机执行 `git pull`，再 `docker compose restart` 即可。
+**飞牛 NAS 实操**：① 在「文件」里把仓库克隆到 `/vol1/docker/papersplit`；② 打开「Docker」→「项目」→「新建项目」，指向 `deploy/docker-compose.yml` 直接部署（或到「镜像」页 `docker pull` 上面的 GHCR 地址、再创建容器并映射端口 `8080`）；③ 完成后访问 `http://<NAS的IP>:8080`。群晖等其它 Docker 环境同理。
 
 ### 任意静态服务器
 
@@ -304,6 +316,14 @@ PDF、JPG、PNG。图片按单页处理。
 [MIT License](LICENSE) © PaperSplit
 
 ## 📅 更新日志
+
+### 2026-11-01
+
+- **导入文件管理：改名 + 拆分成两个入口**：原左上角「已导入文件」改名为「导入文件管理」；新增「添加文件」入口（把新文件追加到已导入列表末尾，**保留当前全部编辑**）与「导入新文件」入口（以全新文件重新开始，**清空并替换**当前内容），分别对应底层 `append` / `replace` 两种导入模式。
+- **左侧缩略图支持手动拖拽排序**：直接拖动页面缩略图即可调整顺序，复用导出前排序底层的 `reorderPages` / `remapPagesData`，每页的分割线 / 密封线 / 旋转 / 擦除标记会跟随页面一起搬家，不会错位。
+- **右侧编辑面板响应式自适应**：面板宽度由固定值改为 `clamp(320px, 23vw, 400px)`，随常用显示尺寸动态伸缩，宽屏更舒展、窄屏不拥挤。
+- **未添加文档前的功能调整区配色优化（手机版 + 电脑版）**：空状态区改为更柔和的紫调渐变背景 + 虚线边框 + 紫色图标，禁用按钮改为贴合站点紫色的柔和态；同时补上了此前在 `:root` 中**从未定义却被多处引用**的 `--primary-light` / `--text-color` 等主题变量，消除潜在配色异常。
+- **代码复核与清理**：复核结果预览与导出链路（已做缓存、分块、渐进释放内存等优化，未做大改以避免风险），移除一处重复注释；构建产物已重新生成并发布。
 
 ### 2026-10-31
 
@@ -430,6 +450,8 @@ Everything happens inside your browser: files are never uploaded, and the app ke
 - **Desktop control panel fits on one screen** — the right-hand panel used to be 1319px tall and needed scrolling to reach the export button. It is now compacted to exactly the available height (986px): slightly wider panel, tighter padding/leading/font sizes, the four seal directions in a single row, slider labels sharing a line with their slider, and status chips moved into the section titles.
 - **Bigger "imported files" area + a dedicated import entry** — the "click a card to jump" hint is gone, cards and the `×` remove button are noticeably larger, and a clearly labelled **"Import new file"** button now sits permanently at the top-left.
 - **Left previews shrink when many files are loaded** — thumbnails switch between one, two and three columns depending on the page count, while the panel stays vertically scrollable so any page can still be reached.
+- **"Import File Management" panel with two entries** — the top-left list was renamed from "Imported Files" to **"Import File Management"**; it now has two distinct buttons: **"Add files"** appends new files to the end of the current list (keeping all existing edits), while **"Import new file"** starts fresh by clearing and replacing everything. The two map to the underlying `append` / `replace` import modes.
+- **Drag-to-reorder thumbnails** — the left-hand page thumbnails can now be **dragged to reorder** directly; each page's split lines, seal regions, rotation and erase marks travel with the page, so reordering is truly WYSIWYG.
 - **Export mode dropdown moved** — the fit-mode selector (including "Standard A4 · proportional with margins") now sits directly above the **Export as PDF** button.
 - **Apply per section** — every panel (orientation, editing tools, seal, post-crop zoom) offers "Apply to Current Page" and "Apply to All Pages" side by side: the first confirms and stores the current page's setup, the second copies it to every page (seal regions are mirrored across odd/even pages to keep the odd-left / even-right symmetry).
 - **A4 export at 2× resolution** — standard 210 × 297 mm PDF via `jsPDF`, with equal-ratio (margins), stretch-to-fill and equal-ratio-cover fit modes; export progress is shown page by page. Pages are rendered at **400 DPI** (twice the previous 200 DPI) so a half of an A3 sheet comes out at 3255 × 4604 px — crisp when printed. Built-in pixel and dimension guards keep large canvases from crashing phones.

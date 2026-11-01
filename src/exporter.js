@@ -64,6 +64,27 @@ function releaseCanvas(canvas) {
 }
 
 /**
+ * 把画布编码成 JPEG 二进制（Uint8Array）
+ *
+ * 为什么不用 `toDataURL`：
+ *  · toDataURL 会先产出 base64 字符串（体积膨胀 1/3），
+ *    jsPDF 随后又要把它解码回二进制 —— 一进一出两次无谓的拷贝。
+ *  · toBlob 直接给出二进制，省掉 base64 编码与解码，导出明显更快、峰值内存更低。
+ * jsPDF 的 addImage 原生支持 Uint8Array（内部按魔术数字识别 JPEG）。
+ *
+ * @param {HTMLCanvasElement} canvas 源画布
+ * @param {number} quality JPEG 质量 (0~1)
+ * @returns {Promise<Uint8Array>} JPEG 二进制数据
+ */
+async function canvasToJpegBytes(canvas, quality) {
+    const blob = await new Promise((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', quality);
+    });
+    if (!blob) throw new Error('切片编码失败');
+    return new Uint8Array(await blob.arrayBuffer());
+}
+
+/**
  * 生成导出文件名：A3-A4-YYMMDDHHmmss.pdf
  *
  * 例如 2026-10-30 20:19:50 → A3-A4-261030201950.pdf
@@ -211,7 +232,9 @@ export async function exportPdf() {
                     sliceCtx.drawImage(eraseOverlay, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
                 }
 
-                const imgData = sliceCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
+                const imgData = await canvasToJpegBytes(sliceCanvas, JPEG_QUALITY);
+                // 切片已编码成二进制，原画布立即释放，避免多页导出时内存堆积
+                releaseCanvas(sliceCanvas);
 
                 // 根据摆放模式 + 裁剪后调整比例，确定内容在 A4 页面上的绘制区域
                 const placement = computePlacement(mode, sWidth / sHeight, outputScale);
