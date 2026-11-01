@@ -1,0 +1,47 @@
+# 自动构建并发布 Docker 镜像到 GitHub Container Registry (GHCR)
+# ------------------------------------------------------------
+# 每次 push 到 master 都会重新构建并推送 latest 标签，
+# 之后在飞牛 NAS / 群晖 / 任意 Docker 环境即可：
+#   docker pull ghcr.io/yaoyuandejuli/papersplit:latest
+#   docker run -d --name papersplit -p 8080:80 ghcr.io/yaoyuandejuli/papersplit:latest
+#
+# 注意：仓库需开启 Packages 写入权限（默认对公共仓库开放）。
+# 首次使用前请在 GitHub 仓库 Settings → Actions → General
+# 把 Workflow permissions 设为 "Read and write permissions"。
+# ------------------------------------------------------------
+name: Publish Docker image
+
+on:
+  push:
+    branches: ["master"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
