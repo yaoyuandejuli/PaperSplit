@@ -1523,6 +1523,46 @@ body.mask-rect-dragging {
 }
 
 /* ==========================================================================
+   未导入文件时的右侧功能键配色
+   ----------------------------------------------------------------------
+   空状态下所有功能都不可用，按钮原本是「禁用态」的淡紫灰
+   （--disabled-bg / --disabled-text），在浅灰面板上几乎看不见，
+   用户不知道那里是一排可点区域。
+
+   这里把「未载入文档」时的功能键改成**白底黑字**：
+     · 底色白（#fff），与面板底色区分开，一眼看出这是可点区域
+     · 文字深色（--text-main），清晰可读
+     · 选中态仍保持紫色（active-state 的优先级更高，不受影响）
+   已载入文档后（body.has-doc）恢复为原来的禁用态配色。
+
+   注意：底部「导出为 PDF」是 .btn.success（紫色主色），
+        不在 .btn.secondary 规则范围内，配色保持不变。
+
+   ⚠️ .btn:disabled 用了 !important 覆盖禁用态配色，
+      所以这里也必须带 !important 才能压过它。
+
+   ⚠️ 选中态用 :not(.active-state) 排除，而不是另写一条更具体的规则 ——
+      两条规则都带 !important 时，比的是「选择器特异度」而非书写顺序。
+      若选中态规则的选择器少一个类，特异度更低，反而会被白底规则压掉。
+      用 :not() 排除后，两条规则特异度相同，
+      后面书写的选中态规则才会胜出（同一特异度下后写的生效）。
+   ========================================================================== */
+body:not(.has-doc) .right-panel .btn.secondary:not(.active-state):disabled {
+    background: #ffffff !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+    opacity: 1;
+}
+
+/* 选中态优先级更高：即使在未导入状态，选中的功能键仍是紫色 */
+body:not(.has-doc) .right-panel .btn.secondary.active-state,
+body:not(.has-doc) .right-panel .btn.secondary.active-state:disabled {
+    background: #eef2ff !important;
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* ==========================================================================
    Responsive Design (Mobile)
    ========================================================================== */
 @media (max-width: 768px) {
@@ -1902,6 +1942,78 @@ body.mask-rect-dragging {
         max-height: 33dvh;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+    }
+
+    /* ======================================================================
+       手机端控件尺寸自适应
+       ----------------------------------------------------------------------
+       手机屏幕从 320px 到 430px 宽、从 640px 到 1024px 高都有，
+       固定尺寸的按钮在小屏上显得拥挤、在大屏上又显得局促。
+
+       这里按视口宽高双向缩放：
+         · 窄屏（<380px）整体收窄，避免横向溢出
+         · 高屏（≥900px，如平板竖屏 / 折叠屏展开）整体放大，
+           键位更大更好点，同时面板高度占比略增
+       ====================================================================== */
+    .right-panel .btn {
+        font-size: clamp(0.82rem, 0.74rem + 1.6vw, 1rem);
+        padding: clamp(6px, 1.2vw + 3px, 11px) clamp(4px, 1vw, 10px);
+        min-height: clamp(30px, 4vw + 16px, 42px);
+    }
+
+    .right-panel .btn-group .btn {
+        font-size: clamp(0.74rem, 0.68rem + 1.4vw, 0.9rem);
+        padding: clamp(5px, 1vw + 3px, 9px) clamp(3px, 0.9vw, 8px);
+        min-height: clamp(28px, 3.6vw + 15px, 38px);
+    }
+
+    .right-panel .panel-section h3 {
+        font-size: clamp(0.82rem, 0.76rem + 1.5vw, 1rem);
+    }
+
+    .right-panel .tools-grid {
+        padding: clamp(7px, 1.6vw + 4px, 14px);
+        gap: clamp(7px, 1.4vw + 4px, 14px);
+    }
+
+    .right-panel .status-chip {
+        font-size: clamp(0.68rem, 0.64rem + 1vw, 0.82rem);
+    }
+
+    .right-panel .select-input {
+        font-size: clamp(0.8rem, 0.75rem + 1.2vw, 0.95rem);
+    }
+
+    .right-panel .export-title {
+        font-size: clamp(0.85rem, 0.8rem + 1.3vw, 1.05rem);
+    }
+
+    .right-panel .guide-toggle-title {
+        font-size: clamp(0.82rem, 0.78rem + 1.2vw, 0.95rem);
+    }
+
+    .right-panel .fine-step-btn {
+        width: clamp(22px, 5.4vw + 8px, 32px);
+        height: clamp(22px, 5.4vw + 8px, 32px);
+        font-size: clamp(0.95rem, 0.88rem + 1.6vw, 1.2rem);
+    }
+
+    /* 大屏手机 / 平板竖屏：面板占比略增，控件进一步放大 */
+    @media (min-height: 900px) {
+        .right-panel {
+            height: 46dvh;
+            max-height: 54dvh;
+        }
+
+        .right-panel .btn {
+            font-size: clamp(0.9rem, 0.8rem + 0.3vh, 1.1rem);
+            min-height: clamp(36px, 3vh + 24px, 50px);
+        }
+
+        .right-panel .btn-group .btn {
+            font-size: clamp(0.8rem, 0.72rem + 0.25vh, 0.98rem);
+            min-height: clamp(34px, 2.6vh + 22px, 46px);
+        }
     }
 
     .tools-grid {
@@ -2796,6 +2908,127 @@ body.modal-open {
         min-height: 0;
         max-height: none;
         align-self: stretch;
+    }
+
+    /* ======================================================================
+       高分辨率适配（2560×1440 及以上）
+       ----------------------------------------------------------------------
+       问题：面板虽然已占满整列高度，但各模块是**固定尺寸**的 ——
+             在 1440p 这类大屏上，内容总高远小于面板高度，
+             于是底部出现一大片空白（实测 2560×1440 下有 400px+ 空白），
+             功能键挤在顶部一小块区域，点击目标也偏小。
+
+       做法：把「模块高度」与「控件尺寸」都改成随视口高度自适应的比例值：
+             · 字体、间距用 clamp(最小, 期望, 最大)，期望值跟 vh 走；
+             · 各功能模块用 flex: 1 撑满剩余高度，控件在模块内居中；
+             · spacer 改为 flex: 0 —— 空白由模块本身吸收，而不是留白。
+
+       效果：1920×1080 ~ 2560×1440 之间，功能键均匀铺满整列，
+             键位更大更好点，且任何中间分辨率都不会出现空白带。
+       ====================================================================== */
+    @media (min-height: 1000px) {
+        .right-panel {
+            /* 大屏上放宽间距与内边距：留白用在模块之间，而不是堆在底部 */
+            padding: 12px 14px;
+            gap: 10px;
+        }
+
+        /* 模块标题：随高度放大 */
+        .panel-section h3 {
+            font-size: clamp(0.95rem, 0.82rem + 0.35vh, 1.2rem);
+        }
+
+        /* 模块之间的分隔线留出更多呼吸感 */
+        .panel-divider {
+            margin: 6px 0;
+        }
+
+        /* 各功能模块：撑满剩余空间，控件在模块内垂直居中 */
+        .right-panel > .panel-section {
+            flex: 1 1 auto;
+            justify-content: center;
+            min-height: 0;
+        }
+
+        /* 「操作指南」折叠时不必撑高，展开时再撑满 */
+        .right-panel > .panel-section.guide-section {
+            flex: 0 0 auto;
+        }
+
+        /* 按钮：随高度放大到更舒适的点击尺寸 */
+        .right-panel .btn {
+            font-size: clamp(0.85rem, 0.78rem + 0.28vh, 1.05rem);
+            padding: clamp(5px, 0.4vh + 3px, 11px) clamp(3px, 0.35vw, 12px);
+            min-height: clamp(28px, 2.4vh + 8px, 44px);
+        }
+
+        /* 按钮组内的次级按钮（两栏/三栏、应用当前页等） */
+        .right-panel .btn-group .btn {
+            font-size: clamp(0.72rem, 0.66rem + 0.24vh, 0.95rem);
+            padding: clamp(5px, 0.35vh + 3px, 10px) clamp(2px, 0.3vw, 10px);
+            min-height: clamp(26px, 2.2vh + 7px, 40px);
+        }
+
+        /* 滑块：加高，拖动更好使 */
+        .right-panel .rotate-slider > input[type="range"] {
+            height: clamp(12px, 1vh + 8px, 22px);
+        }
+
+        .right-panel .fine-stepper input[type="range"] {
+            height: clamp(22px, 2vh + 10px, 38px);
+        }
+
+        .right-panel .fine-step-btn {
+            width: clamp(22px, 1.8vh + 10px, 34px);
+            height: clamp(22px, 1.8vh + 10px, 34px);
+            font-size: clamp(0.95rem, 0.85rem + 0.3vh, 1.3rem);
+        }
+
+        /* 卡片容器：内边距与行距同步放大 */
+        .right-panel .tools-grid {
+            padding: clamp(7px, 0.8vh + 4px, 16px);
+            gap: clamp(6px, 0.7vh + 3px, 14px);
+        }
+
+        /* 状态标签 */
+        .right-panel .status-chip {
+            font-size: clamp(0.68rem, 0.62rem + 0.2vh, 0.85rem);
+            padding: clamp(2px, 0.25vh + 1px, 6px) clamp(8px, 0.6vw, 14px);
+        }
+
+        .right-panel .status-line {
+            min-height: clamp(18px, 1.6vh + 6px, 30px);
+        }
+
+        /* 下拉框 */
+        .right-panel .select-input {
+            font-size: clamp(0.82rem, 0.76rem + 0.2vh, 1rem);
+            padding: clamp(5px, 0.5vh + 3px, 12px) clamp(28px, 1.8vw, 40px) clamp(5px, 0.5vh + 3px, 12px) clamp(9px, 0.7vw, 16px);
+        }
+
+        /* 导出区标题 */
+        .right-panel .export-title {
+            font-size: clamp(0.88rem, 0.8rem + 0.25vh, 1.1rem);
+        }
+
+        .right-panel .export-size-note {
+            font-size: clamp(0.62rem, 0.58rem + 0.15vh, 0.78rem);
+        }
+
+        /* 指南标题 */
+        .right-panel .guide-toggle-title {
+            font-size: clamp(0.82rem, 0.76rem + 0.2vh, 1rem);
+        }
+
+        .right-panel .guide-toggle {
+            padding: clamp(6px, 0.6vh + 4px, 14px) clamp(9px, 0.8vw, 18px);
+        }
+
+        /* spacer 不再留白 —— 空白由各功能模块吸收 */
+        .right-panel .spacer {
+            flex: 0 0 0;
+            min-height: 0;
+        }
     }
 
     /* 导出区：两个次级按钮并排一行，下拉框与导出按钮各占一行 */

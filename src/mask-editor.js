@@ -312,7 +312,23 @@ export function renderAppliedErasures(pageCanvas) {
 /**
  * 渲染涂抹笔迹图层（与页面画布同尺寸的透明画布）
  */
-function renderStrokeOverlay(strokes) {
+/**
+ * 渲染涂抹笔迹图层（与页面画布同尺寸的透明画布）
+ *
+ * ## 性能
+ *
+ * 涂抹时每个 pointermove 都会调用本函数。若每次都「清空整张画布 + 重画全部笔迹」，
+ * 一条几十个点的笔迹在拖动过程中会被反复重绘几十次 ——
+ * 而笔迹图层是一张全尺寸画布（与页面画布等大，几 MB 级），
+ * clearRect + 重绘的开销随手速线性增长，高速涂抹时明显掉帧。
+ *
+ * 改为**增量绘制**：
+ *  · 已有笔迹只在「笔迹集合变化」时重画一次（翻页 / 应用 / 撤销等场景）
+ *  · 拖动过程中新增的点只画「新增的那一小段」，不清空、不重画旧笔迹
+ *
+ * 通过 trackedStrokeCount 记录已绘制到画布上的笔迹数量来判断是否需要整体重绘。
+ */
+function renderStrokeOverlay(strokes, incremental) {
     const wrapper = elements.canvasWrapper;
     if (!wrapper) return;
 
@@ -328,7 +344,8 @@ function renderStrokeOverlay(strokes) {
     }
     // 只有尺寸真的变了才重新设置 —— 给 canvas 赋 width/height 会清空画布并重新分配显存，
     // 旋转 / 翻页时尺寸不变，重复赋值纯属浪费（一张全尺寸画布的分配+清空并不便宜）。
-    if (overlay.width !== W || overlay.height !== H) {
+    const sizeChanged = overlay.width !== W || overlay.height !== H;
+    if (sizeChanged) {
         overlay.width = W;
         overlay.height = H;
         overlay.style.width = `${W}px`;
@@ -336,9 +353,22 @@ function renderStrokeOverlay(strokes) {
     }
 
     const ctx = overlay.getContext('2d');
-    ctx.clearRect(0, 0, W, H);
 
-    // 已完成的笔迹：待应用=红色标记；已应用=极淡轮廓（内容已被真正擦除）
+    // 增量模式：只画「本次新增的笔迹尾段」，不清空画布
+    if (incremental && !sizeChanged && drag && drag.type === 'brush' && drag.stroke) {
+        const stroke = drag.stroke;
+        const pts = stroke.points;
+        // 已绘制到画布上的点数（trackedStrokeCount 记录笔迹条数，这里额外记录点数）
+        if (stroke.drawnPointCount !== undefined && stroke.drawnPointCount < pts.length) {
+            // 只画新增的那一段：从上一个点连到当前点
+            drawStrokeSegment(ctx, stroke, stroke.drawnPointCount, pts.length, W, H, MARK_STYLE);
+            stroke.drawnPointCount = pts.length;
+        }
+        return;
+    }
+
+    // 整体重绘：清空 + 画全部笔迹
+    ctx.clearRect(0, 0, W, H);
     for (const s of strokes) {
         if (s.applied) {
             drawEraseStroke(ctx, s, W, H, {
@@ -352,7 +382,66 @@ function renderStrokeOverlay(strokes) {
     // 正在涂抹的笔迹（实时预览）
     if (drag && drag.type === 'brush' && drag.stroke) {
         drawEraseStroke(ctx, drag.stroke, W, H, MARK_STYLE);
+        drag.stroke.drawnPointCount = drag.stroke.points.length;
     }
+}
+
+/**
+ * 只绘制一条笔迹的某一段（增量涂抹用）
+ *
+ * 与 drawEraseStroke 的区别：不重画整条笔迹，只画 [from, to) 这一段点。
+ * 单点笔迹（从段起点起笔）会画成一个圆点，与整体绘制保持一致。
+ *
+ * @param {CanvasRenderingContext2D} ctx 目标上下文
+ * @param {Object} stroke 笔迹数据
+ * @param {number} from 起始点下标（含）
+ * @param {number} to 结束点下标（不含）
+ * @param {number} width  画布像素宽
+ * @param {number} height 画布像素高
+ * @param {Object} style 样式（fillStyle / lineStyle）
+ */
+function drawStrokeSegment(ctx, stroke, from, to, width, height, style) {
+    const pts = (stroke && Array.isArray(stroke.points)) ? stroke.points : [];
+    if (to <= from || pts.length === 0) return;
+
+    const w = Math.max(1, (Number(stroke.width) || 0.02) * width);
+    const { fillStyle = null, lineStyle = null } = style || {};
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    if (from === 0 && pts.length === 1) {
+        // 单点：画一个圆点
+        ctx.arc(pts[0][0] * width, pts[0][1] * height, w / 2, 0, Math.PI * 2);
+        if (fillStyle) {
+            ctx.fillStyle = fillStyle;
+            ctx.fill();
+        } else if (lineStyle) {
+            ctx.strokeStyle = lineStyle;
+            ctx.lineWidth = Math.max(1, w * 0.14);
+            ctx.stroke();
+        }
+    } else {
+        const startIdx = Math.max(0, from - 1); // 多带一个点，保证与前一段相连
+        ctx.moveTo(pts[startIdx][0] * width, pts[startIdx][1] * height);
+        for (let i = startIdx + 1; i < to && i < pts.length; i++) {
+            ctx.lineTo(pts[i][0] * width, pts[i][1] * height);
+        }
+        if (fillStyle) {
+            ctx.fillStyle = fillStyle;
+            ctx.strokeStyle = fillStyle;
+            ctx.lineWidth = w;
+            ctx.stroke();
+        } else if (lineStyle) {
+            ctx.strokeStyle = lineStyle;
+            ctx.lineWidth = Math.max(1, w * 0.14);
+            ctx.stroke();
+        }
+    }
+
+    ctx.restore();
 }
 
 /** 同步按钮与提示文案 */
@@ -573,7 +662,8 @@ function addBrushPoint(clientX, clientY) {
     if (dx * dx + dy * dy < minDist * minDist) return;
 
     pts.push([p.x, p.y]);
-    renderStrokeOverlay(getStrokes());
+    // 增量绘制：只画新增的这一小段，不清空画布、不重画旧笔迹
+    renderStrokeOverlay(getStrokes(), true);
 }
 
 /** 更新拖拽中的框选几何 */

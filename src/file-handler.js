@@ -112,6 +112,9 @@ async function importFiles(files, mode) {
     if (elements.emptyState) elements.emptyState.style.display = 'none';
     // 标记已载入文档：中间预览区切换为 A3 取景框
     if (elements.canvasContainer) elements.canvasContainer.classList.add('has-doc');
+    // 标记「已载入文档」：右侧控制面板切换到工作态配色
+    // （未载入时按钮为白底黑字，便于在空状态下看清可点区域）
+    document.body.classList.add('has-doc');
     const leftPanel = document.querySelector('.left-panel');
     if (leftPanel) leftPanel.style.display = 'flex';
 

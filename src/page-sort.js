@@ -9,7 +9,7 @@
  */
 import { state } from './state.js';
 import { elements } from './dom.js';
-import { getPageSource, reorderPages } from './documents.js';
+import { reorderPages } from './documents.js';
 import { renderThumbnails, renderCurrentPage, updatePageControls } from './viewer.js';
 import { showToast } from './toast.js';
 import { loadImage } from './utils.js';

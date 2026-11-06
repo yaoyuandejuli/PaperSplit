@@ -43,6 +43,51 @@ const RENDER_WIDTH = 1200;
 let workCache = { key: '', canvas: null };
 
 /**
+ * 擦除层缓存
+ *
+ * 擦除层是一张与页面画布等大的透明画布，而它是**纯几何产物**：
+ * 只由「本页已应用的笔迹」决定，与缩放比例、导出模式、滑块位置都无关。
+ *
+ * 原实现每次渲染预览都重新 buildEraseOverlay —— 也就是每帧都要
+ * 新建一张全尺寸画布并把所有笔迹重画一遍。拖动输出比例滑块时
+ * 每秒能触发数十次预览重绘，这部分开销纯属浪费。
+ *
+ * 缓存键用「页码 + 笔迹内容指纹」，笔迹一变就自动失效重建。
+ */
+let eraseCache = { key: '', canvas: null };
+
+/**
+ * 计算笔迹集合的指纹（用于缓存失效判断）
+ * @param {Array} strokes 已应用的笔迹
+ * @returns {string} 指纹字符串
+ */
+function strokeFingerprint(strokes) {
+    if (!strokes || !strokes.length) return '';
+    let s = '';
+    for (const st of strokes) {
+        s += st.id + ':' + (st.applied ? 1 : 0) + ':' + st.points.length + ':' + st.width + ';';
+    }
+    return s;
+}
+
+/**
+ * 取本页的白色擦除层（带缓存）
+ *
+ * @param {Array} appliedStrokes 已应用的笔迹
+ * @param {number} width  画布宽
+ * @param {number} height 画布高
+ * @returns {HTMLCanvasElement|null}
+ */
+function getEraseOverlay(appliedStrokes, width, height) {
+    const key = `${state.currentPage}|${width}x${height}|${strokeFingerprint(appliedStrokes)}`;
+    if (eraseCache.key === key && eraseCache.canvas) return eraseCache.canvas;
+
+    const canvas = buildEraseOverlay(appliedStrokes, width, height, { fillStyle: '#ffffff' });
+    eraseCache = { key, canvas };
+    return canvas;
+}
+
+/**
  * 取当前页的页面内容画布（已应用方向旋转），带缓存
  * @returns {Promise<HTMLCanvasElement|null>}
  */
@@ -93,6 +138,7 @@ export async function renderPageContentCanvas(targetWidth = RENDER_WIDTH) {
  */
 export function clearResultPreviewCache() {
     workCache = { key: '', canvas: null };
+    eraseCache = { key: '', canvas: null };
     previewReady = false;
     markPreviewReady();
 }
@@ -195,10 +241,10 @@ export async function renderResultPreview() {
 
     // 「涂抹擦除」：生成白色擦除层，预览与导出保持一致
     // 只处理【已应用】的笔迹，未应用的属于草稿标记
+    // 擦除层走缓存 —— 它只由笔迹决定，与缩放/模式/滑块无关，
+    // 每帧重建一张全尺寸画布纯属浪费。
     const appliedStrokes = (cfg.strokes || []).filter(s => s.applied);
-    const eraseOverlay = buildEraseOverlay(
-        appliedStrokes, work.width, work.height, { fillStyle: '#ffffff' }
-    );
+    const eraseOverlay = getEraseOverlay(appliedStrokes, work.width, work.height);
 
     const ranges = getSliceRanges(cfg)
         .filter(r => (r[1] - r[0]) > 0.01);
