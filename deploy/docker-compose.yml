@@ -14,6 +14,9 @@
 # 飞牛 NAS：把仓库克隆到 /vol1/docker/papersplit 后，在「Docker → 项目」里
 # 指向本文件并部署；或 SSH 进 NAS 执行上面的命令。
 # 完成后浏览器访问 http://<NAS的IP>:8080
+#
+# 端口：默认对外暴露 8080。如需修改，改 .env 里的 PORT 即可
+#      （例如 PORT=9090），无需改动本文件。
 # ------------------------------------------------------------
 services:
   papersplit:
@@ -23,5 +26,17 @@ services:
     image: ghcr.io/yaoyuandejuli/papersplit:latest
     container_name: papersplit
     ports:
-      - "8080:80"
+      - "${PORT:-8080}:80"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    # 静态站点不吃 CPU，限制一下避免在 NAS 上抢占过多资源
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M

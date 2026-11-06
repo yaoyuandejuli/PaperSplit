@@ -43,5 +43,8 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/${{ github.repository }}:latest
+          # 同时构建 amd64 与 arm64 —— 飞牛 NAS / 群晖常见为 ARM64 芯片，
+          # 只发 amd64 会在 ARM 设备上退化为模拟执行（极慢）或直接报 exec format error。
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max

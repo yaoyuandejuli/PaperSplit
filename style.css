@@ -397,6 +397,10 @@ body {
     gap: 16px;
     overflow-y: auto;
     flex-shrink: 0;
+    /* 作为 flex 行内成员，默认 stretch 即可撑满整列高度；
+       min-height: 0 允许内部滚动时正常收缩，不会溢出父容器 */
+    align-self: stretch;
+    min-height: 0;
 }
 
 .panel-section {
@@ -1992,8 +1996,10 @@ body.mask-rect-dragging {
     }
 }
 
-/* 矮屏（<=700px 高）：控制面板占比从 43% 降到 39.5%，画布不至于被挤没 */
-@media (max-height: 700px) {
+/* 矮屏（<=700px 高）：控制面板占比从 43% 降到 39.5%，画布不至于被挤没
+   注意：必须同时限定 max-width，否则桌面端矮窗口也会被这条规则压成半屏，
+   导致右侧工具栏只占上半部分（之前漏写宽度条件即为此类问题）。 */
+@media (max-width: 768px) and (max-height: 700px) {
     .right-panel {
         height: 39.5vh;
         height: 39.5dvh;
@@ -2001,7 +2007,7 @@ body.mask-rect-dragging {
 }
 
 /* 超矮屏（<=600px 高）：再降一档，保证控制面板底部（导出按钮）不被裁掉 */
-@media (max-height: 600px) {
+@media (max-width: 768px) and (max-height: 600px) {
     .right-panel {
         height: 37.5vh;
         height: 37.5dvh;
@@ -2064,6 +2070,15 @@ body.mask-rect-dragging {
 .spacer {
     height: 10px;
     flex: 0;
+}
+
+/* 桌面端：面板撑满整列后，用弹性占位把「文件导出」区顶到面板底部，
+   避免导出按钮悬在面板中间（手机端仍保持固定高度，spacer 高度为 0）。 */
+@media (min-width: 769px) {
+    .right-panel .spacer {
+        flex: 1 1 auto;
+        min-height: 10px;
+    }
 }
 
 .v-divider {
@@ -2750,6 +2765,13 @@ body.modal-open {
         width: clamp(320px, 23vw, 400px);
         padding: 8px 10px;
         gap: 6px;
+        /* 桌面端：面板高度撑满整列（主视区全高），内容过长时内部滚动。
+           显式覆盖手机端的 height / min-height / max-height，避免被
+           max-height 媒体查询或手机端规则残留值压成半屏。 */
+        height: 100%;
+        min-height: 0;
+        max-height: none;
+        align-self: stretch;
     }
 
     /* 导出区：两个次级按钮并排一行，下拉框与导出按钮各占一行 */

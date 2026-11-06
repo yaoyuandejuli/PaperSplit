@@ -1,9 +1,39 @@
+# 构建镜像时不需要的内容
+# 注意：dist / docs 虽被排除，但 Dockerfile 会在构建阶段由 src/ 重新生成 dist/，
+# 因此不会影响镜像内容。
+
+# 依赖与缓存
 node_modules
-npm-debug.log
+.npm
+.pnpm-store
+.npm-cache
+*.tgz
+
+# 本地临时目录（构建上下文里绝对不能出现）
+.tmp*
+tmp*
+.temp*
+*.tmp
+
+# 版本控制与 CI
 .git
 .gitignore
+.gitattributes
+.github
+
+# 构建产物（镜像内会重新生成）
 dist
 docs
-screenshots
-.github
+
+# 开发与调试文件
+.vscode
+.idea
+*.log
+debug.log
 *.md
+LICENSE
+screenshots
+
+# 系统垃圾文件
+.DS_Store
+Thumbs.db

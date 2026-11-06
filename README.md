@@ -215,11 +215,18 @@ docker compose -f deploy/docker-compose.node.yml up -d --build
 
 ```bash
 docker pull ghcr.io/yaoyuandejuli/papersplit:latest
-docker run -d --name papersplit -p 8080:80 ghcr.io/yaoyuandejuli/papersplit:latest
+docker run -d --name papersplit -p 8080:80 --restart unless-stopped \
+  ghcr.io/yaoyuandejuli/papersplit:latest
 # 浏览器打开 http://<你的设备IP>:8080
 ```
 
+> 镜像同时提供 `linux/amd64` 与 `linux/arm64` 两个架构 —— 飞牛 NAS / 群晖常见为 ARM64 芯片，
+> Docker 会自动选择匹配架构，无需手动指定 `--platform`。
+
 **飞牛 NAS 实操**：① 在「文件」里把仓库克隆到 `/vol1/docker/papersplit`；② 打开「Docker」→「项目」→「新建项目」，指向 `deploy/docker-compose.yml` 直接部署（或到「镜像」页 `docker pull` 上面的 GHCR 地址、再创建容器并映射端口 `8080`）；③ 完成后访问 `http://<NAS的IP>:8080`。群晖等其它 Docker 环境同理。
+
+> 需要自定义端口、健康检查、资源限制等更多细节，见 **[deploy/README.md](deploy/README.md)**。
+> Docker 相关文件已统一为 LF 行尾（见 `.gitattributes`），在 Windows 上检出后也能正常构建。
 
 ### 任意静态服务器
 
