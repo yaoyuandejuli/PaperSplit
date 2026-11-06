@@ -61,6 +61,52 @@ export function drawEraseStroke(ctx, stroke, width, height, options = {}) {
 }
 
 /**
+ * 加载一张图片并等待解码完成
+ *
+ * 为什么需要自己包一层（而不是直接 `await new Promise(r => img.onload = r)`）：
+ *   1. 只监听 onload 时，图片损坏 / blob URL 失效 / 内存不足会触发 onerror 而非 onload，
+ *      Promise 将永远挂起 —— 导出流程会卡死在「正在准备导出…」，连 finally 都执行不到，
+ *      按钮永久 disabled，用户只能刷新页面；
+ *   2. 图片已在浏览器缓存时仍可能走异步路径，必须等 load 事件；
+ *   3. 加超时兜底，避免极端情况下 onload / onerror 都不触发导致请求链卡死。
+ *
+ * @param {HTMLImageElement} img 已设置好 src 的图片元素
+ * @param {number} timeoutMs 超时毫秒数
+ * @returns {Promise<void>} 加载成功 resolve，失败或超时 reject
+ */
+export function loadImage(img, timeoutMs = 15000) {
+    return new Promise((resolve, reject) => {
+        // 已完成加载的图片（complete 且有尺寸）直接放行，避免漏掉事件
+        if (img.complete && img.naturalWidth > 0) {
+            resolve();
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            cleanup();
+            reject(new Error('图片加载超时'));
+        }, timeoutMs);
+
+        function cleanup() {
+            clearTimeout(timer);
+            img.onload = null;
+            img.onerror = null;
+        }
+        function onLoad() {
+            cleanup();
+            resolve();
+        }
+        function onError() {
+            cleanup();
+            reject(new Error('图片解码失败'));
+        }
+
+        img.onload = onLoad;
+        img.onerror = onError;
+    });
+}
+
+/**
  * 把一组笔迹渲染成一张「擦除层」画布（透明底 + 白色笔迹）
  * 导出时把该层与切片叠加，被擦除的内容即被真正覆盖。
  *

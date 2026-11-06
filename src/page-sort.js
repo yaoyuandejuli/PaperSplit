@@ -12,6 +12,7 @@ import { elements } from './dom.js';
 import { getPageSource, reorderPages } from './documents.js';
 import { renderThumbnails, renderCurrentPage, updatePageControls } from './viewer.js';
 import { showToast } from './toast.js';
+import { loadImage } from './utils.js';
 
 /** 面板内的工作副本：[{ docId, localPage }] */
 let working = [];
@@ -241,7 +242,8 @@ async function renderThumb(source) {
     } else {
         const img = new Image();
         img.src = source.doc.imageUrl;
-        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+        // 带 onerror + 超时的加载：图片损坏时 reject 而非永久挂起
+        await loadImage(img);
         const w = Math.max(1, Math.round(img.width * scale));
         const h = Math.max(1, Math.round(img.height * scale));
         canvas.width = w;

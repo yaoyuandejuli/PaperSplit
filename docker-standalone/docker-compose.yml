@@ -1,0 +1,43 @@
+# PaperSplit · 独立部署包
+# ------------------------------------------------------------
+# 用法（在本目录下执行）：
+#
+#      docker compose up -d --build
+#
+# 启动后浏览器访问：  http://localhost:5173/
+# 局域网内其他设备：  http://<本机IP>:5173/
+#
+# 常用命令：
+#      docker compose ps              查看状态与健康检查
+#      docker compose logs -f         实时日志
+#      docker compose down            停止并移除容器
+#      docker compose up -d --build   重新构建并替换
+#
+# 这个包是自包含的：只需要 Docker，不需要 Node / npm，
+# 构建过程不联网（静态产物已包含在 html/ 目录里）。
+# 需要换端口：复制 .env.example 为 .env 并修改 PORT。
+# ------------------------------------------------------------
+services:
+  papersplit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: papersplit-standalone:latest
+    # 独立包使用独立的容器名 —— 与根目录 compose 的 papersplit 区分开，
+    # 避免两套部署同时存在时报 "container name is already in use"
+    container_name: papersplit-standalone
+    ports:
+      - "${PORT:-5173}:5173"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    # 纯静态服务，资源占用很低
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M

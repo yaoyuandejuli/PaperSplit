@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import { getPageConfig } from './editor.js';
 import { getPageSource } from './documents.js';
-import { rotateCanvas, rotatedBounds, buildEraseOverlay } from './utils.js';
+import { rotateCanvas, rotatedBounds, buildEraseOverlay, loadImage } from './utils.js';
 import { getSliceRanges, getVerticalRange, computePlacement, getMaskRectsInSlice, A4_WIDTH, A4_HEIGHT } from './export-geometry.js';
 
 /**
@@ -173,7 +173,8 @@ export async function exportPdf() {
             } else {
                 const img = new Image();
                 img.src = source.doc.imageUrl;
-                await new Promise(r => img.onload = r);
+                // 带 onerror + 超时的加载：图片损坏时 reject 而非永久挂起
+                await loadImage(img);
                 const rot = rotatedBounds(img.width, img.height, rotation);
                 const rotBaseW = rot.width;
                 const scale = computeRenderScale(targetSlicePx, minRatio, rotBaseW, rot.height, 1, 6);

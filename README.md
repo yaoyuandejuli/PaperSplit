@@ -195,17 +195,20 @@ npm run publish:pages               # 推到 gh-pages 分支，1-2 分钟生效
 
 ### Docker 部署（飞牛 NAS / 群晖 / 任意 NAS）
 
-仓库已内置完整 Docker 方案：`Dockerfile`（nginx 多阶段构建）、`Dockerfile.node`（Node 版）、`deploy/docker-compose.yml` / `deploy/docker-compose.node.yml`（对应两种运行方式），以及 `.github/workflows/publish-docker.yml`（把镜像发布到 GHCR）。
+仓库已内置完整 Docker 方案：根目录的 `docker-compose.yml`（nginx 版，**开箱即用**）、`docker-compose.node.yml`（Node 版），以及 `Dockerfile` / `Dockerfile.node`（多阶段构建）、`deploy/nginx.conf`（站点配置）、`.github/workflows/publish-docker.yml`（把镜像发布到 GHCR）。
 
-**方式一：克隆后本地构建（最简单，无需本机装 Node）**
+**方式一：一键部署（最简单，无需本机装 Node）**
+
+在**仓库根目录**执行：
 
 ```bash
-git clone https://github.com/yaoyuandejuli/PaperSplit.git /vol1/docker/papersplit
-cd /vol1/docker/papersplit
-docker compose -f deploy/docker-compose.yml up -d --build     # nginx 版（推荐）
-# 或 Node 版：
-docker compose -f deploy/docker-compose.node.yml up -d --build
+docker compose up -d --build
 ```
+
+启动后访问 **http://localhost:5173/**（局域网内其他设备用 `http://<本机IP>:5173/`）。
+
+`docker compose` 会自动发现根目录的 `docker-compose.yml`，无需 `-f` 参数。
+想换成 Node 版就用 `docker compose -f docker-compose.node.yml up -d --build`。
 
 容器内会自动用源码重新生成 `dist/` 并用 nginx 托管，**始终是最新代码**；以后更新只要 `git pull` 再 `docker compose up -d --build` 即可。
 
@@ -215,17 +218,17 @@ docker compose -f deploy/docker-compose.node.yml up -d --build
 
 ```bash
 docker pull ghcr.io/yaoyuandejuli/papersplit:latest
-docker run -d --name papersplit -p 8080:80 --restart unless-stopped \
+docker run -d --name papersplit -p 5173:5173 --restart unless-stopped \
   ghcr.io/yaoyuandejuli/papersplit:latest
-# 浏览器打开 http://<你的设备IP>:8080
+# 浏览器打开 http://<你的设备IP>:5173
 ```
 
 > 镜像同时提供 `linux/amd64` 与 `linux/arm64` 两个架构 —— 飞牛 NAS / 群晖常见为 ARM64 芯片，
 > Docker 会自动选择匹配架构，无需手动指定 `--platform`。
 
-**飞牛 NAS 实操**：① 在「文件」里把仓库克隆到 `/vol1/docker/papersplit`；② 打开「Docker」→「项目」→「新建项目」，指向 `deploy/docker-compose.yml` 直接部署（或到「镜像」页 `docker pull` 上面的 GHCR 地址、再创建容器并映射端口 `8080`）；③ 完成后访问 `http://<NAS的IP>:8080`。群晖等其它 Docker 环境同理。
+**飞牛 NAS 实操**：① 在「文件」里把仓库克隆到 `/vol1/docker/papersplit`；② 打开「Docker」→「项目」→「新建项目」，指向**根目录**的 `docker-compose.yml` 直接部署（或到「镜像」页 `docker pull` 上面的 GHCR 地址、再创建容器并映射端口 `5173`）；③ 完成后访问 `http://<NAS的IP>:5173`。群晖等其它 Docker 环境同理。
 
-> 需要自定义端口、健康检查、资源限制等更多细节，见 **[deploy/README.md](deploy/README.md)**。
+> 需要自定义端口、健康检查、资源限制等更多细节，见 **[README.docker.md](README.docker.md)**。
 > Docker 相关文件已统一为 LF 行尾（见 `.gitattributes`），在 Windows 上检出后也能正常构建。
 
 ### 任意静态服务器

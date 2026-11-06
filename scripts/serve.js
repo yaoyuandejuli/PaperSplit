@@ -91,24 +91,28 @@ const server = http.createServer((req, res) => {
     if (pathname.endsWith('/')) pathname += 'index.html';
 
     const filePath = path.join(DIR, pathname);
-    // 防目录穿越
-    if (!filePath.startsWith(DIR)) {
+    // 防目录穿越。
+    // 用 path.resolve 归一化后再比较，并补上路径分隔符 ——
+    // 单纯 startsWith(DIR) 是字符串前缀比较，会把 '/srv/dist-secret/x'
+    // 这种「以 DIR 开头但不在 DIR 内」的路径也判为通过。
+    const resolved = path.resolve(filePath);
+    if (resolved !== DIR && !resolved.startsWith(DIR + path.sep)) {
         res.writeHead(403).end('Forbidden');
         return;
     }
 
-    fs.stat(filePath, (err, stat) => {
+    fs.stat(resolved, (err, stat) => {
         if (err || !stat.isFile()) {
             res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('404 Not Found');
             return;
         }
-        const type = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
+        const type = MIME[path.extname(resolved).toLowerCase()] || 'application/octet-stream';
         res.writeHead(200, {
             'Content-Type': type,
             'Content-Length': stat.size,
             'Cache-Control': 'no-cache'
         });
-        fs.createReadStream(filePath).pipe(res);
+        fs.createReadStream(resolved).pipe(res);
     });
 });
 

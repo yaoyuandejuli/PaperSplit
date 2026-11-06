@@ -25,7 +25,8 @@ FROM nginx:1.27-alpine
 # 自定义配置：正确处理 SPA 回退与带哈希资源的长期缓存
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
+# 容器内监听 5173（与 docker-compose.yml 的 5173:5173 映射一致）
+EXPOSE 5173
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1
+  CMD wget -qO- http://localhost:5173/ >/dev/null 2>&1 || exit 1
 CMD ["nginx", "-g", "daemon off;"]

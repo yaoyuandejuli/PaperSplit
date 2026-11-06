@@ -1,26 +1,26 @@
 # PaperSplit · Node 版（用项目自带零依赖服务器 scripts/serve.js）
 # ------------------------------------------------------------
 # 与 nginx 版功能完全一致，只是运行阶段改用 Node 内置模块起服务，
-# 不引入 nginx 依赖，镜像更小。用法：
-#      docker compose -f deploy/docker-compose.node.yml up -d --build
+# 不引入 nginx 依赖，镜像更小。用法（在仓库根目录执行）：
+#      docker compose -f docker-compose.node.yml up -d --build
 #      # 或拉取镜像后直接跑：
-#      docker run -d --name papersplit-node -p 8080:8080 papersplit-node:latest
-# 访问 http://<设备IP>:8080
+#      docker run -d --name papersplit-node -p 5173:5173 papersplit-node:latest
+# 访问 http://<设备IP>:5173
 #
-# 端口：默认对外暴露 8080。如需修改，改 .env 里的 PORT 即可。
+# 端口：默认对外暴露 5173。如需修改，改 .env 里的 PORT 即可。
 # ------------------------------------------------------------
 services:
   papersplit:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile.node
     image: papersplit-node:latest
     container_name: papersplit-node
     ports:
-      - "${PORT:-8080}:8080"
+      - "${PORT:-5173}:5173"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
       interval: 30s
       timeout: 3s
       retries: 3

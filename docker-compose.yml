@@ -1,0 +1,45 @@
+# PaperSplit · 一键本地部署
+# ------------------------------------------------------------
+# 用法（在仓库根目录执行）：
+#
+#      docker compose up -d --build
+#
+# 启动后浏览器访问：  http://localhost:5173/
+# 局域网内其他设备：  http://<本机IP>:5173/
+#
+# 常用命令：
+#      docker compose ps              查看状态与健康检查
+#      docker compose logs -f         实时日志
+#      docker compose down            停止并移除容器
+#      docker compose up -d --build   重新构建并替换为最新代码
+#
+# 说明：
+#   · 容器内会用 src/ 重新生成 dist/，因此镜像里始终是最新代码，
+#     仓库中提交的 dist/ 不会被使用。
+#   · 换端口：复制 .env.example 为 .env 并修改 PORT 即可。
+#   · 纯静态服务，容器内不存放、不上传任何试卷文件。
+#   · 镜像基于 nginx 运行；想换成项目自带的 Node 静态服务器，
+#     用 docker compose -f docker-compose.node.yml up -d --build
+# ------------------------------------------------------------
+services:
+  papersplit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: papersplit:latest
+    container_name: papersplit
+    ports:
+      - "${PORT:-5173}:5173"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    # 静态站点不吃 CPU，限制一下避免占用过多资源
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M

@@ -1,0 +1,7 @@
+# 构建时不需要的文件（本包无 node_modules，仅排除系统垃圾文件）
+*.log
+debug.log
+.DS_Store
+Thumbs.db
+.env
+README.md

@@ -203,6 +203,30 @@ body {
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
+/* 缩略图渲染失败（图片损坏等）：保留占位框，仍可点击跳转 */
+.thumbnail-item.thumb-error {
+    min-height: 60px;
+    background: repeating-linear-gradient(
+        45deg,
+        var(--secondary-color),
+        var(--secondary-color) 8px,
+        #e9edf3 8px,
+        #e9edf3 16px
+    );
+    position: relative;
+}
+
+.thumbnail-item.thumb-error::after {
+    content: '加载失败';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+
 /* 缩略图可手动拖动排序 */
 .thumbnail-item {
     cursor: grab;

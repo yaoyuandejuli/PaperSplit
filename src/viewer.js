@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { elements } from './dom.js';
 import { renderSplitLines, getPageConfig, syncRotationUI, notifyConfigChanged } from './editor.js';
 import { renderMasks, renderAppliedErasures, hasAppliedErasures } from './mask-editor.js';
-import { rotateCanvas, cloneCanvas } from './utils.js';
+import { rotateCanvas, cloneCanvas, loadImage } from './utils.js';
 import { syncCropZoomFromPage } from './crop-adjust.js';
 import { getPageSource, reorderPages } from './documents.js';
 import { showToast } from './toast.js';
@@ -467,7 +467,8 @@ export async function renderThumbnails() {
             // 图片缩略图
             const img = new Image();
             img.src = source.doc.imageUrl;
-            await new Promise(r => img.onload = r);
+            // 带 onerror + 超时的加载：图片损坏时 reject 而非永久挂起
+            await loadImage(img);
 
             // 简单的缩放
             const scale = 0.2; // 略微缩小
@@ -489,6 +490,16 @@ export async function renderThumbnails() {
         thumbainer.appendChild(pageNum);
     };
 
-    // 并行渲染：页数多时比逐页 await 快得多
-    await Promise.all(slots.map(renderOne));
+    // 并行渲染：页数多时比逐页 await 快得多。
+    // 逐页兜底错误 —— 单页图片损坏时只影响该页缩略图，
+    // 不能让 Promise.all 整体 reject 导致所有缩略图都渲染不出来。
+    await Promise.all(slots.map(async (slot) => {
+        try {
+            await renderOne(slot);
+        } catch (e) {
+            console.error(`第 ${slot.page} 页缩略图渲染失败`, e);
+            // 保留占位框，只是不显示画面，缩略图仍可点击跳转
+            slot.thumbainer.classList.add('thumb-error');
+        }
+    }));
 }

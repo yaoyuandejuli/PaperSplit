@@ -22,14 +22,19 @@ docker-compose*.yml    text eol=lf
 .gitignore             text eol=lf
 .gitattributes          text eol=lf
 
-# 二进制文件不做行尾转换
-*.png                  binary
-*.jpg                  binary
-*.jpeg                 binary
-*.gif                  binary
-*.ico                  binary
-*.pdf                  binary
-*.woff                 binary
-*.woff2                binary
-*.ttf                  binary
-*.eot                  binary
+# 二进制文件：不做行尾转换，也不参与差异比较。
+#
+# 这里显式写 `-text -diff -eol` 而不是 Git 的 `binary` 宏 ——
+# `binary` 宏展开后是 `-text -diff`，**不含 -eol**，
+# 会被上面的 `* text=auto eol=lf` 留下的 eol 属性影响；
+# 补上 `-eol` 才能彻底关闭行尾相关属性，避免二进制被误当文本处理。
+*.png                  -text -diff -eol
+*.jpg                  -text -diff -eol
+*.jpeg                 -text -diff -eol
+*.gif                  -text -diff -eol
+*.ico                  -text -diff -eol
+*.pdf                  -text -diff -eol
+*.woff                 -text -diff -eol
+*.woff2                -text -diff -eol
+*.ttf                  -text -diff -eol
+*.eot                  -text -diff -eol
