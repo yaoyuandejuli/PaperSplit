@@ -15,9 +15,9 @@
     <title>PaperSplit - 试卷本地拆分，一键适配A4打印</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <!-- 字体（Material Icons / Outfit）已本地打包，由 src/main.js 引入，不再依赖 Google CDN -->
-  <script type="module" crossorigin src="./assets/index-D4meJJ03.js"></script>
+  <script type="module" crossorigin src="./assets/index-BR5hTxFW.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/pdf-core-xYRcKbug.js">
-  <link rel="stylesheet" crossorigin href="./assets/index-D7scRtEv.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-BDngB1dk.css">
 </head>
 
 <body>
@@ -153,7 +153,8 @@
                 <div class="panel-section guide-section">
                     <button type="button" class="guide-toggle" id="guideToggle"
                         aria-expanded="false" aria-controls="guideContent">
-                        <span class="guide-toggle-title">📋 操作指南</span>
+                        <span class="guide-toggle-title"><span class="mod-icon mod-icon-guide"
+                            aria-hidden="true"><span class="material-icons">menu_book</span></span>操作指南</span>
                         <span class="guide-toggle-hint" id="guideHint">点击展开</span>
                         <span class="material-icons guide-chevron" aria-hidden="true">expand_more</span>
                     </button>
@@ -162,88 +163,77 @@
                             <div class="step-num">1</div>
                             <div class="step-text">
                                 <strong>导入试卷</strong>
-                                <p>可一次选择多个 PDF 或图片，合并成一份连续文档；左上角「导入文件管理」区可滑动查看全部文档：点「添加文件」把新文件追加到末尾（保留当前编辑），点「导入新文件」以全新文件重新开始（清空并替换），点「×」移除单个文档</p>
+                                <p>可一次选多个 PDF 或图片，合并成一份文档。「添加文件」追加到末尾，「导入新文件」重新开始，「×」移除单个文档</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">2</div>
                             <div class="step-text">
                                 <strong>方向校正</strong>
-                                <p>文件斜歪时，用「左转 / 右转」把内容转正，「重置」可归零（每页独立，角度实时显示）；滑块两侧的「−」「+」可逐 0.5° 微调，滑块下方的「应用当前页」保存到本页，或「应用所有页」一键复制到全部页面</p>
+                                <p>「左转 / 右转」把歪斜的试卷转正，「重置」归零；滑块两侧「−」「+」逐 0.5° 微调</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">3</div>
                             <div class="step-text">
                                 <strong>调整分割</strong>
-                                <p>点「两栏」一分为二、点「三栏」一分为三，「重置」可恢复默认单中线；也可拖动红色实线微调，双击某条线删除。调好后用「应用当前页」保存到本页，或「应用所有页」一键复制到全部页面</p>
+                                <p>「两栏」「三栏」快速分栏，也可拖动红色实线微调、双击删除</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">4</div>
                             <div class="step-text">
                                 <strong>擦除内容（可选）</strong>
-                                <p>框选或涂抹要擦除的内容，点「应用」后画布直接显示擦除后的效果；点「重置」可清除本页全部擦除痕迹</p>
+                                <p>框选或涂抹要去掉的内容，点「应用」生效，「重置」清除</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">5</div>
                             <div class="step-text">
                                 <strong>密封线调整（可选）</strong>
-                                <p>点「去除密封线」开启密封区域（默认奇数页靠左、偶数页靠右），斜纹阴影标出的部分导出时会被裁掉；开启后<strong>直接拖动斜纹区即可整体平移</strong>，拖动两侧虚线可调整范围（位置不限）。<strong>「左侧」「右侧」「上侧」「下侧」四个方向可独立开关、可同时存在</strong> —— 左右是竖向密封带，上下是横向密封带（裁掉顶部 / 底部）。「重置」可清除本页全部密封区域</p>
+                                <p>「去除密封线」开启后，斜纹区会在导出时被裁掉；可拖动整体平移，也可分别开关左 / 右 / 上 / 下四个方向</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">6</div>
                             <div class="step-text">
                                 <strong>输出比例调整（可选）</strong>
-                                <p>裁剪后的文字过小，使用「放大/缩小/重置」或下方滑块调整成品页上的大小，再用「应用当前页」或「应用所有页」写入。</p>
-                                <p>操作本模块时，<strong>上方主画布会自动切换为「结果预览」</strong>，直接显示处理后的 A4 成品页，拖动滑块可实时看到大小变化。</p>
+                                <p>裁剪后文字太小，用「放大 / 缩小 / 重置」调整成品页上的大小。主画布会切到「打印结果预览」，实时看到效果</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">7</div>
                             <div class="step-text">
                                 <strong>导出前排序</strong>
-                                <p>如需调整页面先后，点「导出前排序」逐页拖动调整（跨文件也可以）</p>
+                                <p>需要调整页序时，点「导出前排序」逐页拖动，跨文件也可以</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">8</div>
                             <div class="step-text">
                                 <strong>文件导出</strong>
-                                <p>文件调整完成之后，点击「导出为 PDF」导出标准 A4 的 PDF；导出按 <strong>400 DPI（2 倍高清）</strong> 渲染，打印更锐利</p>
+                                <p>点「导出为 PDF」得到标准 A4 文件，按 <strong>400 DPI</strong> 渲染，打印更锐利</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">9</div>
                             <div class="step-text">
                                 <strong>自动保存</strong>
-                                <p>编辑内容自动保存在本机浏览器，重新打开同一文件即可恢复分割线、旋转与擦除设置；数据不会上传，可用「清除本文件保存记录」重置</p>
+                                <p>编辑内容自动存在本机浏览器，重开同一文件即可恢复；数据不会上传</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">10</div>
                             <div class="step-text">
-                                <strong>A3 取景框</strong>
-                                <p>中间预览区是一个<strong>固定不动的红色实线框</strong>，比例严格等于 A3 横版（420×297mm）；试卷图片始终放在框内显示，旋转或放大后<strong>超出红框的部分会被自动隐藏</strong>。双指可缩放 / 平移图片，双击画面复位。</p>
+                                <strong>取景框与画布</strong>
+                                <p>中间红色实线框固定为 A3 比例，超出部分自动隐藏；双指缩放平移，双击复位。画布有「原图编辑」与「打印结果预览」两态，切换模块时自动对应</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-num">11</div>
                             <div class="step-text">
                                 <strong>手机端布局</strong>
-                                <p>手机上整页不滚动：顶部是「已导入文件」与缩略图，中间是<strong>始终可见的取景框</strong>，下方控制面板占下半屏并<strong>独立滚动</strong>，滑动时会<strong>自动吸附</strong>到某个功能模块上；在面板里继续下拉时顶部 Header 会<strong>平滑收起</strong>，把空间让给取景框，上滑即可恢复</p>
-                            </div>
-                        </div>
-                        <div class="step-item">
-                            <div class="step-num">12</div>
-                            <div class="step-text">
-                                <strong>主画布双态</strong>
-                                <p>主画布有<strong>两种形态</strong>，左上角始终有标签提示当前看到的是什么：</p>
-                                <p>· <strong>[ 原图编辑 ]</strong> —— 带红框、分割线、密封线的原图，用于排版操作（默认状态）</p>
-                                <p>· <strong>[ 打印结果预览 ]</strong> —— 处理后的最终 A4 成品页（双页效果），用于确认输出比例</p>
-                                <p>在「输出比例调整」里操作会自动切到<strong>打印结果预览</strong>；点击其它模块（方向调整 / 编辑工具 / 擦除 / 密封线）则自动切回<strong>原图编辑</strong>，两种形态之间平滑淡入淡出，不会闪烁。</p>
+                                <p>整页不滚动：上方是文件与缩略图，中间是始终可见的取景框，下方控制面板独立滚动并自动吸附到模块</p>
                             </div>
                         </div>
                     </div>
@@ -252,7 +242,7 @@
                 <div class="panel-divider"></div>
 
                 <div class="panel-section" data-canvas-mode="edit">
-                    <h3>🔄 方向调整</h3>
+                    <h3><span class="mod-icon mod-icon-rotate" aria-hidden="true"><span class="material-icons">rotate_right</span></span>方向调整</h3>
                     <div class="tools-grid">
                         <div class="btn-group rotate-group">
                             <button id="rotateLeftBtn" class="btn secondary" disabled title="逆时针旋转 90°">
@@ -294,7 +284,7 @@
                 </div>
 
                 <div class="panel-section" data-canvas-mode="edit">
-                    <h3>🛠️ 编辑工具</h3>
+                    <h3><span class="mod-icon mod-icon-edit" aria-hidden="true"><span class="material-icons">build</span></span>编辑工具</h3>
                     <div class="tools-grid">
                         <div class="btn-group split-preset-group">
                             <button id="splitHalfBtn" class="btn secondary" disabled title="把文档平均分成两栏（一分为二）">
@@ -334,7 +324,7 @@
 
                 <div class="panel-section" data-canvas-mode="edit">
                     <h3 class="seal-title-row">
-                        <span>🧽 擦除内容（可选）</span>
+                        <span><span class="mod-icon mod-icon-erase" aria-hidden="true"><span class="material-icons">ink_eraser</span></span>擦除内容（可选）</span>
                         <span class="status-chip" id="maskCount">尚未擦除</span>
                     </h3>
                     <div class="tools-grid">
@@ -375,7 +365,7 @@
                 <div class="panel-section" data-canvas-mode="edit">
                     <!-- 标题与状态标签同行：状态紧跟在标题右侧，不再单独占一行 -->
                     <h3 class="seal-title-row">
-                        <span>🔒 密封线调整（可选）</span>
+                        <span><span class="mod-icon mod-icon-seal" aria-hidden="true"><span class="material-icons">lock</span></span>密封线调整（可选）</span>
                         <span class="status-chip seal-state" id="sealStatus">未启用</span>
                     </h3>
                     <div class="tools-grid">
@@ -427,7 +417,7 @@
 
                 <div class="panel-section" data-canvas-mode="preview">
                     <h3 class="seal-title-row">
-                        <span>📐 输出比例调整（可选）</span>
+                        <span><span class="mod-icon mod-icon-zoom" aria-hidden="true"><span class="material-icons">aspect_ratio</span></span>输出比例调整（可选）</span>
                         <span class="status-chip" id="cropZoomState">已应用</span>
                     </h3>
                     <div class="tools-grid">

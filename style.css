@@ -464,6 +464,80 @@ body {
     margin-bottom: 4px;
 }
 
+/* ==========================================================================
+   模块标题图标（mod-icon）
+   ----------------------------------------------------------------------
+   右侧功能栏各模块的标题图标统一为「圆形浅色底 + 单色图标」：
+     · 尺寸、圆角、基线对齐完全一致 —— 各模块视觉重量相同，
+       不会因为某个图标本身更大就显得头重脚轻；
+     · 每个模块一个色系，一眼能区分功能分区；
+     · 方向调整用琥珀/黄色（旋转 / 校准的直观联想），
+       其余用青、紫、粉、靛等低饱和色，与紫色主色系协调但不喧宾夺主。
+
+   用 Material Icons 而不是 emoji —— emoji 各平台长相不一、
+   尺寸也不可控，跨设备观感差异明显；图标字体则完全一致。
+   ========================================================================== */
+.mod-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6em;
+    height: 1.6em;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    line-height: 1;
+    background: var(--mod-icon-bg, #f1f5f9);
+    color: var(--mod-icon-fg, var(--text-secondary));
+    box-shadow: inset 0 0 0 1px var(--mod-icon-ring, var(--border-color));
+}
+
+/* 内部图标本身不继承父级字号设定，统一按容器比例缩放 */
+.mod-icon .material-icons {
+    font-size: 1em;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    color: inherit;
+}
+
+/* 各模块配色：低饱和浅底 + 同色系深色图标，和整体扁平风格一致 */
+.mod-icon-rotate {
+    --mod-icon-bg: #fef3c7;      /* 琥珀 —— 方向调整 */
+    --mod-icon-ring: #fcd34d;
+    --mod-icon-fg: #b45309;
+}
+
+.mod-icon-edit {
+    --mod-icon-bg: #dbeafe;      /* 天蓝 —— 编辑工具 */
+    --mod-icon-ring: #93c5fd;
+    --mod-icon-fg: #1d4ed8;
+}
+
+.mod-icon-erase {
+    --mod-icon-bg: #fce7f3;      /* 粉 —— 擦除内容 */
+    --mod-icon-ring: #f9a8d4;
+    --mod-icon-fg: #be185d;
+}
+
+.mod-icon-seal {
+    --mod-icon-bg: #ede9fe;      /* 靛 —— 密封线 */
+    --mod-icon-ring: #c4b5fd;
+    --mod-icon-fg: #5b21b6;
+}
+
+.mod-icon-zoom {
+    --mod-icon-bg: #ccfbf1;      /* 青 —— 输出比例 */
+    --mod-icon-ring: #5eead4;
+    --mod-icon-fg: #0f766e;
+}
+
+.mod-icon-guide {
+    --mod-icon-bg: #e0e7ff;      /* 淡靛 —— 操作指南 */
+    --mod-icon-ring: #a5b4fc;
+    --mod-icon-fg: #4338ca;
+}
+
 .panel-divider {
     height: 1px;
     background-color: var(--border-color);
@@ -950,15 +1024,15 @@ a:focus-visible {
 }
 
 .step-num {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     background-color: #e0e7ff;
     color: var(--primary-color);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 700;
     flex-shrink: 0;
     margin-top: 2px;
@@ -966,15 +1040,15 @@ a:focus-visible {
 
 .step-text strong {
     display: block;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     color: var(--text-main);
-    margin-bottom: 4px;
+    margin-bottom: 3px;
 }
 
 .step-text p {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: var(--text-secondary);
-    line-height: 1.4;
+    line-height: 1.5;
     margin: 0;
 }
 
@@ -1015,13 +1089,17 @@ a:focus-visible {
     flex: 1 1 auto;
     font-size: 0.95rem;
     font-weight: 600;
+    /* 与各功能模块标题一致：图标 + 文字同行 */
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .guide-toggle-hint {
     flex: 0 0 auto;
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--primary-color);
+    color: var(--text-secondary);
     letter-spacing: 0.5px;
     white-space: nowrap;
 }
@@ -1082,15 +1160,24 @@ a:focus-visible {
     min-height: 22px;
 }
 
+/* ==========================================================================
+   状态徽标（已应用 / 尚未擦除 / 0° / 100% …）
+   ----------------------------------------------------------------------
+   配色统一为「中性灰底 + 深色字」：
+   这些徽标只是**数值/状态提示**，不是可点按钮，
+   用主色紫会和「可点击 / 已选中」的紫色混淆 ——
+   用户容易以为「尚未擦除」这种紫色标签也是按钮。
+   改成中性色后，紫色只留给真正可交互的元素，层级更清晰。
+   ========================================================================== */
 .status-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     padding: 2px 9px;
     border-radius: 999px;
-    background: #eef2ff;
-    border: 1px solid #e0e7ff;
-    color: #4f46e5;
+    background: #f1f5f9;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
     font-size: 0.72rem;
     font-weight: 600;
     line-height: 1.5;
@@ -1100,16 +1187,19 @@ a:focus-visible {
     max-width: 100%;
 }
 
+/* 「输出比例」的数值徽标：同样中性化 */
 .status-chip.crop-zoom-state {
-    background: #eef2ff;
-    border-color: #e0e7ff;
-    color: #4f46e5;
+    background: #f1f5f9;
+    border-color: var(--border-color);
+    color: var(--text-main);
 }
 
+/* 待应用状态（改了但还没点「应用」）：用琥珀色提示「有未提交的改动」，
+   与常规中性态区分开 —— 这里的琥珀是唯一保留的彩色状态 */
 .status-chip.crop-zoom-state.pending {
     background: #fffbeb;
     border-color: #fde68a;
-    color: #b45309;
+    color: #92400e;
 }
 
 /* Export fit-mode selector */
@@ -2338,17 +2428,19 @@ body:not(.has-doc) .right-panel .btn.secondary.active-state:disabled {
     user-select: none;
 }
 
-/* 状态徽标：启用时高亮 */
+/* 状态徽标：启用时高亮
+   与其它状态徽标保持同一套中性配色，只用底色深浅区分「启用 / 未启用」，
+   文字统一深色 —— 紫色只留给可交互元素 */
 .status-chip.seal-state {
     background: #f1f5f9;
     border-color: var(--border-color);
-    color: var(--text-secondary);
+    color: var(--text-main);
 }
 
 .status-chip.seal-state.seal-on {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-    color: #4338ca;
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+    color: var(--text-main);
 }
 
 
@@ -2950,9 +3042,29 @@ body.modal-open {
             min-height: 0;
         }
 
-        /* 「操作指南」折叠时不必撑高，展开时再撑满 */
+        /* 「操作指南」折叠时不必撑高 */
         .right-panel > .panel-section.guide-section {
             flex: 0 0 auto;
+        }
+
+        /* 指南**展开**后：各模块改为不可压缩 —— 否则内容变多时
+           flex 收缩会把下面每个模块挤成一条缝（按钮几乎点不到）。
+           此时改为由面板整体滚动，模块保持自然高度。
+           :has() 依据「指南是否展开」自动切换，无需额外 JS 状态。 */
+        .right-panel:has(.guide-toggle[aria-expanded="true"]) > .panel-section {
+            flex: 1 0 auto;
+        }
+
+        /* 展开后的指南内容独立滚动：
+           指南有 11 条、约 1600 字，全部展开接近 1000px，
+           会把下面所有功能模块挤出视口。
+           限制高度并让内容区自己滚动，
+           「操作指南」这一块始终占固定位置，不会推挤其它模块。 */
+        .right-panel .guide-steps {
+            max-height: 42vh;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
 
         /* 按钮：随高度放大到更舒适的点击尺寸 */
