@@ -239,9 +239,19 @@ export function renderMasks() {
             el = document.createElement('div');
             wrapper.appendChild(el);
         }
-        el.className = m.applied ? 'mask-rect applied' : 'mask-rect';
+        // 已应用的框选：擦除效果已烘焙进页面画布（该处内容变白），
+        // 不再叠加任何轮廓 —— 否则会看到「框在里面、擦除在外面」两层。
+        // 已应用 = 效果已生效，直接隐藏这个 DOM 标记即可。
+        if (m.applied) {
+            el.style.display = 'none';
+            el.className = 'mask-rect applied';
+            el.dataset.maskIndex = String(idx);
+            return;
+        }
+        el.style.display = '';
+        el.className = 'mask-rect';
         el.dataset.maskIndex = String(idx);
-        el.title = m.applied ? '已应用擦除（如需修改请先撤销）' : '拖动可移动位置，点击可删除';
+        el.title = '拖动可移动位置，点击可删除';
         el.style.left = `${m.x * 100}%`;
         el.style.top = `${m.y * 100}%`;
         el.style.width = `${m.w * 100}%`;
@@ -368,16 +378,16 @@ function renderStrokeOverlay(strokes, incremental) {
     }
 
     // 整体重绘：清空 + 画全部笔迹
+    //
+    // 注意：**已应用**的笔迹不再画任何轮廓。
+    // 「应用」后擦除效果已经真正烘焙进页面画布（内容变成白色），
+    // 若这里再画一层淡色轮廓，用户会看到「线在里面、擦除在外面」两层，
+    // 像是同一处擦了两遍。
+    // 已应用 = 效果已生效，不需要额外的视觉标记。
     ctx.clearRect(0, 0, W, H);
     for (const s of strokes) {
-        if (s.applied) {
-            drawEraseStroke(ctx, s, W, H, {
-                fillStyle: 'rgba(148, 163, 184, 0.10)',
-                lineStyle: 'rgba(100, 116, 139, 0.45)'
-            });
-        } else {
-            drawEraseStroke(ctx, s, W, H, MARK_STYLE);
-        }
+        if (s.applied) continue;   // 已应用：效果已在页面画布上，不重复绘制
+        drawEraseStroke(ctx, s, W, H, MARK_STYLE);
     }
     // 正在涂抹的笔迹（实时预览）
     if (drag && drag.type === 'brush' && drag.stroke) {

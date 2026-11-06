@@ -1469,12 +1469,11 @@ a:focus-visible {
     pointer-events: none;
 }
 
-/* 已应用的框选：内容已被真正擦除，仅保留浅色虚线轮廓提示位置 */
+/* 已应用的框选：擦除效果已烘焙进页面画布，标记本身直接隐藏
+   （见 mask-editor.js 的 renderMasks）—— 不再叠加轮廓，
+   避免出现「框在里面、擦除在外面」两层显示 */
 .mask-rect.applied {
-    background: transparent;
-    border: 1px dashed rgba(100, 116, 139, 0.75);
-    pointer-events: none;
-    cursor: default;
+    display: none;
 }
 
 /* 「应用」按钮的已应用反馈 */
